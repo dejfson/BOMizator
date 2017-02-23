@@ -33,6 +33,7 @@ all the embedded components
 
 import fnmatch
 import os
+from collections import defaultdict
 
 class sch_parser(object):
     """ Parses the KiCad schematics files for components
@@ -49,6 +50,7 @@ class sch_parser(object):
                 self.matches.append(os.path.join(root, filename))
 
         self.current_state = self._sm_catch_header
+        self.components = defaultdict(list)
 
         # define attributes dictionary for the component, each entry
         # has to correspond to specific attributes
@@ -93,7 +95,10 @@ class sch_parser(object):
             # these are in principle not components
             if not self.current_component['L'][1].startswith('#'):
                 print "Found component ",\
-                    self.current_component['L'][1], ":", self.current_component['F']['1'][0]
+                    self.current_component['L'][1], ":",\
+                    self.current_component['F']['1'][0]
+                self.components[self.current_component['L'][1]] = self.current_component
+
             self.current_state = self._sm_catch_header
 
     def _attribute_generic(self, line):
