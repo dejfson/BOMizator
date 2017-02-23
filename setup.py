@@ -11,6 +11,6 @@ setup(name='farnellBOM',
       description = "KiCad BOM CSV to Farnell linker",
       author = 'David Belohrad',
       author_email = 'david.belohrad@cern.ch',
-      install_requires = [],
+      install_requires = [ ],
       scripts=['bin/farnellBOM', ]
       )

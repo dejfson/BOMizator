@@ -42,6 +42,7 @@ import sys
 import os
 from PyQt4 import QtGui, uic
 import csv
+from sch_parser import sch_parser
 
 
 localpath = os.path.dirname(os.path.realpath(__file__))
@@ -57,14 +58,32 @@ class BOMLinker(QtGui.QMainWindow, form_class):
 
         self.BOM = []
 
-        try:
-            with open(sys.argv[1], 'rb') as csvfile:
-                csvdata = csv.reader(csvfile, delimiter=';')
-                for row in csvdata:
-                    print row
-        except IOError:
-            print "Give CSV BOM exported from PCBNEW"
-            sys.exit(-1)
+        # load and parse all the components from the project
+        self.SCH = sch_parser(sys.argv[1])
+        self.SCH.parse_components()
+
+        # standard headers for the treeview
+        self.header = ["Designator",
+                       "Reference",
+                       "Manufacturer",
+                       "Mfr. no",
+                       "Datasheet"]
+        self.model = QtGui.QStandardItemModel(self.treeView)
+        self.model.setHorizontalHeaderLabels(self.header)
+
+        # having headers we might deploy the data into the multicolumn
+        # view. We need to collect all the data:
+        for itemData in self.SCH.BOM():
+            self.model.appendRow(map(
+                QtGui.QStandardItem, list(itemData)))
+        # and put the model into the place
+        self.treeView.setModel(self.model)
+
+        # as the model is filled with the data, we can resize columns
+        for i in xrange(len(self.header)):
+            self.treeView.resizeColumnToContents(i)
+
+        self.showMaximized()
 
 def main():
     """

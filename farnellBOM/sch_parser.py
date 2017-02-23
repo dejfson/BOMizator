@@ -43,7 +43,7 @@ class sch_parser(object):
         """ dirname = KiCad project directory containing schematics files
         """
         self.dirname = dirname
-
+        self.debug = False
         self.matches = []
         for root, dirnames, filenames in os.walk(self.dirname):
             for filename in fnmatch.filter(filenames, '*.sch'):
@@ -94,9 +94,10 @@ class sch_parser(object):
             # check here if it is not a power supply or ground, as
             # these are in principle not components
             if not self.current_component['L'][1].startswith('#'):
-                print "Found component ",\
-                    self.current_component['L'][1], ":",\
-                    self.current_component['F']['1'][0]
+                if self.debug:
+                    print "Found component ",\
+                        self.current_component['L'][1], ":",\
+                        self.current_component['F']['1'][0]
                 self.components[self.current_component['L'][1]] = self.current_component
 
             self.current_state = self._sm_catch_header
@@ -169,5 +170,41 @@ class sch_parser(object):
                 for line in f:
                     self.current_state(line)
 
-a = sch_parser('/home/belohrad/git/beaglebone_relay_multiplexor/beaglebone_relad_kicad')
-a.parse_components()
+    def BOM(self):
+        """ iterator returns always a text-based list of [designator,
+        library part, manufacturer, mfg reference]. If some of those
+        do not exist, empty strings are returned
+        """
+
+        # this kind of data to be expected:
+        # Q1 {'P': ['8900', '9700'], 'U': ['1', '1', '589E4C6E'], 'L': ['BSS138', 'Q1'], 'X': ['1    8900 9700', '1    0    0    -1'], 'F': {'1': ['"BSS138"', 'H', '9091', '9655', '50', '', '0000', 'L', 'CNN'], '0': ['"Q1"', 'H', '9091', '9746', '50', '', '0000', 'L', 'CNN'], '3': ['""', 'H', '-1950', '2100', '50', '', '0001', 'L', 'CNN'], '2': ['"TO_SOT_Packages_SMD:SOT-23"', 'H', '-1750', '2025', '50', '', '0001', 'L', 'CIN'], '4': ['"2306392"', 'H', '8900', '9700', '60', '', '0001', 'C', 'CNN', '"FARNELL"']}}
+
+        for key, value in self.components.items():
+            data = [value['L'][1], # designator
+                    value['L'][0]] # library reference
+            # now we have to see in 'L' attributes entires correct
+            # attribute names
+            datasheet, mfg, mfgno = '', '', ''
+            for f_number, f_data in value['F'].items():
+                if int(f_number) == 3:
+                    # datasheet (this is part of schematics)
+                    datasheet = f_data[0].replace('"', '')
+                elif int(f_number) > 3 and\
+                     f_data[-1].find("supplier_ref") != -1:
+                    # supplier reference number
+                    mfgno = f_data[0].replace('"', '')
+                elif int(f_number) > 3 and\
+                     f_data[-1].find("supplier") != -1:
+                    # supplier name
+                    mfg = f_data[0].replace('"', '')
+
+            yield value['L'][1],\
+                value['L'][0],\
+                mfg,\
+                mfgno,\
+                datasheet
+
+if __name__ == '__main__':
+    # test stuff
+    a = sch_parser('/home/belohrad/git/beaglebone_relay_multiplexor/beaglebone_relad_kicad')
+    a.parse_components()
