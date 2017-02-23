@@ -38,9 +38,40 @@ hack-style tool, which allows the PCB designer to quickly search for
 manufacturer part independently of the values of the libraries.
 """
 
+import sys
+import os
+from PyQt4 import QtGui, uic
+import csv
+
+
+localpath = os.path.dirname(os.path.realpath(__file__))
+form_class = uic.loadUiType(os.path.join(localpath, "BOMLinker.ui"))[0]
+
+
+class BOMLinker(QtGui.QMainWindow, form_class):
+    def __init__(self, parent=None):
+        """ Constructing small window
+        """
+        QtGui.QMainWindow.__init__(self, parent)
+        self.setupUi(self)
+
+        self.BOM = []
+
+        try:
+            with open(sys.argv[1], 'rb') as csvfile:
+                csvdata = csv.reader(csvfile, delimiter=';')
+                for row in csvdata:
+                    print row
+        except IOError:
+            print "Give CSV BOM exported from PCBNEW"
+            sys.exit(-1)
 
 def main():
     """
     Main application body
     """
-    print "Running"
+
+    app = QtGui.QApplication(sys.argv)
+    myWindow = BOMLinker(None)
+    myWindow.show()
+    app.exec_()
