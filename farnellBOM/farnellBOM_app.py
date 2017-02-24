@@ -41,9 +41,9 @@ manufacturer part independently of the values of the libraries.
 import sys
 import os
 from PyQt4 import QtGui, uic
-import csv
 from sch_parser import sch_parser
 from supplier_selector import supplier_selector
+from operator import itemgetter
 
 
 localpath = os.path.dirname(os.path.realpath(__file__))
@@ -74,12 +74,14 @@ class BOMLinker(QtGui.QMainWindow, form_class):
                        "Mfr. no": 5,
                        "Datasheet": 6}
         self.model = QtGui.QStandardItemModel(self.treeView)
-        self.model.setHorizontalHeaderLabels(self.header.keys())
+        sorted_header = map(lambda c: c[0],
+                            sorted(self.header.items(),
+                                   key=itemgetter(1)))
+        self.model.setHorizontalHeaderLabels(sorted_header)
 
         # having headers we might deploy the data into the multicolumn
         # view. We need to collect all the data:
         for itemData in self.SCH.BOM():
-            print list(itemData)
             line = map(QtGui.QStandardItem, list(itemData))
             # some modifications to items
             # 1) designator, library part and footprint are immutable
@@ -111,10 +113,11 @@ class BOMLinker(QtGui.QMainWindow, form_class):
         # to search (most of the time)
         if index.column() in [self.header['LibRef'],
                               self.header['Value']]:
-            item = self.model.item(index.row(),index.column())
+            item = self.model.item(index.row(), index.column())
             strData = item.data(0).toPyObject()
-            #self.treeMedia.currentIndex()
-            print "Doubleclick", str(strData), index.column()
+            # this is what we're going to look after
+            self.sellers.open_search_browser(str(strData))
+
 
 def main():
     """

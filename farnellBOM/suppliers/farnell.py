@@ -38,5 +38,12 @@ class farnell(object):
     def __init__(self):
         self.name = "FARNELL"
 
+    def get_url(self, searchtext):
+        """ returns URL of farnell, which triggers searching for a
+        specific component or name.
+        """
+        return "http://uk.farnell.com/webapp/\
+wcs/stores/servlet/Search?st=%s" % (searchtext,)
+
 
 DEFAULT_CLASS = farnell

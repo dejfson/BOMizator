@@ -33,7 +33,7 @@ and their web search iterfaces
 import os
 import imp
 import fnmatch
-import os
+import webbrowser
 
 
 class supplier_selector(object):
@@ -44,7 +44,7 @@ class supplier_selector(object):
     # define what to look for in modules
     main_module = "__init__"
 
-    def __init__(self, plugins_directory = 'suppliers'):
+    def __init__(self, plugins_directory='suppliers'):
         """ looks through plugins directory and loads all the plugins
         """
 
@@ -55,8 +55,28 @@ class supplier_selector(object):
             plugins_directory)
         print "Loading plugins from ", self.plugins_directory, ":"
         self.plugins = self.get_plugins()
-        print self.plugins
+        self.set_default_plugin('FARNELL')
+        # and now we're ready to accept search queries
 
+    def set_default_plugin(self, plugin):
+        """ sets the default search plugin engine
+        """
+        self.default_plugin = plugin
+        # generate constructor with appropriate search plugin
+        self.engine = self.plugins[self.default_plugin]()
+
+    def open_search_browser(self, searchtext):
+        """ This function calls default plugin to supply the web
+        search string for a given text. This one is then used to open
+        a browser window with searched item. Now, searching does not
+        mean at all that the component will be found straight away. It
+        just means that a page with search resuls will open, and user
+        it responsible to look for a specific component further.
+        """
+        url = self.engine.get_url(searchtext)
+        # now fire the web browser with this page opened
+        b = webbrowser.get('firefox')
+        b.open(url, new=0, autoraise=True)
 
     def get_plugins(self):
         """ walks through plugins directory and returns list of plugins
@@ -65,8 +85,8 @@ class supplier_selector(object):
         plugins = []
         plugins_classes = {}
         for root, dirnames, filenames in os.walk(self.plugins_directory):
-          for filename in fnmatch.filter(filenames, '*.py'):
-              plugins.append(os.path.join(root, filename))
+            for filename in fnmatch.filter(filenames, '*.py'):
+                plugins.append(os.path.join(root, filename))
 
         for plugin in plugins:
             # skip __init__.py if there's any
