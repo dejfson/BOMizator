@@ -170,39 +170,62 @@ class sch_parser(object):
                 for line in f:
                     self.current_state(line)
 
+    def strip_quote(self, text):
+        """ helper function replacing quotes by empty string
+        """
+        return text.replace('"', '')
+
     def BOM(self):
         """ iterator returns always a text-based list of [designator,
         library part, manufacturer, mfg reference]. If some of those
-        do not exist, empty strings are returned
+        do not exist, empty strings are returned. The returned tuple
+        contains following information:
+        [ designator, libref, value, footprint,
         """
 
         # this kind of data to be expected:
-        # Q1 {'P': ['8900', '9700'], 'U': ['1', '1', '589E4C6E'], 'L': ['BSS138', 'Q1'], 'X': ['1    8900 9700', '1    0    0    -1'], 'F': {'1': ['"BSS138"', 'H', '9091', '9655', '50', '', '0000', 'L', 'CNN'], '0': ['"Q1"', 'H', '9091', '9746', '50', '', '0000', 'L', 'CNN'], '3': ['""', 'H', '-1950', '2100', '50', '', '0001', 'L', 'CNN'], '2': ['"TO_SOT_Packages_SMD:SOT-23"', 'H', '-1750', '2025', '50', '', '0001', 'L', 'CIN'], '4': ['"2306392"', 'H', '8900', '9700', '60', '', '0001', 'C', 'CNN', '"FARNELL"']}}
+        # Q1 {'P': ['8900', '9700'], 'U': ['1', '1', '589E4C6E'], 'L':
+        # ['BSS138', 'Q1'], 'X': ['1    8900 9700', '1    0    0
+        # -1'], 'F': {'1': ['"BSS138"', 'H', '9091', '9655', '50', '',
+        # '0000', 'L', 'CNN'], '0': ['"Q1"', 'H', '9091', '9746',
+        # '50', '', '0000', 'L', 'CNN'], '3': ['""', 'H', '-1950',
+        # '2100', '50', '', '0001', 'L', 'CNN'], '2':
+        # ['"TO_SOT_Packages_SMD:SOT-23"', 'H', '-1750', '2025', '50',
+        # '', '0001', 'L', 'CIN'], '4': ['"2306392"', 'H', '8900',
+        # '9700', '60', '', '0001', 'C', 'CNN', '"FARNELL"']}}
+
+        # or for resistance:
+        # {'P': ['8550', '9850'], 'U': ['1', '1', '589E4F2C'], 'L':
+        # ['R', 'R7'], 'X': ['1    8550 9850', '1    0    0    -1'],
+        # 'F': {'1': ['"10k"', 'H', '8620', '9805', '50', '', '0000',
+        # 'L', 'CNN'], '0': ['"R7"', 'H', '8620', '9896', '50', '',
+        # '0000', 'L', 'CNN'], '3': ['""', 'H', '-1600', '1700', '50',
+        # '', '0001', 'C', 'CNN'], '2': ['"Resistors_SMD:R_1206"',
+        # 'V', '-1670', '1700', '50', '', '0001', 'C', 'CNN']}}
 
         for key, value in self.components.items():
             data = [value['L'][1], # designator
-                    value['L'][0]] # library reference
+                    value['L'][0], # library reference
+                    self.strip_quote(value['F']['1'][0]), # value of component
+                    self.strip_quote(value['F']['2'][0])] # footprint
+
             # now we have to see in 'L' attributes entires correct
             # attribute names
             datasheet, mfg, mfgno = '', '', ''
             for f_number, f_data in value['F'].items():
                 if int(f_number) == 3:
                     # datasheet (this is part of schematics)
-                    datasheet = f_data[0].replace('"', '')
+                    datasheet = self.strip_quote(f_data[0])
                 elif int(f_number) > 3 and\
                      f_data[-1].find("supplier_ref") != -1:
                     # supplier reference number
-                    mfgno = f_data[0].replace('"', '')
+                    mfgno = self.strip_quote(f_data[0])
                 elif int(f_number) > 3 and\
                      f_data[-1].find("supplier") != -1:
                     # supplier name
-                    mfg = f_data[0].replace('"', '')
+                    mfg = self.strip_quote(f_data[0])
 
-            yield value['L'][1],\
-                value['L'][0],\
-                mfg,\
-                mfgno,\
-                datasheet
+            yield data + [mfg, mfgno, datasheet]
 
 if __name__ == '__main__':
     # test stuff

@@ -43,6 +43,7 @@ import os
 from PyQt4 import QtGui, uic
 import csv
 from sch_parser import sch_parser
+from supplier_selector import supplier_selector
 
 
 localpath = os.path.dirname(os.path.realpath(__file__))
@@ -62,20 +63,30 @@ class BOMLinker(QtGui.QMainWindow, form_class):
         self.SCH = sch_parser(sys.argv[1])
         self.SCH.parse_components()
 
-        # standard headers for the treeview
-        self.header = ["Designator",
-                       "Reference",
-                       "Manufacturer",
-                       "Mfr. no",
-                       "Datasheet"]
+        # standard headers for the treeview, this dictionary tells
+        # which items refer to which column, make them in ascending
+        # order as this is the order they are inserted as headers
+        self.header = {"Designator": 0,
+                       "LibRef": 1,
+                       "Value": 2,
+                       "Footprint": 3,
+                       "Manufacturer": 4,
+                       "Mfr. no": 5,
+                       "Datasheet": 6}
         self.model = QtGui.QStandardItemModel(self.treeView)
-        self.model.setHorizontalHeaderLabels(self.header)
+        self.model.setHorizontalHeaderLabels(self.header.keys())
 
         # having headers we might deploy the data into the multicolumn
         # view. We need to collect all the data:
         for itemData in self.SCH.BOM():
-            self.model.appendRow(map(
-                QtGui.QStandardItem, list(itemData)))
+            print list(itemData)
+            line = map(QtGui.QStandardItem, list(itemData))
+            # some modifications to items
+            # 1) designator, library part and footprint are immutable
+            for i in ["Designator", "LibRef", "Value", "Footprint"]:
+                line[self.header[i]].setEditable(False)
+
+            self.model.appendRow(line)
         # and put the model into the place
         self.treeView.setModel(self.model)
 
@@ -84,6 +95,26 @@ class BOMLinker(QtGui.QMainWindow, form_class):
             self.treeView.resizeColumnToContents(i)
 
         self.showMaximized()
+        # connect signals to treeView so we can invoke search engines
+        self.treeView.doubleClicked.connect(self.tree_doubleclick)
+
+        # get all sellers filters
+        self.sellers = supplier_selector()
+
+    def tree_doubleclick(self, index):
+        """ when user doubleclicks item, we search for it in farnel
+        (or later whatever else) web pages. this requires a lot of
+        fiddling as the component search enginer for each seller are
+        different. Index is the type QModelIndex
+        """
+        # we process only columns libref and value as those are used
+        # to search (most of the time)
+        if index.column() in [self.header['LibRef'],
+                              self.header['Value']]:
+            item = self.model.item(index.row(),index.column())
+            strData = item.data(0).toPyObject()
+            #self.treeMedia.currentIndex()
+            print "Doubleclick", str(strData), index.column()
 
 def main():
     """
