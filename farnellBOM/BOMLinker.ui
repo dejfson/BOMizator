@@ -22,7 +22,7 @@
   <widget class="QWidget" name="centralwidget">
    <layout class="QGridLayout" name="gridLayout">
     <item row="0" column="0">
-     <widget class="QTreeView" name="treeView">
+     <widget class="QDropTreeView" name="treeView">
       <property name="acceptDrops">
        <bool>true</bool>
       </property>
@@ -75,12 +75,19 @@
      <x>0</x>
      <y>0</y>
      <width>800</width>
-     <height>20</height>
+     <height>44</height>
     </rect>
    </property>
   </widget>
   <widget class="QStatusBar" name="statusbar"/>
  </widget>
+ <customwidgets>
+  <customwidget>
+   <class>QDropTreeView</class>
+   <extends>QTreeView</extends>
+   <header>farnellBOM/droptreeview</header>
+  </customwidget>
+ </customwidgets>
  <resources/>
  <connections/>
 </ui>
