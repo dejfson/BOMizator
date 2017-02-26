@@ -29,6 +29,12 @@
       <property name="tabKeyNavigation">
        <bool>true</bool>
       </property>
+      <property name="dragEnabled">
+       <bool>false</bool>
+      </property>
+      <property name="dragDropOverwriteMode">
+       <bool>true</bool>
+      </property>
       <property name="dragDropMode">
        <enum>QAbstractItemView::DropOnly</enum>
       </property>

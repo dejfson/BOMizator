@@ -40,7 +40,7 @@ manufacturer part independently of the values of the libraries.
 
 import sys
 import os
-from PyQt4 import QtGui, uic
+from PyQt4 import QtGui, uic, QtCore
 from sch_parser import sch_parser
 from supplier_selector import supplier_selector
 from operator import itemgetter
@@ -49,6 +49,48 @@ from operator import itemgetter
 localpath = os.path.dirname(os.path.realpath(__file__))
 form_class = uic.loadUiType(os.path.join(localpath, "BOMLinker.ui"))[0]
 
+HEADER = {"Designator": 0,
+          "LibRef": 1,
+          "Value": 2,
+          "Footprint": 3,
+          "Manufacturer": 4,
+          "Mfr. no": 5,
+          "Datasheet": 6}
+
+
+class QDropStandardItemModel(QtGui.QStandardItemModel):
+    """ redefines standard item model to support drop actions
+    """
+    def __init__(self, parent):
+        super(QDropStandardItemModel, self).__init__(parent)
+
+    def dropMimeData (self, data, action, row, column, parent):
+        """ takes care of data modifications
+        """
+        print "dropped"
+        self(QDropStandardItemModel, self).dropMimeData(data,
+                                                        action,
+                                                        row,
+                                                        column,
+                                                        parent)
+        return True
+
+    def supportedDropActions(self):
+        print "drop"
+        return QtCore.Qt.CopyAction
+
+    def flags(self, index):
+        """ according to which column we have cursor on, this field
+
+        returns flags for it. Some are editable, droppable, some are
+        read only
+        """
+
+        # start with empty flags and 'or' them
+        defaultFlags = super(QDropStandardItemModel,
+                             self).flags(index) | QtCore.Qt.ItemIsDropEnabled;
+
+        return defaultFlags
 
 class BOMLinker(QtGui.QMainWindow, form_class):
     def __init__(self, parent=None):
@@ -63,19 +105,9 @@ class BOMLinker(QtGui.QMainWindow, form_class):
         self.SCH = sch_parser(sys.argv[1])
         self.SCH.parse_components()
 
-        # standard headers for the treeview, this dictionary tells
-        # which items refer to which column, make them in ascending
-        # order as this is the order they are inserted as headers
-        self.header = {"Designator": 0,
-                       "LibRef": 1,
-                       "Value": 2,
-                       "Footprint": 3,
-                       "Manufacturer": 4,
-                       "Mfr. no": 5,
-                       "Datasheet": 6}
-        self.model = QtGui.QStandardItemModel(self.treeView)
+        self.model = QDropStandardItemModel(self.treeView)
         sorted_header = map(lambda c: c[0],
-                            sorted(self.header.items(),
+                            sorted(HEADER.items(),
                                    key=itemgetter(1)))
         self.model.setHorizontalHeaderLabels(sorted_header)
 
@@ -86,14 +118,14 @@ class BOMLinker(QtGui.QMainWindow, form_class):
             # some modifications to items
             # 1) designator, library part and footprint are immutable
             for i in ["Designator", "LibRef", "Value", "Footprint"]:
-                line[self.header[i]].setEditable(False)
+                line[HEADER[i]].setEditable(False)
 
             self.model.appendRow(line)
         # and put the model into the place
         self.treeView.setModel(self.model)
 
         # as the model is filled with the data, we can resize columns
-        for i in xrange(len(self.header)):
+        for i in xrange(len(HEADER)):
             self.treeView.resizeColumnToContents(i)
 
         self.showMaximized()
@@ -103,6 +135,9 @@ class BOMLinker(QtGui.QMainWindow, form_class):
         # get all sellers filters
         self.sellers = supplier_selector()
 
+        self.treeView.setAcceptDrops(True);
+        self.treeView.setDropIndicatorShown(True)
+
     def tree_doubleclick(self, index):
         """ when user doubleclicks item, we search for it in farnel
         (or later whatever else) web pages. this requires a lot of
@@ -111,8 +146,8 @@ class BOMLinker(QtGui.QMainWindow, form_class):
         """
         # we process only columns libref and value as those are used
         # to search (most of the time)
-        if index.column() in [self.header['LibRef'],
-                              self.header['Value']]:
+        if index.column() in [HEADER['LibRef'],
+                              HEADER['Value']]:
             item = self.model.item(index.row(), index.column())
             strData = item.data(0).toPyObject()
             # this is what we're going to look after
