@@ -50,7 +50,9 @@ wcs/stores/servlet/Search?st=%s" % (searchtext,)
         """ From GIVEN URL (web pages) parses all the data to resolve
         the component. Farnell is relatively easy to do. Here is the
         typical URL, self-explanatory. NOTE THAT ALL OBJECTS ARE
-        RETURNED AS QSTRINGS AND NOT ORDINARY PYTHON STRINGS (convenience)
+        RETURNED AS QSTRINGS AND NOT ORDINARY PYTHON STRINGS
+        (convenience). Fortunately FARNELL is very consistent about it
+        (thank you guys), hence it can be used to parse all what we need
         http://uk.farnell.com/multicomp/mj-179ph/socket-low-voltage-12vdc-4a/dp/1737246?ost=MJ-179PH&searchView=table&iscrfnonsku=false
         """
 
@@ -81,12 +83,11 @@ wcs/stores/servlet/Search?st=%s" % (searchtext,)
             # Supplier, Supplier reference, datasheet)
             data = (manufacturer, reference,
                     QtCore.QString("FARNELL"), partnum, datasheet)
-            print data
             return map(QtCore.QString.toUpper, data)
         except ValueError:
             # ValueError is risen when not enouth data to split the
             # header. In this case this is probably not an URL we're
             # looking for, so skipping
-            return KeyError
+            raise KeyError
 
 DEFAULT_CLASS = farnell

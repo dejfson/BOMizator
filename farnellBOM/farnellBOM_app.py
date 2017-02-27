@@ -56,7 +56,9 @@ HEADER = {"Designator": 0,
           "Footprint": 3,
           "Manufacturer": 4,
           "Mfr. no": 5,
-          "Datasheet": 6}
+          "Supplier": 6,
+          "Supplier no": 7,
+          "Datasheet": 8}
 
 
 class QDropStandardItemModel(QtGui.QStandardItemModel):
@@ -162,7 +164,7 @@ class BOMLinker(QtGui.QMainWindow, form_class):
         just means that a page with search resuls will open, and user
         it responsible to look for a specific component further.
         """
-        url = self.model.suppliers.get_url(searchtext)
+        url = self.model.suppliers.search_for_component(searchtext)
         # now fire the web browser with this page opened
         b = webbrowser.get('firefox')
         b.open(url, new=0, autoraise=True)

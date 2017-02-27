@@ -34,6 +34,13 @@ import os
 import imp
 import fnmatch
 
+# define ansi terminal colorset
+COLOROK = "\033[92m"
+COLORWARN = "\033[93m"
+COLORFAIL = "\033[91m"
+COLORNUL = "\033[0m"
+COLORINFO = '\033[94m'
+
 
 class supplier_selector(object):
     """ Looks into a specific directory for all the python modules
@@ -75,15 +82,20 @@ class supplier_selector(object):
         clumsy. Digikey seems to be as good as farnell in parsing from
         URL. First one which matches is the valid one.
         """
-        print self.plugins
+        print COLORINFO+"Searching in plugins:"+COLORNUL
         for name, plug in self.plugins.items():
             try:
+                print COLORNUL+"\tChecking ", name, " ... ",
                 data = plug.parse_URL(urltext)
+                print COLOROK+"FOUND"+COLORNUL
                 return data
             except KeyError:
+                print COLORFAIL+"NOT FOUND"+COLORNUL
                 pass
         # when here, no plugin matched the selection, raise KeyError
-        print "No installed plugin matches the URL selection"
+        print COLORFAIL +\
+            "\tNo installed plugin matches the URL selection" +\
+            COLORNUL
         raise KeyError
 
     def get_url(self, searchtext):
@@ -116,7 +128,7 @@ class supplier_selector(object):
         return plugins_classes
 
     def search_for_component(self, component):
-        """ placeholder to search for components
+        """ returns URL to be used in the component search for
+        _active_ supplier
         """
-        print "Searching ", component
-        pass
+        return self.get_url(component)
