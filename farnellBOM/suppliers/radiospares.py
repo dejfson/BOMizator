@@ -29,7 +29,6 @@
 Farnell webpages search engine
 """
 
-import os
 
 class radiospares(object):
     """ defines web search interface for uk.farnell.com.
@@ -37,5 +36,14 @@ class radiospares(object):
 
     def __init__(self):
         self.name = "RADIOSPARES"
+
+    def parse_URL(self, urltext):
+        """ parses URL and extract the data from radiospares item
+        """
+
+        # for the moment not implemented
+        # @TODO implement radiospares parseURL
+        raise KeyError
+
 
 DEFAULT_CLASS = radiospares

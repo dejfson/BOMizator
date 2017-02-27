@@ -44,7 +44,7 @@ from PyQt4 import QtGui, uic, QtCore
 from sch_parser import sch_parser
 from supplier_selector import supplier_selector
 from operator import itemgetter
-
+import webbrowser
 
 localpath = os.path.dirname(os.path.realpath(__file__))
 form_class = uic.loadUiType(os.path.join(localpath, "BOMLinker.ui"))[0]
@@ -64,11 +64,17 @@ class QDropStandardItemModel(QtGui.QStandardItemModel):
     """
     def __init__(self, parent):
         super(QDropStandardItemModel, self).__init__(parent)
+        # get all sellers filters
+        self.suppliers = supplier_selector()
 
     def dropMimeData(self, data, action, row, column, parent):
-        """ takes care of data modifications
+        """ takes care of data modifications. The data _must contain_
+        URL from the web pages of one of the pages supported by
+        plugins. This is verified against the suppliers object, which
+        returns correctly parsed data.
         """
         print "dropped into ", row, column, data.text()
+        print "Parsed as: ", self.suppliers.parse_URL(data.text())
         return True
 
     def mimeTypes(self):
@@ -98,7 +104,7 @@ class QDropStandardItemModel(QtGui.QStandardItemModel):
 
         # but if we're in designator, this one can accept drops from
         # firefox/others to parse the headers and look for correct MFG
-        # and others. Not all plugins can export all data
+        # and others. Not all plugins can export all data.
         if index.column() == HEADER['Designator']:
             defaultFlags |= QtCore.Qt.ItemIsDropEnabled
 
@@ -145,11 +151,21 @@ class BOMLinker(QtGui.QMainWindow, form_class):
         # connect signals to treeView so we can invoke search engines
         self.treeView.doubleClicked.connect(self.tree_doubleclick)
 
-        # get all sellers filters
-        self.sellers = supplier_selector()
-
         self.treeView.setAcceptDrops(True)
         self.treeView.setDropIndicatorShown(True)
+
+    def open_search_browser(self, searchtext):
+        """ This function calls default plugin to supply the web
+        search string for a given text. This one is then used to open
+        a browser window with searched item. Now, searching does not
+        mean at all that the component will be found straight away. It
+        just means that a page with search resuls will open, and user
+        it responsible to look for a specific component further.
+        """
+        url = self.model.suppliers.get_url(searchtext)
+        # now fire the web browser with this page opened
+        b = webbrowser.get('firefox')
+        b.open(url, new=0, autoraise=True)
 
     def tree_doubleclick(self, index):
         """ when user doubleclicks item, we search for it in farnel
@@ -164,7 +180,7 @@ class BOMLinker(QtGui.QMainWindow, form_class):
             item = self.model.item(index.row(), index.column())
             strData = item.data(0).toPyObject()
             # this is what we're going to look after
-            self.sellers.open_search_browser(str(strData))
+            self.open_search_browser(str(strData))
 
 
 def main():

@@ -29,7 +29,8 @@
 Farnell webpages search engine
 """
 
-import os
+from PyQt4 import QtCore
+
 
 class farnell(object):
     """ defines web search interface for uk.farnell.com.
@@ -45,5 +46,47 @@ class farnell(object):
         return "http://uk.farnell.com/webapp/\
 wcs/stores/servlet/Search?st=%s" % (searchtext,)
 
+    def parse_URL(self, urltext):
+        """ From GIVEN URL (web pages) parses all the data to resolve
+        the component. Farnell is relatively easy to do. Here is the
+        typical URL, self-explanatory. NOTE THAT ALL OBJECTS ARE
+        RETURNED AS QSTRINGS AND NOT ORDINARY PYTHON STRINGS (convenience)
+        http://uk.farnell.com/multicomp/mj-179ph/socket-low-voltage-12vdc-4a/dp/1737246?ost=MJ-179PH&searchView=table&iscrfnonsku=false
+        """
+
+        try:
+            realpart = urltext.split("?")[0]
+            # from the real part we need to abstract the parameters:
+            header,\
+                nothing,\
+                site,\
+                manufacturer,\
+                reference,\
+                description,\
+                deep,\
+                partnum = realpart.split("/")
+            # series of checks: site has to contain farnell:
+            if not site.contains("FARNELL", QtCore.Qt.CaseInsensitive):
+                raise KeyError
+
+            # deep has to contain DP:
+            if not deep.contains("DP", QtCore.Qt.CaseInsensitive):
+                raise KeyError
+            # the most problematic is to dig out the datasheet for the
+            # component. This is not part of the URL and for this we need
+            # to actually fetch and parse the page. For the moment
+            # 'nothing'
+            datasheet = QtCore.QString('')
+            # return properly formed tuple:(Manufacturer, Mfg. reference,
+            # Supplier, Supplier reference, datasheet)
+            data = (manufacturer, reference,
+                    QtCore.QString("FARNELL"), partnum, datasheet)
+            print data
+            return map(QtCore.QString.toUpper, data)
+        except ValueError:
+            # ValueError is risen when not enouth data to split the
+            # header. In this case this is probably not an URL we're
+            # looking for, so skipping
+            return KeyError
 
 DEFAULT_CLASS = farnell

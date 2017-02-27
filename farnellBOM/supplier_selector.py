@@ -33,7 +33,6 @@ and their web search iterfaces
 import os
 import imp
 import fnmatch
-import webbrowser
 
 
 class supplier_selector(object):
@@ -63,20 +62,35 @@ class supplier_selector(object):
         """
         self.default_plugin = plugin
         # generate constructor with appropriate search plugin
-        self.engine = self.plugins[self.default_plugin]()
+        self.engine = self.plugins[self.default_plugin]
 
-    def open_search_browser(self, searchtext):
-        """ This function calls default plugin to supply the web
-        search string for a given text. This one is then used to open
-        a browser window with searched item. Now, searching does not
-        mean at all that the component will be found straight away. It
-        just means that a page with search resuls will open, and user
-        it responsible to look for a specific component further.
+    def parse_URL(self, urltext):
+        """ Uses all plugins installed to detect if one of the plugins
+        can accept the web page URL and parse its content to get the
+        data into right format. If so, this function returns a TUPLE
+        containing: (Manufacturer, Mfg. reference, Supplier, Supplier
+        reference, datasheet). NOT ALL SUPPLIERS CAN RESOLVE THE
+        INFORMATION. The best one seems to be farnell, which provides
+        all this information in the URL directly. Radiospares is
+        clumsy. Digikey seems to be as good as farnell in parsing from
+        URL. First one which matches is the valid one.
         """
-        url = self.engine.get_url(searchtext)
-        # now fire the web browser with this page opened
-        b = webbrowser.get('firefox')
-        b.open(url, new=0, autoraise=True)
+        print self.plugins
+        for name, plug in self.plugins.items():
+            try:
+                data = plug.parse_URL(urltext)
+                return data
+            except KeyError:
+                pass
+        # when here, no plugin matched the selection, raise KeyError
+        print "No installed plugin matches the URL selection"
+        raise KeyError
+
+    def get_url(self, searchtext):
+        """ Using default plugin the search text is translated into
+        URL, which can be used to open the web pages
+        """
+        return self.engine.get_url(searchtext)
 
     def get_plugins(self):
         """ walks through plugins directory and returns list of plugins
@@ -98,7 +112,7 @@ class supplier_selector(object):
             # correspond to class defined inside
             info = imp.load_source('', plugin).DEFAULT_CLASS
             print "\t", info().name
-            plugins_classes[info().name] = info
+            plugins_classes[info().name] = info()
         return plugins_classes
 
     def search_for_component(self, component):
