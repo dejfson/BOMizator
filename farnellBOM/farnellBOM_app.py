@@ -49,6 +49,7 @@ from operator import itemgetter
 localpath = os.path.dirname(os.path.realpath(__file__))
 form_class = uic.loadUiType(os.path.join(localpath, "BOMLinker.ui"))[0]
 
+# things to display:
 HEADER = {"Designator": 0,
           "LibRef": 1,
           "Value": 2,
@@ -64,20 +65,19 @@ class QDropStandardItemModel(QtGui.QStandardItemModel):
     def __init__(self, parent):
         super(QDropStandardItemModel, self).__init__(parent)
 
-    def dropMimeData (self, data, action, row, column, parent):
+    def dropMimeData(self, data, action, row, column, parent):
         """ takes care of data modifications
         """
-        print "dropped"
-        self(QDropStandardItemModel, self).dropMimeData(data,
-                                                        action,
-                                                        row,
-                                                        column,
-                                                        parent)
+        print "dropped into ", row, column, data
         return True
 
-    def supportedDropActions(self):
-        print "drop"
-        return QtCore.Qt.CopyAction
+    def mimeTypes(self):
+        """ This class accepts only text/plain drops, hence this
+        function sets up the correct mimetype
+        """
+        types = QtCore.QStringList()
+        types.append('text/plain')
+        return types
 
     def flags(self, index):
         """ according to which column we have cursor on, this field
@@ -86,11 +86,24 @@ class QDropStandardItemModel(QtGui.QStandardItemModel):
         read only
         """
 
-        # start with empty flags and 'or' them
-        defaultFlags = super(QDropStandardItemModel,
-                             self).flags(index) | QtCore.Qt.ItemIsDropEnabled;
+        # keep default flags
+        defaultFlags = QtCore.Qt.ItemIsSelectable | QtCore.Qt.ItemIsEnabled
+
+        # if manufacturer, mfgno, datasheet, these are editable as
+        # well
+        if index.column() in [HEADER['Manufacturer'],
+                              HEADER['Mfr. no'],
+                              HEADER['Datasheet']]:
+            defaultFlags |= QtCore.Qt.ItemIsEditable
+
+        # but if we're in designator, this one can accept drops from
+        # firefox/others to parse the headers and look for correct MFG
+        # and others. Not all plugins can export all data
+        if index.column() == HEADER['Designator']:
+            defaultFlags |= QtCore.Qt.ItemIsDropEnabled
 
         return defaultFlags
+
 
 class BOMLinker(QtGui.QMainWindow, form_class):
     def __init__(self, parent=None):
@@ -135,7 +148,7 @@ class BOMLinker(QtGui.QMainWindow, form_class):
         # get all sellers filters
         self.sellers = supplier_selector()
 
-        self.treeView.setAcceptDrops(True);
+        self.treeView.setAcceptDrops(True)
         self.treeView.setDropIndicatorShown(True)
 
     def tree_doubleclick(self, index):
