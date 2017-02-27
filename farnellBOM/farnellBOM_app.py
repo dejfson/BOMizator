@@ -68,7 +68,7 @@ class QDropStandardItemModel(QtGui.QStandardItemModel):
     def dropMimeData(self, data, action, row, column, parent):
         """ takes care of data modifications
         """
-        print "dropped into ", row, column, data
+        print "dropped into ", row, column, data.text()
         return True
 
     def mimeTypes(self):
