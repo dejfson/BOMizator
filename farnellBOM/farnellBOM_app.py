@@ -149,7 +149,8 @@ class BOMLinker(QtGui.QMainWindow, form_class):
         for i in xrange(len(HEADER)):
             self.treeView.resizeColumnToContents(i)
 
-        self.showMaximized()
+        # @TODO re-enable maximized
+        #self.showMaximized()
         # connect signals to treeView so we can invoke search engines
         self.treeView.doubleClicked.connect(self.tree_doubleclick)
 
