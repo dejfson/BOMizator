@@ -69,14 +69,77 @@ class QDropStandardItemModel(QtGui.QStandardItemModel):
         # get all sellers filters
         self.suppliers = supplier_selector()
 
-    def dropMimeData(self, data, action, row, column, parent):
+    def getSelectedRows(self):
+        """ returns tuple of rows, which are selected. This is done by
+        looking through the rows and columns and detecting
+        selections. Unfortunately the author (me) did not find any
+        more intelligent method how to do it
+        """
+        a = []
+        for index in self.parent().selectedIndexes():
+            a.append(index.row())
+        a = set(a)
+        print "Selected rows: ", a
+        return a
+
+
+    def dropMimeData(self, data, action, row, column, treeparent):
         """ takes care of data modifications. The data _must contain_
         URL from the web pages of one of the pages supported by
         plugins. This is verified against the suppliers object, which
         returns correctly parsed data.
         """
-        print "dropped into ", row, column, data.text()
-        print "Parsed as: ", self.suppliers.parse_URL(data.text())
+
+        # note: the row and column needs a bit of explication. It
+        # always returns -1 in both. And that's because we're using
+        # QTreeView, and row/column shows _where in parent we need to
+        # insert the data_. But in fact, we want to _replace the
+        # parent_ by our data. Respectively we need to replace data in
+        # appropriate row and _many_ columns, depending on whether a
+        # single item is selected, or multiple items (in terms of
+        # designators) are selected.
+        manufacturer,\
+            reference,\
+            supplier,\
+            partnum,\
+            datasheet = self.suppliers.parse_URL(data.text())
+        # first we find all items, which are selected. we are only
+        # interested in rows, as those are determining what
+        # designators are used.
+        rows = self.getSelectedRows()
+        # and with all selected rows we distinguish, whether we have
+        # dropped the data into selected rows. If so, we will
+        # overwritte all the information in _each row_. If however the
+        # drop destination is outside of the selection, we only
+        # replace given row
+        if treeparent.row() in rows:
+            replace_in_rows = rows
+        else:
+            replace_in_rows = [treeparent.row(),]
+
+        # now the data replacement. EACH ITEM HAS ITS OWN MODELINDEX
+        # and we get the modelindices from parent. Do for each of them
+        for row in replace_in_rows:
+            self.setData(
+                self.index(row,
+                           HEADER['Manufacturer']),
+                manufacturer)
+            self.setData(
+                self.index(row,
+                           HEADER['Mfr. no']),
+                reference)
+            self.setData(
+                self.index(row,
+                           HEADER['Supplier']),
+                supplier)
+            self.setData(
+                self.index(row,
+                           HEADER['Supplier no']),
+                partnum)
+            self.setData(
+                self.index(row,
+                           HEADER['Datasheet']),
+                datasheet)
         return True
 
     def mimeTypes(self):
@@ -153,9 +216,37 @@ class BOMLinker(QtGui.QMainWindow, form_class):
         #self.showMaximized()
         # connect signals to treeView so we can invoke search engines
         self.treeView.doubleClicked.connect(self.tree_doubleclick)
-
+        # register accepting drops
         self.treeView.setAcceptDrops(True)
         self.treeView.setDropIndicatorShown(True)
+        # and register custom context menu, which will be used as
+        #'filtering' to select correcly chosen indices
+        self.treeView.setContextMenuPolicy(QtCore.Qt.CustomContextMenu)
+        self.treeView.customContextMenuRequested.connect(self.openMenu)
+
+
+    def openMenu(self, position):
+        """ opens context menu. Context menu is basically a
+        right-click on any cell requested. The column and row is
+        parsed, and depending of which column was used to select the
+        context menu contains appropriate filter offers. In case of
+        clicking over datasheet it opens the datasheet in the
+        browser. In case of libref it can choose the same components
+        etc...
+        """
+        # @TODO implement filtering algorithm
+        indexes = self.treeView.selectedIndexes()
+        if len(indexes) > 0:
+            level = 0
+            index = indexes[0]
+            while index.parent().isValid():
+                index = index.parent()
+                level += 1
+
+        menu = QtGui.QMenu()
+        menu.addAction(self.tr("Edit person"))
+
+        menu.exec_(self.treeView.viewport().mapToGlobal(position))
 
     def open_search_browser(self, searchtext):
         """ This function calls default plugin to supply the web
@@ -184,6 +275,14 @@ class BOMLinker(QtGui.QMainWindow, form_class):
             strData = item.data(0).toPyObject()
             # this is what we're going to look after
             self.open_search_browser(str(strData))
+        # if column is datasheet and there is actually something, open
+        # the link in the browser.
+        # @TODO doubleclick opens datasheet if available (or context menu)
+        # elif index.column() == HEADER['Datasheet']:
+        #     strData = item.data(0).toPyObject()
+        #     if strData != '':
+        #         b = webbrowser.get('firefox')
+        #         b.open(strData, new=0, autoraise=True)
 
 
 def main():
