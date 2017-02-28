@@ -33,7 +33,7 @@ from PyQt4 import QtCore
 import urllib2
 import re
 # import headers to be able to match the string names correctly
-from farnellBOM.headers import headers
+from BOMizator.headers import headers
 
 
 class farnell(object):

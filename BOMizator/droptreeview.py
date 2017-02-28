@@ -31,6 +31,7 @@ Implements QTreeWidget, which is droppable
 
 from PyQt4 import QtGui
 
+
 class QDropTreeView(QtGui.QTreeView):
     def __init__(self, parent):
         super(QDropTreeView, self).__init__(parent)

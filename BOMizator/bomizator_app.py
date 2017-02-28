@@ -145,7 +145,7 @@ class QDropStandardItemModel(QtGui.QStandardItemModel):
         return defaultFlags
 
 
-class BOMLinker(QtGui.QMainWindow, form_class):
+class BOMizator(QtGui.QMainWindow, form_class):
     def __init__(self, parent=None):
         """ Constructing small window
         """
@@ -264,6 +264,6 @@ def main():
     """
 
     app = QtGui.QApplication(sys.argv)
-    myWindow = BOMLinker(None)
+    myWindow = BOMizator(None)
     myWindow.show()
     app.exec_()

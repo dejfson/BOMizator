@@ -17,7 +17,7 @@
    </sizepolicy>
   </property>
   <property name="windowTitle">
-   <string>BOMLinker</string>
+   <string>KiCad BOMizator</string>
   </property>
   <widget class="QWidget" name="centralwidget">
    <layout class="QGridLayout" name="gridLayout">
@@ -81,7 +81,7 @@
      <x>0</x>
      <y>0</y>
      <width>800</width>
-     <height>44</height>
+     <height>20</height>
     </rect>
    </property>
   </widget>
@@ -91,7 +91,7 @@
   <customwidget>
    <class>QDropTreeView</class>
    <extends>QTreeView</extends>
-   <header>farnellBOM/droptreeview</header>
+   <header>BOMizator/droptreeview</header>
   </customwidget>
  </customwidgets>
  <resources/>

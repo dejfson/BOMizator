@@ -5,11 +5,11 @@ try:
 except ImportError:
     from distutils.core import setup
 
-setup(name='farnellBOM',
+setup(name='BOMizator',
       version='0.1',
-      packages=['farnellBOM', ],
-      description="KiCad BOM CSV to Farnell linker",
+      packages=['BOMizator', ],
+      description="KiCad BOM to suppliers linker",
       author='David Belohrad',
       author_email='david.belohrad@cern.ch',
-      install_requires=['webbrowser', ],
-      scripts=['bin/farnellBOM', ])
+      install_requires=[],
+      scripts=['bin/bomizator', ])
