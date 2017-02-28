@@ -32,6 +32,8 @@ Farnell webpages search engine
 from PyQt4 import QtCore
 import urllib2
 import re
+# import headers to be able to match the string names correctly
+from farnellBOM.headers import headers
 
 
 class farnell(object):
@@ -40,6 +42,7 @@ class farnell(object):
 
     def __init__(self):
         self.name = "FARNELL"
+        self.header = headers()
 
     def get_url(self, searchtext):
         """ returns URL of farnell, which triggers searching for a
@@ -103,11 +106,19 @@ wcs/stores/servlet/Search?st=%s" % (searchtext,)
             # to actually fetch and parse the page. For the moment
             # 'nothing'
             datasheet = self.harvest_datasheet(str(urltext))
-            # return properly formed tuple:(Manufacturer, Mfg. reference,
+            # now we convert the data into dictionary:
+            datanames = (self.header.MANUFACTURER,
+                         self.header.MFRNO,
+                         self.header.SUPPLIER,
+                         self.header.SUPPNO,
+                         self.header.DATASHEET)
+            # return properly formed dictionary:(Manufacturer, Mfg. reference,
             # Supplier, Supplier reference, datasheet)
             data = (manufacturer, reference,
                     QtCore.QString("FARNELL"), partnum, datasheet)
-            return map(QtCore.QString.toUpper, data)
+            dataupper = map(QtCore.QString.toUpper, data)
+            return dict(zip(datanames, dataupper))
+
         except ValueError:
             # ValueError is risen when not enouth data to split the
             # header. In this case this is probably not an URL we're
