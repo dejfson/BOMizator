@@ -216,21 +216,21 @@ class BOMizator(QtGui.QMainWindow, form_class):
         if len(indexes) == 1 and\
            indexes[0].column() ==\
            self.header.get_column(self.header.DATASHEET):
-            # datasheet is 'easy'. We parse the datasheets (they might
-            # be multiple, semicolon separated) and construct the menu
-            # out of them
-            datasheets = indexes[0].text().split(";")
+            # create menu and corresponding action
+            self.datasheet = self.model.itemFromIndex(indexes[0]).text()
             menu = QtGui.QMenu()
-
-            for i in datasheets:
-                menu.addAction(self.tr("Open %s" % (i,)))
+            open_action = menu.addAction(
+                self.tr("Open %s" % (self.datasheet, )))
+            open_action.triggered.connect(self.open_datasheet)
 
             menu.exec_(self.treeView.viewport().mapToGlobal(position))
 
     def open_datasheet(self):
         """ opens the browser with datasheet
         """
-        pass
+        # now fire the web browser with this page opened
+        b = webbrowser.get('firefox')
+        b.open(self.datasheet, new=0, autoraise=True)
 
     def open_search_browser(self, searchtext):
         """ This function calls default plugin to supply the web
