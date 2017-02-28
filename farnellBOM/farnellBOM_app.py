@@ -79,7 +79,6 @@ class QDropStandardItemModel(QtGui.QStandardItemModel):
         for index in self.parent().selectedIndexes():
             a.append(index.row())
         a = set(a)
-        print "Selected rows: ", a
         return a
 
 
