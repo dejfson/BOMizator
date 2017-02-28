@@ -43,22 +43,11 @@ import os
 from PyQt4 import QtGui, uic, QtCore
 from sch_parser import sch_parser
 from supplier_selector import supplier_selector
-from operator import itemgetter
 import webbrowser
+from headers import headers
 
 localpath = os.path.dirname(os.path.realpath(__file__))
 form_class = uic.loadUiType(os.path.join(localpath, "BOMLinker.ui"))[0]
-
-# things to display:
-HEADER = {"Designator": 0,
-          "LibRef": 1,
-          "Value": 2,
-          "Footprint": 3,
-          "Manufacturer": 4,
-          "Mfr. no": 5,
-          "Supplier": 6,
-          "Supplier no": 7,
-          "Datasheet": 8}
 
 
 class QDropStandardItemModel(QtGui.QStandardItemModel):
@@ -68,6 +57,8 @@ class QDropStandardItemModel(QtGui.QStandardItemModel):
         super(QDropStandardItemModel, self).__init__(parent)
         # get all sellers filters
         self.suppliers = supplier_selector()
+        # for convenience to query the selection
+        self.header = headers()
 
     def getSelectedRows(self):
         """ returns tuple of rows, which are selected. This is done by
@@ -80,7 +71,6 @@ class QDropStandardItemModel(QtGui.QStandardItemModel):
             a.append(index.row())
         a = set(a)
         return a
-
 
     def dropMimeData(self, data, action, row, column, treeparent):
         """ takes care of data modifications. The data _must contain_
@@ -96,12 +86,9 @@ class QDropStandardItemModel(QtGui.QStandardItemModel):
         # parent_ by our data. Respectively we need to replace data in
         # appropriate row and _many_ columns, depending on whether a
         # single item is selected, or multiple items (in terms of
-        # designators) are selected.
-        manufacturer,\
-            reference,\
-            supplier,\
-            partnum,\
-            datasheet = self.suppliers.parse_URL(data.text())
+        # designators) are selected. Following command returns
+        # dictionary of all found items
+        parsed_data = self.suppliers.parse_URL(data.text())
         # first we find all items, which are selected. we are only
         # interested in rows, as those are determining what
         # designators are used.
@@ -114,31 +101,17 @@ class QDropStandardItemModel(QtGui.QStandardItemModel):
         if treeparent.row() in rows:
             replace_in_rows = rows
         else:
-            replace_in_rows = [treeparent.row(),]
+            replace_in_rows = [treeparent.row(), ]
 
         # now the data replacement. EACH ITEM HAS ITS OWN MODELINDEX
         # and we get the modelindices from parent. Do for each of them
         for row in replace_in_rows:
-            self.setData(
-                self.index(row,
-                           HEADER['Manufacturer']),
-                manufacturer)
-            self.setData(
-                self.index(row,
-                           HEADER['Mfr. no']),
-                reference)
-            self.setData(
-                self.index(row,
-                           HEADER['Supplier']),
-                supplier)
-            self.setData(
-                self.index(row,
-                           HEADER['Supplier no']),
-                partnum)
-            self.setData(
-                self.index(row,
-                           HEADER['Datasheet']),
-                datasheet)
+            # walk through each parsed item, and change the data
+            for key, value in parsed_data.items():
+                self.setData(
+                    self.index(row,
+                               self.header.get_column(key)),
+                    value)
         return True
 
     def mimeTypes(self):
@@ -161,16 +134,12 @@ class QDropStandardItemModel(QtGui.QStandardItemModel):
 
         # if manufacturer, mfgno, datasheet, these are editable as
         # well
-        if index.column() in [HEADER['Manufacturer'],
-                              HEADER['Mfr. no'],
-                              HEADER['Datasheet']]:
-            defaultFlags |= QtCore.Qt.ItemIsEditable
-
-        # but if we're in designator, this one can accept drops from
-        # firefox/others to parse the headers and look for correct MFG
-        # and others. Not all plugins can export all data.
-        if index.column() == HEADER['Designator']:
-            defaultFlags |= QtCore.Qt.ItemIsDropEnabled
+        try:
+            defaultFlags |= self.header.get_flags(index.column())
+        except KeyError:
+            # index.column() can be -1 depending on what we're
+            # pointing on. In this case we leave default flags as they are
+            pass
 
         return defaultFlags
 
@@ -189,9 +158,10 @@ class BOMLinker(QtGui.QMainWindow, form_class):
         self.SCH.parse_components()
 
         self.model = QDropStandardItemModel(self.treeView)
-        sorted_header = map(lambda c: c[0],
-                            sorted(HEADER.items(),
-                                   key=itemgetter(1)))
+        # get header object
+        self.header = headers()
+
+        sorted_header = self.header.get_headers()
         self.model.setHorizontalHeaderLabels(sorted_header)
 
         # having headers we might deploy the data into the multicolumn
@@ -200,15 +170,18 @@ class BOMLinker(QtGui.QMainWindow, form_class):
             line = map(QtGui.QStandardItem, list(itemData))
             # some modifications to items
             # 1) designator, library part and footprint are immutable
-            for i in ["Designator", "LibRef", "Value", "Footprint"]:
-                line[HEADER[i]].setEditable(False)
+            for i in self.header.get_columns([self.header.DESIGNATOR,
+                                              self.header.LIBREF,
+                                              self.header.VALUE,
+                                              self.header.FOOTPRINT]):
+                line[i].setEditable(False)
 
             self.model.appendRow(line)
         # and put the model into the place
         self.treeView.setModel(self.model)
 
         # as the model is filled with the data, we can resize columns
-        for i in xrange(len(HEADER)):
+        for i in xrange(len(self.header)):
             self.treeView.resizeColumnToContents(i)
 
         # @TODO re-enable maximized
@@ -219,10 +192,9 @@ class BOMLinker(QtGui.QMainWindow, form_class):
         self.treeView.setAcceptDrops(True)
         self.treeView.setDropIndicatorShown(True)
         # and register custom context menu, which will be used as
-        #'filtering' to select correcly chosen indices
+        # 'filtering' to select correcly chosen indices
         self.treeView.setContextMenuPolicy(QtCore.Qt.CustomContextMenu)
         self.treeView.customContextMenuRequested.connect(self.openMenu)
-
 
     def openMenu(self, position):
         """ opens context menu. Context menu is basically a
@@ -268,8 +240,9 @@ class BOMLinker(QtGui.QMainWindow, form_class):
         """
         # we process only columns libref and value as those are used
         # to search (most of the time)
-        if index.column() in [HEADER['LibRef'],
-                              HEADER['Value']]:
+        if index.column() in self.header.get_columns([self.header.LIBREF,
+                                                      self.header.VALUE]):
+
             item = self.model.item(index.row(), index.column())
             strData = item.data(0).toPyObject()
             # this is what we're going to look after
