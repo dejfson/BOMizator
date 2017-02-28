@@ -74,7 +74,7 @@ class supplier_selector(object):
     def parse_URL(self, urltext):
         """ Uses all plugins installed to detect if one of the plugins
         can accept the web page URL and parse its content to get the
-        data into right format. If so, this function returns a TUPLE
+        data into right format. If so, this function returns a dictionary
         containing: (Manufacturer, Mfg. reference, Supplier, Supplier
         reference, datasheet). NOT ALL SUPPLIERS CAN RESOLVE THE
         INFORMATION. The best one seems to be farnell, which provides
