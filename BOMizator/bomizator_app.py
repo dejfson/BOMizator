@@ -45,6 +45,7 @@ from sch_parser import sch_parser
 from supplier_selector import supplier_selector
 import webbrowser
 from headers import headers
+from collections import defaultdict
 
 localpath = os.path.dirname(os.path.realpath(__file__))
 form_class = uic.loadUiType(os.path.join(localpath, "BOMLinker.ui"))[0]
@@ -59,6 +60,35 @@ class QDropStandardItemModel(QtGui.QStandardItemModel):
         self.suppliers = supplier_selector()
         # for convenience to query the selection
         self.header = headers()
+
+    def setSelectionFilter(self, filt):
+        """ Runs through all the rows in the data, checks if
+        appropriate columns have the same data as those specified in
+        filters, and if so, the all filter cells are 'selected'. This
+        works over the default sorting, hence all rows are always
+        searched. filt is a dictionary containing key = column, value
+        = data which have to be present in a given column. Function
+        returns list of modelindexes which should be selected as they
+        match the filter
+        """
+        # list of modelindexes to be set selected in treeview
+        to_select = []
+        for row in xrange(self.rowCount()):
+            # get indices of all columns
+            items = []
+            for col, value in filt.items():
+                idx = self.index(row, int(col))
+                item = self.itemFromIndex(idx)
+                if item.text() == value:
+                    # this condition fits, we can add it into items:
+                    items.append(idx)
+            # here if all conditions are satisfied, then items length
+            # should be the same as dict length:
+            if len(items) == len(filt):
+                # we have those items, we can set them selected
+                to_select += items
+        return to_select
+
 
     def getSelectedRows(self):
         """ returns tuple of rows, which are selected. This is done by
@@ -197,6 +227,11 @@ class BOMizator(QtGui.QMainWindow, form_class):
         self.treeView.setContextMenuPolicy(QtCore.Qt.CustomContextMenu)
         self.treeView.customContextMenuRequested.connect(self.openMenu)
 
+    def indexData(self, index):
+        """ convenience function returning the data of given modelindex
+        """
+        return self.model.itemFromIndex(index).text()
+
     def openMenu(self, position):
         """ opens context menu. Context menu is basically a
         right-click on any cell requested. The column and row is
@@ -217,13 +252,61 @@ class BOMizator(QtGui.QMainWindow, form_class):
            indexes[0].column() ==\
            self.header.get_column(self.header.DATASHEET):
             # create menu and corresponding action
-            self.datasheet = self.model.itemFromIndex(indexes[0]).text()
+            self.datasheet = self.indexData(indexes[0])
             menu = QtGui.QMenu()
             open_action = menu.addAction(
                 self.tr("Open %s" % (self.datasheet, )))
             open_action.triggered.connect(self.open_datasheet)
-
             menu.exec_(self.treeView.viewport().mapToGlobal(position))
+
+        # variant 2: we can select from libref, value, footprint in
+        # each column _single item only_, and this one can be used to
+        # create a selection mask. From obvious reasons selecting TWO
+        # DIFFERENT LIBREFs e.g. does not make any sense. The same for
+        # other columns. Only these three (for the moment) can be used
+        # to form a filter as the others are 'user fillable', hence
+        # can contain whatever information, ergo hell to make filter
+        # first we have to make a 'histogram', i.e. counting
+        # occurences of columns.
+        d = defaultdict(int)
+        # now run through all indices and do counting of columns
+        for index in indexes:
+            d[str(index.column())] += 1
+        # now get list of values and find if each of them is exactly
+        # one. First condition: look for columns which can be used for this:
+        eligible_columns = all(map(lambda c: c in self.header.get_columns(
+            [self.header.LIBREF,
+             self.header.VALUE,
+             self.header.FOOTPRINT]),
+                                   map(int, d.keys())))
+
+        # second: look if in each column there's exactly one value selected
+        eligible_context = all(map(lambda c: c == 1, d.values()))
+        if eligible_context and eligible_columns:
+            # menu 'select same', 'disable same'
+            menu = QtGui.QMenu()
+            select_same = menu.addAction(self.tr("Select same"))
+            select_same.triggered.connect(self.select_same_filter)
+            menu.exec_(self.treeView.viewport().mapToGlobal(position))
+
+    def select_same_filter(self):
+        """ in treeview selects the rows matching the selected items filters
+        """
+        # we have unique columns selected, and now we need to browse
+        # each row of data, check if all the conditions are satisfied,
+        # and if so, then select the columns
+        indexes = self.treeView.selectedIndexes()
+        # get dictionary of 'column':filter_data
+        d = defaultdict(str)
+        for index in indexes:
+            d[str(index.column())] = self.indexData(index)
+        # and this has to be done in model as we're working over model
+        # data. filter is a dictionary 'column':<filter_string>
+        to_enable = self.model.setSelectionFilter(d)
+        for idx in to_enable:
+            self.treeView.selectionModel().select(
+                idx,
+                QtGui.QItemSelectionModel.Select)
 
     def open_datasheet(self):
         """ opens the browser with datasheet
