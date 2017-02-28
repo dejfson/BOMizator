@@ -31,7 +31,10 @@ Farnell webpages search engine
 
 from PyQt4 import QtCore
 import urllib2
-import re
+try:
+    from BeautifulSoup import BeautifulSoup
+except ImportError:
+    from bs4 import BeautifulSoup
 # import headers to be able to match the string names correctly
 from BOMizator.headers import headers
 
@@ -65,13 +68,12 @@ wcs/stores/servlet/Search?st=%s" % (searchtext,)
         with open("/tmp/htmlread.html", "wt") as f:
             f.write(html)
 
-        # we use the simplest approach. it seems that all farnell
-        # datasheets are PDFs, and stored somewhere in datasheets
-        # folder. we find all occurences of this
-        sheets = map(lambda c: c.replace('"', ''),
-                     set(re.findall('"http://.*/datasheets/.*pdf"', html)))
-        # all datasheets are joined by semicolon
-        return QtCore.QString(';'.join(sheets))
+        # this is dependent of web page structure
+        parsed_html = BeautifulSoup(html)
+        techdoc = parsed_html.body.find('ul', attrs={'id':'technicalData'})
+        sheet = QtCore.QString(techdoc.find('a').attrs['href'])
+
+        return sheet
 
     def parse_URL(self, urltext):
         """ From GIVEN URL (web pages) parses all the data to resolve

@@ -206,19 +206,31 @@ class BOMizator(QtGui.QMainWindow, form_class):
         browser. In case of libref it can choose the same components
         etc...
         """
-        # @TODO implement filtering algorithm
         indexes = self.treeView.selectedIndexes()
-        if len(indexes) > 0:
-            level = 0
-            index = indexes[0]
-            while index.parent().isValid():
-                index = index.parent()
-                level += 1
 
-        menu = QtGui.QMenu()
-        menu.addAction(self.tr("Edit person"))
+        if len(indexes) < 1:
+            return
 
-        menu.exec_(self.treeView.viewport().mapToGlobal(position))
+        # some more validation: if datasheet clicked, we display 'open
+        # datasheet' menu. But only single one is allowed at time
+        if len(indexes) == 1 and\
+           indexes[0].column() ==\
+           self.header.get_column(self.header.DATASHEET):
+            # datasheet is 'easy'. We parse the datasheets (they might
+            # be multiple, semicolon separated) and construct the menu
+            # out of them
+            datasheets = indexes[0].text().split(";")
+            menu = QtGui.QMenu()
+
+            for i in datasheets:
+                menu.addAction(self.tr("Open %s" % (i,)))
+
+            menu.exec_(self.treeView.viewport().mapToGlobal(position))
+
+    def open_datasheet(self):
+        """ opens the browser with datasheet
+        """
+        pass
 
     def open_search_browser(self, searchtext):
         """ This function calls default plugin to supply the web
