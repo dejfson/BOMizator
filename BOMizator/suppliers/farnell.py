@@ -119,7 +119,7 @@ wcs/stores/servlet/Search?st=%s" % (searchtext,)
             data = (manufacturer, reference,
                     QtCore.QString("FARNELL"), partnum)
             # datasheet must stay as is as web pages might be case sensitive
-            dataupper = list(map(QtCore.QString.toUpper,
+            dataupper = list(map(QtCore.QString.toUpper,am
                                  data)) + [datasheet, ]
             return dict(zip(datanames, dataupper))
 
