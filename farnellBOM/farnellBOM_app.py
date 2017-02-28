@@ -78,7 +78,7 @@ class QDropStandardItemModel(QtGui.QStandardItemModel):
         plugins. This is verified against the suppliers object, which
         returns correctly parsed data.
         """
-
+        QtGui.QApplication.setOverrideCursor(QtCore.Qt.WaitCursor)
         # note: the row and column needs a bit of explication. It
         # always returns -1 in both. And that's because we're using
         # QTreeView, and row/column shows _where in parent we need to
@@ -112,6 +112,7 @@ class QDropStandardItemModel(QtGui.QStandardItemModel):
                     self.index(row,
                                self.header.get_column(key)),
                     value)
+        QtGui.QApplication.restoreOverrideCursor()
         return True
 
     def mimeTypes(self):
@@ -185,7 +186,7 @@ class BOMLinker(QtGui.QMainWindow, form_class):
             self.treeView.resizeColumnToContents(i)
 
         # @TODO re-enable maximized
-        #self.showMaximized()
+        self.showMaximized()
         # connect signals to treeView so we can invoke search engines
         self.treeView.doubleClicked.connect(self.tree_doubleclick)
         # register accepting drops
