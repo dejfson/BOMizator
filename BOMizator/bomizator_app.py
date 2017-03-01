@@ -51,10 +51,24 @@ localpath = os.path.dirname(os.path.realpath(__file__))
 form_class = uic.loadUiType(os.path.join(localpath, "BOMLinker.ui"))[0]
 
 
+class QDesignatorSortModel(QtGui.QSortFilterProxyModel):
+    """ Reimplements sorting of the treeview such, that designator and
+    values numbers are properly sorted according to 'normal'
+    perception. Hence U1, U2, U3 and not U1, U10, U11 as by default.
+    """
+
+    def lessThan(self, left, right):
+        """ makes comparison of two numbers/strings. We have to detect
+        numbers in these things.
+        """
+        print left, right
+        return left < right
+
+
 class QDropStandardItemModel(QtGui.QStandardItemModel):
     """ redefines standard item model to support drop actions
     """
-    def __init__(self, parent):
+    def __init__(self, parent=None):
         super(QDropStandardItemModel, self).__init__(parent)
         # get all sellers filters
         self.suppliers = supplier_selector()
@@ -88,7 +102,6 @@ class QDropStandardItemModel(QtGui.QStandardItemModel):
                 # we have those items, we can set them selected
                 to_select += items
         return to_select
-
 
     def getSelectedRows(self):
         """ returns tuple of rows, which are selected. This is done by
@@ -188,12 +201,20 @@ class BOMizator(QtGui.QMainWindow, form_class):
         self.SCH = sch_parser(sys.argv[1])
         self.SCH.parse_components()
 
-        self.model = QDropStandardItemModel(self.treeView)
+        self.model = QDropStandardItemModel()
+        # search proxy:
+        self.proxy = QDesignatorSortModel()
+        self.proxy.setSourceModel(self.model)
+        # assign proxy to treeView so we influence how the stuff is sorted
+        self.treeView.setModel(self.proxy)
         # get header object
         self.header = headers()
 
         sorted_header = self.header.get_headers()
         self.model.setHorizontalHeaderLabels(sorted_header)
+        # set sorting of treeview by designator
+        self.treeView.sortByColumn(self.header.get_column(
+            self.header.DESIGNATOR), QtCore.Qt.AscendingOrder)
 
         # having headers we might deploy the data into the multicolumn
         # view. We need to collect all the data:
@@ -216,7 +237,7 @@ class BOMizator(QtGui.QMainWindow, form_class):
             self.treeView.resizeColumnToContents(i)
 
         # @TODO re-enable maximized
-        self.showMaximized()
+        # self.showMaximized()
         # connect signals to treeView so we can invoke search engines
         self.treeView.doubleClicked.connect(self.tree_doubleclick)
         # register accepting drops
