@@ -69,6 +69,7 @@ class BOMizator(QtGui.QMainWindow, form_class):
         # search proxy:
         self.proxy = QDesignatorSortModel()
         self.proxy.setSourceModel(self.model)
+        self.proxy.setDynamicSortFilter(True)
         # assign proxy to treeView so we influence how the stuff is sorted
         self.treeView.setModel(self.proxy)
         self.treeView.setSortingEnabled(True)
@@ -93,8 +94,6 @@ class BOMizator(QtGui.QMainWindow, form_class):
             map(lambda ei: ei.setEditable(False), editable)
 
             self.model.appendRow(list(line))
-        # and put the model into the place
-        self.treeView.setModel(self.model)
 
         # as the model is filled with the data, we can resize columns
         for i in range(len(self.header)):
