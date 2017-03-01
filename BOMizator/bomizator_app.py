@@ -45,7 +45,6 @@ from collections import defaultdict
 from PyQt4 import QtGui, uic, QtCore
 from .sch_parser import sch_parser
 from .headers import headers
-from .qdropstandarditemmodel import QDropStandardItemModel
 from .qdesignatorsortmodel import QDesignatorSortModel
 
 localpath = os.path.dirname(os.path.realpath(__file__))
@@ -65,9 +64,9 @@ class BOMizator(QtGui.QMainWindow, form_class):
         self.SCH = sch_parser(sys.argv[1])
         self.SCH.parse_components()
 
-        self.model = QDropStandardItemModel(self.treeView)
+        self.model = QtGui.QStandardItemModel(self.treeView)
         # search proxy:
-        self.proxy = QDesignatorSortModel()
+        self.proxy = QDesignatorSortModel(self.treeView)
         self.proxy.setSourceModel(self.model)
         self.proxy.setDynamicSortFilter(True)
         # assign proxy to treeView so we influence how the stuff is sorted
@@ -112,9 +111,11 @@ class BOMizator(QtGui.QMainWindow, form_class):
         self.treeView.customContextMenuRequested.connect(self.openMenu)
 
     def indexData(self, index):
-        """ convenience function returning the data of given modelindex
+        """ convenience function returning the data of given
+        modelindex. Gets complicated because we are using filter
+        proxy, hence the index has to be converted to source model index.
         """
-        return self.model.itemFromIndex(index).text()
+        return self.proxy.itemData(index)[QtCore.Qt.DisplayRole]
 
     def openMenu(self, position):
         """ opens context menu. Context menu is basically a
@@ -180,12 +181,12 @@ class BOMizator(QtGui.QMainWindow, form_class):
         # and if so, then select the columns
         indexes = self.treeView.selectedIndexes()
         # get dictionary of 'column':filter_data
-        d = defaultdict(str)
+        d = defaultdict(int)
         for index in indexes:
-            d[str(index.column())] = self.indexData(index)
+            d[index.column()] = self.indexData(index)
         # and this has to be done in model as we're working over model
         # data. filter is a dictionary 'column':<filter_string>
-        to_enable = self.model.setSelectionFilter(d)
+        to_enable = self.proxy.setSelectionFilter(d)
         for idx in to_enable:
             self.treeView.selectionModel().select(
                 idx,
@@ -206,7 +207,7 @@ class BOMizator(QtGui.QMainWindow, form_class):
         just means that a page with search resuls will open, and user
         it responsible to look for a specific component further.
         """
-        url = self.model.suppliers.search_for_component(searchtext)
+        url = self.proxy.suppliers.search_for_component(searchtext)
         # now fire the web browser with this page opened
         b = webbrowser.get('firefox')
         b.open(url, new=0, autoraise=True)
@@ -221,11 +222,7 @@ class BOMizator(QtGui.QMainWindow, form_class):
         # to search (most of the time)
         if index.column() in self.header.get_columns([self.header.LIBREF,
                                                       self.header.VALUE]):
-
-            item = self.model.item(index.row(), index.column())
-            strData = item.data(0)
-            # this is what we're going to look after
-            self.open_search_browser(str(strData))
+            self.open_search_browser(self.indexData(index))
 
 
 def main():
