@@ -42,5 +42,5 @@ class QDesignatorSortModel(QtGui.QSortFilterProxyModel):
         """ makes comparison of two numbers/strings. We have to detect
         numbers in these things.
         """
-        print left, right
+        print(left, right)
         return left < right

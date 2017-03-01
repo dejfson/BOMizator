@@ -70,9 +70,10 @@ class headers(object):
     def get_headers(self):
         """ returns list of headers sorted by columns
         """
-        return map(lambda c: c[0],
-                   sorted(self.HEADER.items(),
-                          key=itemgetter(1)))
+        namecol = map(lambda c: (c[0], c[1]['column']), self.HEADER.items())
+        namecol = sorted(namecol, key=itemgetter(1))
+        names = map(lambda c: c[0], namecol)
+        return list(names)
 
     def get_columns(self, collist):
         """ returns unsorted list of columns identified by collist names
@@ -96,8 +97,8 @@ class headers(object):
         """
         try:
             a = filter(lambda c: self.HEADER[c]['column'] == column,
-                       self.HEADER)[0]
-            return a
+                       self.HEADER)
+            return list(a)[0]
         except IndexError:
             # sometimes column == -1 when model is not able to
             # identify which column we're sitting on. in this case we

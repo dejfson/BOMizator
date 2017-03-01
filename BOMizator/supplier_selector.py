@@ -59,7 +59,7 @@ class supplier_selector(object):
         self.plugins_directory = os.path.join(
             localpath,
             plugins_directory)
-        print "Loading plugins from ", self.plugins_directory, ":"
+        print("Loading plugins from ", self.plugins_directory, ":")
         self.plugins = self.get_plugins()
         self.set_default_plugin('FARNELL')
         # and now we're ready to accept search queries
@@ -82,20 +82,20 @@ class supplier_selector(object):
         clumsy. Digikey seems to be as good as farnell in parsing from
         URL. First one which matches is the valid one.
         """
-        print COLORINFO+"Searching in plugins:"+COLORNUL
+        print(COLORINFO+"Searching in plugins:"+COLORNUL)
         for name, plug in self.plugins.items():
             try:
-                print COLORNUL+"\tChecking ", name, " ... ",
+                print(COLORNUL+"\tChecking "+name+" ... ", end='')
                 data = plug.parse_URL(urltext)
-                print COLOROK+"FOUND"+COLORNUL
+                print(COLOROK+"FOUND"+COLORNUL)
                 return data
             except KeyError:
-                print COLORFAIL+"NOT FOUND"+COLORNUL
+                print(COLORFAIL+"NOT FOUND"+COLORNUL)
                 pass
         # when here, no plugin matched the selection, raise KeyError
-        print COLORFAIL +\
-            "\tNo installed plugin matches the URL selection" +\
-            COLORNUL
+        print(COLORFAIL +
+              "No installed plugin matches the URL selection" +
+              COLORNUL)
         raise KeyError
 
     def get_url(self, searchtext):
@@ -123,7 +123,7 @@ class supplier_selector(object):
             # which sets up the class name to be. Plugin filename must
             # correspond to class defined inside
             info = imp.load_source('', plugin).DEFAULT_CLASS
-            print "\t", info().name
+            print("\t", info().name)
             plugins_classes[info().name] = info()
         return plugins_classes
 

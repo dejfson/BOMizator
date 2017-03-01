@@ -40,13 +40,13 @@ manufacturer part independently of the values of the libraries.
 
 import sys
 import os
-from PyQt4 import QtGui, uic, QtCore
-from sch_parser import sch_parser
 import webbrowser
-from headers import headers
 from collections import defaultdict
-from qdropstandarditemmodel import QDropStandardItemModel
-from qdesignatorsortmodel import QDesignatorSortModel
+from PyQt4 import QtGui, uic, QtCore
+from .sch_parser import sch_parser
+from .headers import headers
+from .qdropstandarditemmodel import QDropStandardItemModel
+from .qdesignatorsortmodel import QDesignatorSortModel
 
 localpath = os.path.dirname(os.path.realpath(__file__))
 form_class = uic.loadUiType(os.path.join(localpath, "BOMLinker.ui"))[0]
@@ -65,7 +65,7 @@ class BOMizator(QtGui.QMainWindow, form_class):
         self.SCH = sch_parser(sys.argv[1])
         self.SCH.parse_components()
 
-        self.model = QDropStandardItemModel()
+        self.model = QDropStandardItemModel(self.treeView)
         # search proxy:
         self.proxy = QDesignatorSortModel()
         self.proxy.setSourceModel(self.model)
@@ -85,20 +85,19 @@ class BOMizator(QtGui.QMainWindow, form_class):
         # view. We need to collect all the data:
         for itemData in self.SCH.BOM():
             line = map(QtGui.QStandardItem, list(itemData))
-            # some modifications to items
-            # 1) designator, library part and footprint are immutable
-            for i in self.header.get_columns([self.header.DESIGNATOR,
+            columns = self.header.get_columns([self.header.DESIGNATOR,
                                               self.header.LIBREF,
                                               self.header.VALUE,
-                                              self.header.FOOTPRINT]):
-                line[i].setEditable(False)
+                                              self.header.FOOTPRINT])
+            editable = filter(lambda item: item in columns, line)
+            map(lambda ei: ei.setEditable(False), editable)
 
-            self.model.appendRow(line)
+            self.model.appendRow(list(line))
         # and put the model into the place
         self.treeView.setModel(self.model)
 
         # as the model is filled with the data, we can resize columns
-        for i in xrange(len(self.header)):
+        for i in range(len(self.header)):
             self.treeView.resizeColumnToContents(i)
 
         # @TODO re-enable maximized
@@ -225,7 +224,7 @@ class BOMizator(QtGui.QMainWindow, form_class):
                                                       self.header.VALUE]):
 
             item = self.model.item(index.row(), index.column())
-            strData = item.data(0).toPyObject()
+            strData = item.data(0)
             # this is what we're going to look after
             self.open_search_browser(str(strData))
 

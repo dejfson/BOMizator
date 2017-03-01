@@ -30,7 +30,7 @@ Farnell webpages search engine
 """
 
 from PyQt4 import QtCore
-import urllib2
+import urllib3
 try:
     from BeautifulSoup import BeautifulSoup
 except ImportError:
@@ -60,8 +60,9 @@ wcs/stores/servlet/Search?st=%s" % (searchtext,)
         time as there are some ambiguities, but works reasonably well
         by parsing simple textual data.
         """
-        response = urllib2.urlopen(urltext)
-        html = response.read()
+        http = urllib3.PoolManager()
+        response = http.request('GET', urltext)
+        html = response.data.decode("utf-8")
         # data here, write them to temporary file, just for sake of
         # completeness (and for searching later on why the heck it
         # does not work)
@@ -69,9 +70,10 @@ wcs/stores/servlet/Search?st=%s" % (searchtext,)
             f.write(html)
 
         # this is dependent of web page structure
-        parsed_html = BeautifulSoup(html)
-        techdoc = parsed_html.body.find('ul', attrs={'id':'technicalData'})
-        sheet = QtCore.QString(techdoc.find('a').attrs['href'])
+        parsed_html = BeautifulSoup(html, "html5lib")
+        techdoc = parsed_html.body.find('ul',
+                                        attrs={'id': 'technicalData'})
+        sheet = techdoc.find('a').attrs['href']
 
         return sheet
 
@@ -97,11 +99,13 @@ wcs/stores/servlet/Search?st=%s" % (searchtext,)
                 deep,\
                 partnum = realpart.split("/")
             # series of checks: site has to contain farnell:
-            if not site.contains("FARNELL", QtCore.Qt.CaseInsensitive):
+            if site.upper().find("FARNELL") == -1:
+                print("\n\tNo Farnell identifier detected")
                 raise KeyError
 
             # deep has to contain DP:
-            if not deep.contains("DP", QtCore.Qt.CaseInsensitive):
+            if deep.upper().find("DP") == -1:
+                print("\t\tMalformed URL for FARNELL plugin")
                 raise KeyError
             # the most problematic is to dig out the datasheet for the
             # component. This is not part of the URL and for this we need
@@ -116,11 +120,9 @@ wcs/stores/servlet/Search?st=%s" % (searchtext,)
                          self.header.DATASHEET)
             # return properly formed dictionary:(Manufacturer, Mfg. reference,
             # Supplier, Supplier reference, datasheet)
-            data = (manufacturer, reference,
-                    QtCore.QString("FARNELL"), partnum)
+            data = (manufacturer, reference, "FARNELL", partnum)
             # datasheet must stay as is as web pages might be case sensitive
-            dataupper = list(map(QtCore.QString.toUpper,
-                                 data)) + [datasheet, ]
+            dataupper = list(map(str.upper, data)) + [datasheet, ]
             return dict(zip(datanames, dataupper))
 
         except ValueError:

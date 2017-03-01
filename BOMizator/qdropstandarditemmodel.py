@@ -30,8 +30,8 @@ Implements item model for the treeView
 """
 
 from PyQt4 import QtGui, QtCore
-from supplier_selector import supplier_selector
-from headers import headers
+from .supplier_selector import supplier_selector
+from .headers import headers
 
 
 class QDropStandardItemModel(QtGui.QStandardItemModel):
@@ -56,7 +56,7 @@ class QDropStandardItemModel(QtGui.QStandardItemModel):
         """
         # list of modelindexes to be set selected in treeview
         to_select = []
-        for row in xrange(self.rowCount()):
+        for row in range(self.rowCount()):
             # get indices of all columns
             items = []
             for col, value in filt.items():
@@ -91,39 +91,42 @@ class QDropStandardItemModel(QtGui.QStandardItemModel):
         returns correctly parsed data.
         """
         QtGui.QApplication.setOverrideCursor(QtCore.Qt.WaitCursor)
-        # note: the row and column needs a bit of explication. It
-        # always returns -1 in both. And that's because we're using
-        # QTreeView, and row/column shows _where in parent we need to
-        # insert the data_. But in fact, we want to _replace the
-        # parent_ by our data. Respectively we need to replace data in
-        # appropriate row and _many_ columns, depending on whether a
-        # single item is selected, or multiple items (in terms of
-        # designators) are selected. Following command returns
-        # dictionary of all found items
-        parsed_data = self.suppliers.parse_URL(data.text())
-        # first we find all items, which are selected. we are only
-        # interested in rows, as those are determining what
-        # designators are used.
-        rows = self.getSelectedRows()
-        # and with all selected rows we distinguish, whether we have
-        # dropped the data into selected rows. If so, we will
-        # overwritte all the information in _each row_. If however the
-        # drop destination is outside of the selection, we only
-        # replace given row
-        if treeparent.row() in rows:
-            replace_in_rows = rows
-        else:
-            replace_in_rows = [treeparent.row(), ]
+        try:
+            # note: the row and column needs a bit of explication. It
+            # always returns -1 in both. And that's because we're using
+            # QTreeView, and row/column shows _where in parent we need to
+            # insert the data_. But in fact, we want to _replace the
+            # parent_ by our data. Respectively we need to replace data in
+            # appropriate row and _many_ columns, depending on whether a
+            # single item is selected, or multiple items (in terms of
+            # designators) are selected. Following command returns
+            # dictionary of all found items
+            parsed_data = self.suppliers.parse_URL(data.text())
+            # first we find all items, which are selected. we are only
+            # interested in rows, as those are determining what
+            # designators are used.
+            rows = self.getSelectedRows()
+            # and with all selected rows we distinguish, whether we have
+            # dropped the data into selected rows. If so, we will
+            # overwritte all the information in _each row_. If however the
+            # drop destination is outside of the selection, we only
+            # replace given row
+            if treeparent.row() in rows:
+                replace_in_rows = rows
+            else:
+                replace_in_rows = [treeparent.row(), ]
 
-        # now the data replacement. EACH ITEM HAS ITS OWN MODELINDEX
-        # and we get the modelindices from parent. Do for each of them
-        for row in replace_in_rows:
-            # walk through each parsed item, and change the data
-            for key, value in parsed_data.items():
-                self.setData(
-                    self.index(row,
-                               self.header.get_column(key)),
-                    value)
+            # now the data replacement. EACH ITEM HAS ITS OWN MODELINDEX
+            # and we get the modelindices from parent. Do for each of them
+            for row in replace_in_rows:
+                # walk through each parsed item, and change the data
+                for key, value in parsed_data.items():
+                    self.setData(
+                        self.index(row,
+                                   self.header.get_column(key)),
+                        value)
+        except KeyError:
+            pass
         QtGui.QApplication.restoreOverrideCursor()
         return True
 
@@ -131,9 +134,7 @@ class QDropStandardItemModel(QtGui.QStandardItemModel):
         """ This class accepts only text/plain drops, hence this
         function sets up the correct mimetype
         """
-        types = QtCore.QStringList()
-        types.append('text/plain')
-        return types
+        return ['text/plain', ]
 
     def flags(self, index):
         """ according to which column we have cursor on, this field

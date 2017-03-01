@@ -35,6 +35,7 @@ import fnmatch
 import os
 from collections import defaultdict
 
+
 class sch_parser(object):
     """ Parses the KiCad schematics files for components
     """
@@ -62,7 +63,6 @@ class sch_parser(object):
             '\t': self._attribute_tab,
             '$': self._attribute_termination}
 
-
     def _sm_catch_header(self, line):
         """ state machine state catching the component start in the
         line of the code. line is a single line read from the
@@ -84,7 +84,6 @@ class sch_parser(object):
         # attribute is assigned
         self.attribute_entry[line[0]](line.strip())
 
-
     def _attribute_termination(self, line):
         """ dollar sign introduces entity ending
         """
@@ -95,10 +94,11 @@ class sch_parser(object):
             # these are in principle not components
             if not self.current_component['L'][1].startswith('#'):
                 if self.debug:
-                    print "Found component ",\
-                        self.current_component['L'][1], ":",\
-                        self.current_component['F']['1'][0]
-                self.components[self.current_component['L'][1]] = self.current_component
+                    print("Found component ",
+                          self.current_component['L'][1], ":",
+                          self.current_component['F']['1'][0])
+                self.components[
+                    self.current_component['L'][1]] = self.current_component
 
             self.current_state = self._sm_catch_header
 
@@ -154,8 +154,6 @@ class sch_parser(object):
             self.current_component['F'] = {}
             self.current_component['F'][data[1]] = data[2:]
 
-
-
     def parse_components(self):
         """ after initial filenames matching this function parses all
         the schematics files and gets the components names from the
@@ -204,10 +202,10 @@ class sch_parser(object):
         # 'V', '-1670', '1700', '50', '', '0001', 'C', 'CNN']}}
 
         for key, value in self.components.items():
-            data = [value['L'][1], # designator
-                    value['L'][0], # library reference
-                    self.strip_quote(value['F']['1'][0]), # value of component
-                    self.strip_quote(value['F']['2'][0])] # footprint
+            data = [value['L'][1],  # designator
+                    value['L'][0],  # library reference
+                    self.strip_quote(value['F']['1'][0]),  # value of component
+                    self.strip_quote(value['F']['2'][0])]  # footprint
 
             # now we have to see in 'L' attributes entires correct
             # attribute names
