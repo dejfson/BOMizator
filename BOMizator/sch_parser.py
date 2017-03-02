@@ -47,13 +47,16 @@ class sch_parser(object):
         self.dirname = dirname
         self.debug = False
         self.matches = []
-        for root, dirnames, filenames in os.walk(self.dirname):
-            for filename in fnmatch.filter(filenames, '*.sch'):
-                self.matches.append(os.path.join(root, filename))
+        # we cannot do a simple looking for schematic files. Instead
+        # we need to walk through the files and look for particular
+        # project file, which tells us (from the filename), which is
+        # the top-level schematic. this one has to be then parsed for
+        # $sheet items and their attributes to see all the schematic
+        # files appearing in the project. If we do not do so, we might
+        # parse schematic files, which are broken, or are not part of
+        # the project.
+        self.matches = self.collectFiles()
 
-        if self.matches == []:
-            raise AttributeError('Provided directory does not contain\
- any kicad schematic files')
         self.current_state = self._sm_catch_header
         self.components = defaultdict(list)
 
@@ -63,9 +66,65 @@ class sch_parser(object):
             'L': self._attribute_generic,
             'U': self._attribute_generic,
             'P': self._attribute_generic,
+            'A': self._attribute_generic,
             'F': self._attribute_f,
             '\t': self._attribute_tab,
             '$': self._attribute_termination}
+
+    def collectFiles(self):
+        """ uses project directory to pass through the projects
+        """
+
+        matches = []
+        # find all project files within the directory (there should be
+        # one theoretically, but we accept any number, i.e. when
+        # subdirectory is given)
+        for root, dirnames, filenames in os.walk(self.dirname):
+            for filename in fnmatch.filter(filenames, '*.pro'):
+                matches.append(os.path.join(root, filename))
+
+        if matches == []:
+            raise AttributeError('Provided directory does not contain\
+ any kicad schematic files')
+
+        # having the project file the top-level schematic shares the
+        # filenames, we can recursively search through using simple
+        # parsing
+        projectFiles = []
+        for project in matches:
+            fname = os.path.splitext(project)[0]+'.sch'
+            dirname, core = os.path.split(fname)
+            for fn in os.listdir(dirname):
+                if core.lower() == fn.lower():
+                    # case insensitive match of the file:
+                    toparse = os.path.join(dirname, fn)
+                    projectFiles += self.getSheets(toparse)
+        return projectFiles
+
+    def getSheets(self, fname):
+        """ opens the sheet fname, parses it for sub-sheets and
+        returns their list.
+        """
+        print(COLORINFO+"Parsing "+fname+COLORNUL)
+        subsheet = []
+        with open(fname, "rt") as f:
+            insheet = False
+            for line in f:
+                if line.startswith("$Sheet"):
+                    insheet = True
+                elif line.startswith("F1 ") and insheet:
+                    # we have reached an attribute of the sheet, which
+                    # tells us the filename of a subsheet
+                    sht = line.split(" ")[1].replace('"', '')
+                    dirname, core = os.path.split(fname)
+                    # append proper dirname and re-request to parse
+                    # the sub-sheet in this moment
+                    subsheet += self.getSheets(
+                        os.path.join(dirname, sht))
+                elif line.startswith('$EndSheet') and insheet:
+                    insheet = False
+        return [fname, ] + subsheet
+
 
     def _sm_catch_header(self, line):
         """ state machine state catching the component start in the
@@ -86,6 +145,7 @@ class sch_parser(object):
         # deteminant of which attribute the component entry
         # corresponds to. If it is not found, then the 'default' line
         # attribute is assigned
+        print(line)
         self.attribute_entry[line[0]](line.strip())
 
     def _attribute_termination(self, line):
@@ -165,6 +225,7 @@ class sch_parser(object):
         used either to get the info about the component, _or_ add/modify
         appropriate attributes.
         """
+        print(self.matches)
         for fname in self.matches:
             print(COLORINFO+"Parsing "+fname+COLORNUL)
             with open(fname, "rt") as f:
