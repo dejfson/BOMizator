@@ -61,7 +61,7 @@ class BOMizator(QtGui.QMainWindow, form_class):
         self.setupUi(self)
 
         self.BOM = []
-        self.settings = QtCore.QSettings('', 'bomizator')
+        self.settings = QtCore.QSettings()
 
         self.projectDirectory = projectDirectory
         self.SCH = sch_parser(self.projectDirectory)
@@ -101,8 +101,6 @@ class BOMizator(QtGui.QMainWindow, form_class):
         for i in range(len(self.header)):
             self.treeView.resizeColumnToContents(i)
 
-        # @TODO re-enable maximized
-        # self.showMaximized()
         # connect signals to treeView so we can invoke search engines
         self.treeView.doubleClicked.connect(self.tree_doubleclick)
         # register accepting drops
@@ -113,12 +111,63 @@ class BOMizator(QtGui.QMainWindow, form_class):
         self.treeView.setContextMenuPolicy(QtCore.Qt.CustomContextMenu)
         self.treeView.customContextMenuRequested.connect(self.openMenu)
 
+        # restore windows parameters
+        self._readAndApplyWindowAttributeSettings()
+
     def indexData(self, index):
         """ convenience function returning the data of given
         modelindex. Gets complicated because we are using filter
         proxy, hence the index has to be converted to source model index.
         """
         return self.proxy.itemData(index)[QtCore.Qt.DisplayRole]
+
+    def resizeEvent(self, event):
+        """ reimplementation of resize event to store state into settings
+        """
+        super(BOMizator, self).resizeEvent(event)
+        self._writeWindowAttributeSettings()
+
+    def moveEvent(self, event):
+        """ reimplementation of move event to store state into settings
+        """
+        super(BOMizator, self).moveEvent(event)
+        self._writeWindowAttributeSettings()
+
+    def closeEvent(self, event):
+        """ reimplemented close to save window position
+        """
+        super(BOMizator, self).closeEvent(event)
+        self._writeWindowAttributeSettings()
+
+    def _readAndApplyWindowAttributeSettings(self):
+        """ Read window attributes from settings, using current
+        attributes as defaults (if settings not exist.) Called at
+        QMainWindow initialization, before show().  """
+
+        print("restoring")
+        self.settings.beginGroup("mainWindow")
+        self.restoreGeometry(self.settings.value("geometry",
+                                                 self.saveGeometry()))
+        self.restoreState(self.settings.value("saveState", self.saveState()))
+        self.move(self.settings.value("pos", self.pos()))
+        self.resize(self.settings.value("size", self.size()))
+        if self.settings.value("maximized", self.isMaximized()):
+            self.showMaximized()
+
+        self.settings.endGroup()
+
+    def _writeWindowAttributeSettings(self):
+        """ Save window attributes as settings.
+        Called when window moved, resized, or closed. """
+        print("wirte")
+        self.settings.beginGroup("mainWindow")
+        self.settings.setValue("geometry", self.saveGeometry())
+        self.settings.setValue("saveState", self.saveState())
+        self.settings.setValue("maximized", self.isMaximized())
+        if not self.isMaximized():
+            self.settings.setValue("pos", self.pos())
+            self.settings.setValue("size", self.size())
+        self.settings.endGroup()
 
     def openMenu(self, position):
         """ opens context menu. Context menu is basically a
@@ -234,6 +283,10 @@ def main():
     """
 
     app = QtGui.QApplication(sys.argv)
+    # general settings file as follows
+    QtCore.QCoreApplication.setOrganizationName("dejfson")
+    QtCore.QCoreApplication.setOrganizationDomain("github.com/dejfson")
+    QtCore.QCoreApplication.setApplicationName("bomizator")
 
     # if not given directory from the command line, ask for it
     try:
