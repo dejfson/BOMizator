@@ -34,6 +34,7 @@ all the embedded components
 import fnmatch
 import os
 from collections import defaultdict
+from .colors import *
 
 
 class sch_parser(object):
@@ -165,6 +166,7 @@ class sch_parser(object):
         appropriate attributes.
         """
         for fname in self.matches:
+            print(COLORINFO+"Parsing "+fname+COLORNUL)
             with open(fname, "rt") as f:
                 # parsing the file for specific tokens of component
                 # start/stop is a simple state machine

@@ -33,13 +33,7 @@ and their web search iterfaces
 import os
 import imp
 import fnmatch
-
-# define ansi terminal colorset
-COLOROK = "\033[92m"
-COLORWARN = "\033[93m"
-COLORFAIL = "\033[91m"
-COLORNUL = "\033[0m"
-COLORINFO = '\033[94m'
+from .colors import *
 
 
 class supplier_selector(object):

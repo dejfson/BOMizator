@@ -98,8 +98,8 @@ class BOMizator(QtGui.QMainWindow, form_class):
             self.model.appendRow(list(line))
 
         # as the model is filled with the data, we can resize columns
-        for i in range(len(self.header)):
-            self.treeView.resizeColumnToContents(i)
+        # for i in range(len(self.header)):
+        #     self.treeView.resizeColumnToContents(i)
 
         # connect signals to treeView so we can invoke search engines
         self.treeView.doubleClicked.connect(self.tree_doubleclick)
