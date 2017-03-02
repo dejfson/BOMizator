@@ -50,6 +50,9 @@ class sch_parser(object):
             for filename in fnmatch.filter(filenames, '*.sch'):
                 self.matches.append(os.path.join(root, filename))
 
+        if self.matches == []:
+            raise AttributeError('Provided directory does not contain\
+ any kicad schematic files')
         self.current_state = self._sm_catch_header
         self.components = defaultdict(list)
 

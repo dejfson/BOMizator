@@ -52,16 +52,19 @@ form_class = uic.loadUiType(os.path.join(localpath, "BOMLinker.ui"))[0]
 
 
 class BOMizator(QtGui.QMainWindow, form_class):
-    def __init__(self, parent=None):
-        """ Constructing small window
+    def __init__(self, projectDirectory, parent=None):
+        """ Constructing small window with tree view of all components
+    present in the schematics. Directory points to the KiCad project
+    directory containing .sch (they can be in sub-directories as well)
         """
         QtGui.QMainWindow.__init__(self, parent)
         self.setupUi(self)
 
         self.BOM = []
+        self.settings = QtCore.QSettings('', 'bomizator')
 
-        # load and parse all the components from the project
-        self.SCH = sch_parser(sys.argv[1])
+        self.projectDirectory = projectDirectory
+        self.SCH = sch_parser(self.projectDirectory)
         self.SCH.parse_components()
 
         self.model = QtGui.QStandardItemModel(self.treeView)
@@ -231,6 +234,15 @@ def main():
     """
 
     app = QtGui.QApplication(sys.argv)
-    myWindow = BOMizator(None)
+
+    # if not given directory from the command line, ask for it
+    try:
+        projdir = sys.argv[1]
+    except IndexError:
+        projdir = str(
+            QtGui.QFileDialog.getExistingDirectory(None,
+                                                   app.tr("Select\
+ KiCad project directory")))
+    myWindow = BOMizator(projdir)
     myWindow.show()
     app.exec_()
