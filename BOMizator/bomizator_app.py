@@ -52,12 +52,12 @@ form_class = uic.loadUiType(os.path.join(localpath, "BOMLinker.ui"))[0]
 
 
 class BOMizator(QtGui.QMainWindow, form_class):
-    def __init__(self, projectDirectory, parent=None):
+    def __init__(self, projectDirectory, parent=None, flags=0):
         """ Constructing small window with tree view of all components
     present in the schematics. Directory points to the KiCad project
     directory containing .sch (they can be in sub-directories as well)
         """
-        QtGui.QMainWindow.__init__(self, parent)
+        QtGui.QMainWindow.__init__(self, parent, QtCore.Qt.WindowFlags(flags))
         self.setupUi(self)
 
         self.BOM = []
@@ -144,7 +144,6 @@ class BOMizator(QtGui.QMainWindow, form_class):
         attributes as defaults (if settings not exist.) Called at
         QMainWindow initialization, before show().  """
 
-        print("restoring")
         self.settings.beginGroup("mainWindow")
         self.restoreGeometry(self.settings.value("geometry",
                                                  self.saveGeometry()))
@@ -159,7 +158,6 @@ class BOMizator(QtGui.QMainWindow, form_class):
     def _writeWindowAttributeSettings(self):
         """ Save window attributes as settings.
         Called when window moved, resized, or closed. """
-        print("wirte")
         self.settings.beginGroup("mainWindow")
         self.settings.setValue("geometry", self.saveGeometry())
         self.settings.setValue("saveState", self.saveState())
