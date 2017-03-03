@@ -110,7 +110,7 @@ class BOMizator(QtGui.QMainWindow, form_class):
                                               self.header.FOOTPRINT])
             editable = filter(lambda item: item in columns, line)
             map(lambda ei: ei.setEditable(False), editable)
-            datarow = self.enableItems(list(line), True)
+            datarow = self.enableItems(list(line), False)
             self.model.appendRow(datarow)
 
         # as the model is filled with the data, we can resize columns
@@ -242,6 +242,8 @@ class BOMizator(QtGui.QMainWindow, form_class):
         # some more validation: if datasheet clicked, we display 'open
         # datasheet' menu. But only single one is allowed at time
         menu = QtGui.QMenu()
+        execMenu = False
+
         if len(indexes) == 1 and\
            indexes[0].column() ==\
            self.header.getColumn(self.header.DATASHEET):
@@ -250,7 +252,7 @@ class BOMizator(QtGui.QMainWindow, form_class):
             open_action = menu.addAction(
                 self.tr("Open %s" % (self.datasheet, )))
             open_action.triggered.connect(self.openDatasheet)
-            menu.exec_(self.treeView.viewport().mapToGlobal(position))
+            execMenu = True
 
         # variant 2: we can select from libref, value, footprint in
         # each column _single item only_, and this one can be used to
@@ -277,7 +279,7 @@ class BOMizator(QtGui.QMainWindow, form_class):
         if eligible_context and eligible_columns:
             select_same = menu.addAction(self.tr("Select same"))
             select_same.triggered.connect(self.selectSameFilter)
-            menu.exec_(self.treeView.viewport().mapToGlobal(position))
+            execMenu = True
 
         # in all other possibilities it depends whether the item(s)
         # are enabled or disabled. We can select 'whatever' and make
@@ -289,12 +291,45 @@ class BOMizator(QtGui.QMainWindow, form_class):
         # disabled, and depending of that we add context menus. NOTE
         # THAT ENABLE/DISABLE ALWAYS WORKS ON ENTIRE ROWS EVEN IF ONLY
         # SINGLE CELL IS SELECTED. Following returns list of
-        # enable/disable for each index in the selection
-        enabled = map(lambda index: self.indexData(index, BOMizator.ItemEnabled),
-                      indexes)
-        print(list(enabled))
+        # enable/disable for each index in the selection. NOTE THAT WE
+        # HAVE TO MAP THE PROXY SELECTION TO SOURCE AS THESE ARE NOT
+        # THE SAME MODELINDEXES. and we are setting this property on
+        # self.model indices and not on self.proxy indices
+        enabled = list(map(lambda index:
+                           self.model.itemData(
+                               self.proxy.mapToSource(
+                                   index))[BOMizator.ItemEnabled],
+                           indexes))
+        print(enabled)
+        # if any of these is true, there's at least one element enabled
+        oneEnabled = any(enabled)
+        # if all are enabled, then there's not a single one disabled:
+        oneDisabled = not all(enabled)
+        # let's add menus
+        if oneDisabled:
+            enableThis = menu.addAction(self.tr("Enable"))
+            enableThis.triggered.connect(lambda: self.enableProxyItems(True))
+            execMenu = True
+        if oneEnabled:
+            enableThis = menu.addAction(self.tr("Disable"))
+            enableThis.triggered.connect(lambda: self.enableProxyItems(False))
+            execMenu = True
+        if oneEnabled and oneDisabled:
+            enableThis = menu.addAction(self.tr("Invert enable/disable"))
+            enableThis.triggered.connect(lambda:
+                                         self.invertProxyEnableItems(False))
+            execMenu = True
 
+        if execMenu:
+            menu.exec_(self.treeView.viewport().mapToGlobal(position))
 
+    def enableProxyItems(self, enable):
+        """ looks for all selected items in proxy, maps them into base
+        and enables/disables as needed.
+        """
+        indexes = self.treeView.selectedIndexes()
+        rowsAffected = set(list(map(lambda ix: ix.row(), indexes)))
+        print(rowsAffected)
 
 
     def selectSameFilter(self):
