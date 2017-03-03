@@ -33,7 +33,7 @@ and their web search iterfaces
 import os
 import imp
 import fnmatch
-from .colors import *
+from .colors import colors
 
 
 class supplier_selector(object):
@@ -76,20 +76,21 @@ class supplier_selector(object):
         clumsy. Digikey seems to be as good as farnell in parsing from
         URL. First one which matches is the valid one.
         """
-        print(COLORINFO+"Searching in plugins:"+COLORNUL)
+        colors().printInfo("Searching in plugins:")
         for name, plug in self.plugins.items():
             try:
-                print(COLORNUL+"\tChecking "+name+" ... ", end='')
+                print(colors().COLORNUL +
+                      "\tChecking " +
+                      name +
+                      " ... ", end='')
                 data = plug.parse_URL(urltext)
-                print(COLOROK+"FOUND"+COLORNUL)
+                colors().printOK("FOUND")
                 return data
             except KeyError:
-                print(COLORFAIL+"NOT FOUND"+COLORNUL)
+                colors.printFail("NOT FOUND")
                 pass
         # when here, no plugin matched the selection, raise KeyError
-        print(COLORFAIL +
-              "No installed plugin matches the URL selection" +
-              COLORNUL)
+        colors().printFail("No installed plugin matches the URL selection")
         raise KeyError
 
     def get_url(self, searchtext):

@@ -61,3 +61,7 @@ class colors(object):
     def printInfo(self, string):
         self.printColor(self.COLORINFO,
                         string)
+
+    def printOK(self, string):
+        self.printColor(self.COLOROK,
+                        string)
