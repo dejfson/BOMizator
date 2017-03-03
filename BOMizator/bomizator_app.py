@@ -139,6 +139,7 @@ class BOMizator(QtGui.QMainWindow, form_class):
         self.settings.setValue("hideDisabledComponents",
                                hideComponents)
         self.fillModel(hideComponents)
+        self.treeSelection()
 
     def fillModel(self, hideDisabled=True):
         """ resets the components treeview, and reloads it with the
@@ -155,7 +156,7 @@ class BOMizator(QtGui.QMainWindow, form_class):
         self.model.removeRows(0, self.model.rowCount())
         # having headers we might deploy the data into the multicolumn
         # view. We need to collect all the data:
-        for itemData in self.SCH.BOM():
+        for cmpCount, itemData in enumerate(self.SCH.BOM()):
             line = map(QtGui.QStandardItem, list(itemData))
             # set all items to be enabled by default
             columns = self.header.getColumns([self.header.DESIGNATOR,
@@ -173,6 +174,8 @@ class BOMizator(QtGui.QMainWindow, form_class):
             # now, if we want to see the disabled items in the menu:
             if (not hideDisabled and not enabled) or enabled:
                 self.model.appendRow(datarow)
+        # total amount of components in the data
+        self.numComponents = cmpCount
 
     def enableItems(self, stidems, enable=True):
         """ info whether item is disabled or enabled is stored in user
@@ -197,7 +200,7 @@ class BOMizator(QtGui.QMainWindow, form_class):
         """ When selection changes, the status bar gets updated with
         information about selection
         """
-        default = "Loaded %d components." % (self.model.rowCount())
+        default = "Loaded %d components." % (self.numComponents)
         # look on amount of disabled components,
         disabledDesignators = self.localSettings.value(
             'disabledDesignators',
