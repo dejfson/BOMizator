@@ -45,7 +45,7 @@ class sch_parser(object):
         """ dirname = KiCad project directory containing schematics files
         """
         self.dirname = dirname
-        self.debug = True
+        self.debug = False
         self.matches = []
         # we cannot do a simple looking for schematic files. Instead
         # we need to walk through the files and look for particular

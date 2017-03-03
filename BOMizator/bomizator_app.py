@@ -97,11 +97,13 @@ class BOMizator(QtGui.QMainWindow, form_class):
             self.model.appendRow(list(line))
 
         # as the model is filled with the data, we can resize columns
-        # for i in range(len(self.header)):
-        #     self.treeView.resizeColumnToContents(i)
+        for i in range(len(self.header)):
+            self.treeView.resizeColumnToContents(i)
 
         # connect signals to treeView so we can invoke search engines
         self.treeView.doubleClicked.connect(self.tree_doubleclick)
+        self.treeView.selectionModel().selectionChanged.connect(
+            self.tree_selection)
         # register accepting drops
         self.treeView.setAcceptDrops(True)
         self.treeView.setDropIndicatorShown(True)
@@ -112,6 +114,22 @@ class BOMizator(QtGui.QMainWindow, form_class):
 
         # restore windows parameters
         self._readAndApplyWindowAttributeSettings()
+        # update status for the first time
+        self.tree_selection()
+
+    def tree_selection(self):
+        """ When selection changes, the status bar gets updated with
+        information about selection
+        """
+        default = "Loaded %d components" % (self.model.rowCount())
+
+        # to display amount of selected components we need to
+        # calculate how many rows is selected
+        rows = set(map(lambda c: c.row(),
+                       self.treeView.selectedIndexes()))
+        if len(rows) > 0:
+            default += ". Selected %d components." % (len(rows))
+        self.statusbar.showMessage(default)
 
     def indexData(self, index):
         """ convenience function returning the data of given
