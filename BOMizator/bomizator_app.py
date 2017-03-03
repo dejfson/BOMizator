@@ -70,6 +70,12 @@ class BOMizator(QtGui.QMainWindow, form_class):
             QtCore.QSettings(os.path.join(projectDirectory,
                                           "bomizator.ini"),
                              QtCore.QSettings.IniFormat)
+        # load all disabled designators (if any) from the settings
+        # file
+        disabledDesignators = self.localSettings.value(
+            'disabledDesignators',
+            [],
+            str)
 
         self.settings = QtCore.QSettings()
 
@@ -105,7 +111,12 @@ class BOMizator(QtGui.QMainWindow, form_class):
                                               self.header.FOOTPRINT])
             editable = filter(lambda item: item in columns, line)
             map(lambda ei: ei.setEditable(False), editable)
-            datarow = self.enableItems(list(line), True)
+            # depending if designator is disabled/enabled we set it up
+            shat = list(line)
+            enabled = True
+            if shat[0].text() in disabledDesignators:
+                enabled = False
+            datarow = self.enableItems(shat, enabled)
             self.model.appendRow(datarow)
 
         # as the model is filled with the data, we can resize columns
@@ -331,6 +342,20 @@ class BOMizator(QtGui.QMainWindow, form_class):
                             range(self.model.columnCount()))
             allItems += list(singlerow)
         self.enableItems(allItems, enable)
+        # and now we run through _all the items int the list_ and
+        # check whether they are enabled/disabled and write it down
+        # into the configuration file (local settings file) such, that
+        # next time the disabled items are properly marked. We do not
+        # care here going through proxy
+        desig = map(lambda row: (self.model.item(row, 0).text(),
+                            self.model.item(row, 0).data(
+                                self.header.ItemEnabled)),
+                    range(self.model.rowCount()))
+        # filter disabled designators
+        disab = list(map(lambda d: d[0], filter(lambda des: not des[1], desig)))
+        # list of disabled components is stored in local settings file
+        self.localSettings.setValue('disabledDesignators', disab)
+        print(disab)
 
     def selectSameFilter(self):
         """ in treeview selects the rows matching the selected items filters
