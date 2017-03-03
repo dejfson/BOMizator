@@ -105,7 +105,7 @@ class BOMizator(QtGui.QMainWindow, form_class):
                                               self.header.FOOTPRINT])
             editable = filter(lambda item: item in columns, line)
             map(lambda ei: ei.setEditable(False), editable)
-            datarow = self.enableItems(list(line), False)
+            datarow = self.enableItems(list(line), True)
             self.model.appendRow(datarow)
 
         # as the model is filled with the data, we can resize columns
@@ -295,7 +295,6 @@ class BOMizator(QtGui.QMainWindow, form_class):
                                self.proxy.mapToSource(
                                    index))[self.header.ItemEnabled],
                            indexes))
-        print(enabled)
         # if any of these is true, there's at least one element enabled
         oneEnabled = any(enabled)
         # if all are enabled, then there's not a single one disabled:
@@ -324,7 +323,6 @@ class BOMizator(QtGui.QMainWindow, form_class):
         """
         indexes = self.treeView.selectedIndexes()
         rowsAffected = set(list(map(lambda ix: ix.row(), indexes)))
-        print(rowsAffected)
         # having rows we can pull out all items from specific rowCount
         allItems = []
         for row in rowsAffected:
