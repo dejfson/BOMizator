@@ -70,12 +70,6 @@ class BOMizator(QtGui.QMainWindow, form_class):
             QtCore.QSettings(os.path.join(projectDirectory,
                                           "bomizator.ini"),
                              QtCore.QSettings.IniFormat)
-        # load all disabled designators (if any) from the settings
-        # file
-        disabledDesignators = self.localSettings.value(
-            'disabledDesignators',
-            [],
-            str)
 
         self.settings = QtCore.QSettings()
 
@@ -100,25 +94,19 @@ class BOMizator(QtGui.QMainWindow, form_class):
         self.treeView.sortByColumn(self.header.getColumn(
             self.header.DESIGNATOR), QtCore.Qt.AscendingOrder)
 
-        # having headers we might deploy the data into the multicolumn
-        # view. We need to collect all the data:
-        for itemData in self.SCH.BOM():
-            line = map(QtGui.QStandardItem, list(itemData))
-            # set all items to be enabled by default
-            columns = self.header.getColumns([self.header.DESIGNATOR,
-                                              self.header.LIBREF,
-                                              self.header.VALUE,
-                                              self.header.FOOTPRINT])
-            editable = filter(lambda item: item in columns, line)
-            map(lambda ei: ei.setEditable(False), editable)
-            # depending if designator is disabled/enabled we set it up
-            shat = list(line)
-            enabled = True
-            if shat[0].text() in disabledDesignators:
-                enabled = False
-            datarow = self.enableItems(shat, enabled)
-            self.model.appendRow(datarow)
+        # fill the model with the data
+        hideDisabled = self.settings.value("hideDisabledComponents",
+                                           False,
+                                           bool)
+        print(hideDisabled)
+        self.action_Hide_disabled_components.setEnabled(not hideDisabled)
+        self.action_Show_disabled_components.setEnabled(hideDisabled)
+        self.action_Hide_disabled_components.triggered.connect(
+            lambda: self.hideShowDisabledComponents(True))
+        self.action_Show_disabled_components.triggered.connect(
+            lambda: self.hideShowDisabledComponents(False))
 
+        self.fillModel(hideDisabled)
         # as the model is filled with the data, we can resize columns
         for i in range(len(self.header)):
             self.treeView.resizeColumnToContents(i)
@@ -139,6 +127,52 @@ class BOMizator(QtGui.QMainWindow, form_class):
         self._readAndApplyWindowAttributeSettings()
         # update status for the first time
         self.treeSelection()
+
+    def hideShowDisabledComponents(self, hideComponents):
+        """ if hideComponents is true, then the model to display all
+        the components is restored from scratch and will not contain
+        the hidden components.
+        """
+        self.action_Hide_disabled_components.setEnabled(not hideComponents)
+        self.action_Show_disabled_components.setEnabled(hideComponents)
+        # save the state into configfile
+        self.settings.setValue("hideDisabledComponents",
+                               hideComponents)
+        self.fillModel(hideComponents)
+
+    def fillModel(self, hideDisabled=True):
+        """ resets the components treeview, and reloads it with the
+        model data
+        """
+        # disabled designators are from separate file:
+        # load all disabled designators (if any) from the settings
+        # file
+        disabledDesignators = self.localSettings.value(
+            'disabledDesignators',
+            [],
+            str)
+        # clearout the model
+        self.model.removeRows(0, self.model.rowCount())
+        # having headers we might deploy the data into the multicolumn
+        # view. We need to collect all the data:
+        for itemData in self.SCH.BOM():
+            line = map(QtGui.QStandardItem, list(itemData))
+            # set all items to be enabled by default
+            columns = self.header.getColumns([self.header.DESIGNATOR,
+                                              self.header.LIBREF,
+                                              self.header.VALUE,
+                                              self.header.FOOTPRINT])
+            editable = filter(lambda item: item in columns, line)
+            map(lambda ei: ei.setEditable(False), editable)
+            # depending if designator is disabled/enabled we set it up
+            shat = list(line)
+            enabled = True
+            if shat[0].text() in disabledDesignators:
+                enabled = False
+            datarow = self.enableItems(shat, enabled)
+            # now, if we want to see the disabled items in the menu:
+            if (not hideDisabled and not enabled) or enabled:
+                self.model.appendRow(datarow)
 
     def enableItems(self, stidems, enable=True):
         """ info whether item is disabled or enabled is stored in user
