@@ -46,12 +46,20 @@ from PyQt4 import QtGui, uic, QtCore
 from .sch_parser import sch_parser
 from .headers import headers
 from .qdesignatorsortmodel import QDesignatorSortModel
+from .colors import colors
+
 
 localpath = os.path.dirname(os.path.realpath(__file__))
 form_class = uic.loadUiType(os.path.join(localpath, "BOMLinker.ui"))[0]
 
 
 class BOMizator(QtGui.QMainWindow, form_class):
+
+    # itemenabled is the enable/disable flag associated with a
+    # particular modelindex. We can get the info about it just by
+    # calling data
+    ItemEnabled = QtCore.Qt.UserRole + 1
+
     def __init__(self, projectDirectory, parent=None, flags=0):
         """ Constructing small window with tree view of all components
     present in the schematics. Directory points to the KiCad project
@@ -59,6 +67,14 @@ class BOMizator(QtGui.QMainWindow, form_class):
         """
         QtGui.QMainWindow.__init__(self, parent, QtCore.Qt.WindowFlags(flags))
         self.setupUi(self)
+
+        # local settings are read directly from the project
+        # directory. If exist, they store information about suppressed
+        # items (and other things for the future)
+        self.localSettings =\
+            QtCore.QSettings(os.path.join(projectDirectory,
+                                          "bomizator.ini"),
+                             QtCore.QSettings.IniFormat)
 
         self.settings = QtCore.QSettings()
 
@@ -87,14 +103,15 @@ class BOMizator(QtGui.QMainWindow, form_class):
         # view. We need to collect all the data:
         for itemData in self.SCH.BOM():
             line = map(QtGui.QStandardItem, list(itemData))
+            # set all items to be enabled by default
             columns = self.header.getColumns([self.header.DESIGNATOR,
                                               self.header.LIBREF,
                                               self.header.VALUE,
                                               self.header.FOOTPRINT])
             editable = filter(lambda item: item in columns, line)
             map(lambda ei: ei.setEditable(False), editable)
-
-            self.model.appendRow(list(line))
+            datarow = self.enableItems(list(line), True)
+            self.model.appendRow(datarow)
 
         # as the model is filled with the data, we can resize columns
         for i in range(len(self.header)):
@@ -117,6 +134,25 @@ class BOMizator(QtGui.QMainWindow, form_class):
         # update status for the first time
         self.treeSelection()
 
+    def enableItems(self, stidems, enable=True):
+        """ info whether item is disabled or enabled is stored in user
+        role, as we do not want to disable the item completely (that's
+        because when disabled, it is not selectable any more). This
+        function takes all the stitems and enables, disables
+        them. This is done by setting role of BOMizator.ItemEnabled on
+        a particular index. NOTE THAT THIS FUNCTION HAS TO BE ALWAYS
+        CALLED FOR ALL STDITEMS FROM A ROW AS WE WANT TO DISABLE THE
+        COMPONENTS BY ROWS. Function returns the original list.
+        """
+        for xi in stidems:
+            # we enable the line
+            xi.setData(enable, BOMizator.ItemEnabled)
+            if enable:
+                xi.setForeground(QtGui.QColor('black'))
+            else:
+                xi.setForeground(QtGui.QColor('gray'))
+        return stidems
+
     def treeSelection(self):
         """ When selection changes, the status bar gets updated with
         information about selection
@@ -131,12 +167,17 @@ class BOMizator(QtGui.QMainWindow, form_class):
             default += ". Selected %d components." % (len(rows))
         self.statusbar.showMessage(default)
 
-    def indexData(self, index):
+    def indexData(self, index, role=QtCore.Qt.DisplayRole):
         """ convenience function returning the data of given
         modelindex. Gets complicated because we are using filter
         proxy, hence the index has to be converted to source model index.
         """
-        return self.proxy.itemData(index)[QtCore.Qt.DisplayRole]
+        try:
+            return self.proxy.itemData(index)[role]
+        except KeyError:
+            colors().printFail("ENABLE/DISABLE role does not exist:")
+            print(self.proxy.itemData(index))
+            raise KeyError
 
     def resizeEvent(self, event):
         """ reimplementation of resize event to store state into settings
@@ -200,12 +241,12 @@ class BOMizator(QtGui.QMainWindow, form_class):
 
         # some more validation: if datasheet clicked, we display 'open
         # datasheet' menu. But only single one is allowed at time
+        menu = QtGui.QMenu()
         if len(indexes) == 1 and\
            indexes[0].column() ==\
            self.header.getColumn(self.header.DATASHEET):
             # create menu and corresponding action
             self.datasheet = self.indexData(indexes[0])
-            menu = QtGui.QMenu()
             open_action = menu.addAction(
                 self.tr("Open %s" % (self.datasheet, )))
             open_action.triggered.connect(self.openDatasheet)
@@ -234,11 +275,27 @@ class BOMizator(QtGui.QMainWindow, form_class):
         # second: look if in each column there's exactly one value selected
         eligible_context = all(map(lambda c: c == 1, d.values()))
         if eligible_context and eligible_columns:
-            # menu 'select same', 'disable same'
-            menu = QtGui.QMenu()
             select_same = menu.addAction(self.tr("Select same"))
             select_same.triggered.connect(self.selectSameFilter)
             menu.exec_(self.treeView.viewport().mapToGlobal(position))
+
+        # in all other possibilities it depends whether the item(s)
+        # are enabled or disabled. We can select 'whatever' and make
+        # it enabled/disabled. Modus operandi is e.g. following: i
+        # select 10k 1206 resistors by selecting one, then right click
+        # to select all of them, then right click to disable/enable
+        # selected.
+        # first we find whether at least is enabled or at least one
+        # disabled, and depending of that we add context menus. NOTE
+        # THAT ENABLE/DISABLE ALWAYS WORKS ON ENTIRE ROWS EVEN IF ONLY
+        # SINGLE CELL IS SELECTED. Following returns list of
+        # enable/disable for each index in the selection
+        enabled = map(lambda index: self.indexData(index, BOMizator.ItemEnabled),
+                      indexes)
+        print(list(enabled))
+
+
+
 
     def selectSameFilter(self):
         """ in treeview selects the rows matching the selected items filters
