@@ -330,7 +330,14 @@ class BOMizator(QtGui.QMainWindow, form_class):
         indexes = self.treeView.selectedIndexes()
         rowsAffected = set(list(map(lambda ix: ix.row(), indexes)))
         print(rowsAffected)
-
+        # having rows we can pull out all items from specific rowCount
+        allItems = []
+        for row in rowsAffected:
+            singlerow = map(lambda col: self.model.itemFromIndex(
+                self.proxy.mapToSource(self.proxy.index(row, col))),
+                            range(self.model.columnCount()))
+            allItems += list(singlerow)
+        self.enableItems(allItems, enable)
 
     def selectSameFilter(self):
         """ in treeview selects the rows matching the selected items filters
