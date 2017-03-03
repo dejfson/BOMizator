@@ -124,7 +124,7 @@ class BOMizator(QtGui.QMainWindow, form_class):
             self.treeView.resizeColumnToContents(i)
 
         # connect signals to treeView so we can invoke search engines
-        self.treeView.doubleClicked.connect(self.tree_doubleclick)
+        self.treeView.doubleClicked.connect(self.treeDoubleclick)
         self.treeView.selectionModel().selectionChanged.connect(
             self.treeSelection)
         # register accepting drops
@@ -163,14 +163,21 @@ class BOMizator(QtGui.QMainWindow, form_class):
         """ When selection changes, the status bar gets updated with
         information about selection
         """
-        default = "Loaded %d components" % (self.model.rowCount())
+        default = "Loaded %d components." % (self.model.rowCount())
+        # look on amount of disabled components,
+        disabledDesignators = self.localSettings.value(
+            'disabledDesignators',
+            [],
+            str)
+        if len(disabledDesignators) > 0:
+            default += " %d components disabled." % (len(disabledDesignators))
 
         # to display amount of selected components we need to
         # calculate how many rows is selected
         rows = set(map(lambda c: c.row(),
                        self.treeView.selectedIndexes()))
         if len(rows) > 0:
-            default += ". Selected %d components." % (len(rows))
+            default += " %d components selected." % (len(rows))
         self.statusbar.showMessage(default)
 
     def indexData(self, index, role=QtCore.Qt.DisplayRole):
@@ -355,7 +362,7 @@ class BOMizator(QtGui.QMainWindow, form_class):
         disab = list(map(lambda d: d[0], filter(lambda des: not des[1], desig)))
         # list of disabled components is stored in local settings file
         self.localSettings.setValue('disabledDesignators', disab)
-        print(disab)
+        self.treeSelection()
 
     def selectSameFilter(self):
         """ in treeview selects the rows matching the selected items filters
@@ -396,7 +403,7 @@ class BOMizator(QtGui.QMainWindow, form_class):
         b = webbrowser.get('firefox')
         b.open(url, new=0, autoraise=True)
 
-    def tree_doubleclick(self, index):
+    def treeDoubleclick(self, index):
         """ when user doubleclicks item, we search for it in farnel
         (or later whatever else) web pages. this requires a lot of
         fiddling as the component search enginer for each seller are
