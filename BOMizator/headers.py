@@ -46,6 +46,11 @@ class headers(object):
     SUPPNO = "Supplier no"
     DATASHEET = "Datasheet"
 
+    # itemenabled is the enable/disable flag associated with a
+    # particular modelindex. We can get the info about it just by
+    # calling data
+    ItemEnabled = QtCore.Qt.UserRole + 1
+
     # now definition of view properties in QListView. Column
     # identifies how the columns should be sorted in the QTreeView
     HEADER = {DESIGNATOR: {"column": 0,

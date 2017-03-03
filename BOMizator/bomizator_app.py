@@ -55,11 +55,6 @@ form_class = uic.loadUiType(os.path.join(localpath, "BOMLinker.ui"))[0]
 
 class BOMizator(QtGui.QMainWindow, form_class):
 
-    # itemenabled is the enable/disable flag associated with a
-    # particular modelindex. We can get the info about it just by
-    # calling data
-    ItemEnabled = QtCore.Qt.UserRole + 1
-
     def __init__(self, projectDirectory, parent=None, flags=0):
         """ Constructing small window with tree view of all components
     present in the schematics. Directory points to the KiCad project
@@ -146,7 +141,7 @@ class BOMizator(QtGui.QMainWindow, form_class):
         """
         for xi in stidems:
             # we enable the line
-            xi.setData(enable, BOMizator.ItemEnabled)
+            xi.setData(enable, self.header.ItemEnabled)
             if enable:
                 xi.setForeground(QtGui.QColor('black'))
             else:
@@ -298,7 +293,7 @@ class BOMizator(QtGui.QMainWindow, form_class):
         enabled = list(map(lambda index:
                            self.model.itemData(
                                self.proxy.mapToSource(
-                                   index))[BOMizator.ItemEnabled],
+                                   index))[self.header.ItemEnabled],
                            indexes))
         print(enabled)
         # if any of these is true, there's at least one element enabled

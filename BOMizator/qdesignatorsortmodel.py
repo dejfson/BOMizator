@@ -157,12 +157,19 @@ class QDesignatorSortModel(QtGui.QSortFilterProxyModel):
         # if manufacturer, mfgno, datasheet, these are editable as
         # well
         try:
+            # if the index is disabled, we cannot do anything else with it
+            # (so dropping will not work, editting neigher)
+            srIx = self.mapToSource(index)
+            srData = srIx.model().itemData(srIx)[self.header.ItemEnabled]
+            if not srData:
+                # item is disabled, return as no further actions are allowed
+                return defaultFlags
+
             defaultFlags |= self.header.getFlags(index.column())
-        except KeyError:
+        except (KeyError, AttributeError):
             # index.column() can be -1 depending on what we're
             # pointing on. In this case we leave default flags as they are
             pass
-
         return defaultFlags
 
     def getSelectedRows(self):
