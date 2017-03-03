@@ -67,7 +67,7 @@ class headers(object):
               DATASHEET: {"column": 8,
                           "flags": QtCore.Qt.ItemIsEditable}}
 
-    def get_headers(self):
+    def getHeaders(self):
         """ returns list of headers sorted by columns
         """
         namecol = map(lambda c: (c[0], c[1]['column']), self.HEADER.items())
@@ -75,12 +75,12 @@ class headers(object):
         names = map(lambda c: c[0], namecol)
         return list(names)
 
-    def get_columns(self, collist):
+    def getColumns(self, collist):
         """ returns unsorted list of columns identified by collist names
         """
         return map(lambda item: self.HEADER[item]['column'], collist)
 
-    def get_column(self, columnname):
+    def getColumn(self, columnname):
         """ returns column number if given a name
         """
         return self.HEADER[columnname]['column']
@@ -90,7 +90,7 @@ class headers(object):
         """
         return len(self.HEADER)
 
-    def get_column_name(self, column):
+    def getColumnName(self, column):
         """ returns name of the column, uniqueness in column
         definitions is expected (so no columns with the same number in
         self.HEADER)
@@ -105,10 +105,10 @@ class headers(object):
             # return empty string
             raise KeyError
 
-    def get_flags(self, column):
+    def getFlags(self, column):
         """ for specific column we return QTreeView flags appropriate
         for that column. The flags are part of the HEADER dictionary
         and allow to specify which columns are droppable, and which
         are read only
         """
-        return self.HEADER[self.get_column_name(column)]['flags']
+        return self.HEADER[self.getColumnName(column)]['flags']

@@ -131,7 +131,7 @@ class QDesignatorSortModel(QtGui.QSortFilterProxyModel):
         # results depending of _column_.
         # if column is designator, we parse the data as
         # <chars><number> and sort according to number as integer
-        if left.column() == self.header.get_column(
+        if left.column() == self.header.getColumn(
                 self.header.DESIGNATOR):
             return self.compareDesignators(left, right)
 
@@ -157,7 +157,7 @@ class QDesignatorSortModel(QtGui.QSortFilterProxyModel):
         # if manufacturer, mfgno, datasheet, these are editable as
         # well
         try:
-            defaultFlags |= self.header.get_flags(index.column())
+            defaultFlags |= self.header.getFlags(index.column())
         except KeyError:
             # index.column() can be -1 depending on what we're
             # pointing on. In this case we leave default flags as they are
@@ -199,7 +199,6 @@ class QDesignatorSortModel(QtGui.QSortFilterProxyModel):
             # interested in rows, as those are determining what
             # designators are used.
             rows = self.getSelectedRows()
-            print(rows, treeparent.row(), type(treeparent), type(treeparent.model()))
             # and with all selected rows we distinguish, whether we have
             # dropped the data into selected rows. If so, we will
             # overwritte all the information in _each row_. If however the
@@ -217,7 +216,7 @@ class QDesignatorSortModel(QtGui.QSortFilterProxyModel):
                 for key, value in parsed_data.items():
                     self.setData(
                         self.index(row,
-                                   self.header.get_column(key)),
+                                   self.header.getColumn(key)),
                         value)
         except KeyError:
             pass

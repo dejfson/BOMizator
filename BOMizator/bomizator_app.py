@@ -64,7 +64,7 @@ class BOMizator(QtGui.QMainWindow, form_class):
 
         self.projectDirectory = projectDirectory
         self.SCH = sch_parser(self.projectDirectory)
-        self.SCH.parse_components()
+        self.SCH.parseComponents()
 
         self.model = QtGui.QStandardItemModel(self.treeView)
         # search proxy:
@@ -77,17 +77,17 @@ class BOMizator(QtGui.QMainWindow, form_class):
         # get header object
         self.header = headers()
 
-        sorted_header = self.header.get_headers()
+        sorted_header = self.header.getHeaders()
         self.model.setHorizontalHeaderLabels(sorted_header)
         # set sorting of treeview by designator
-        self.treeView.sortByColumn(self.header.get_column(
+        self.treeView.sortByColumn(self.header.getColumn(
             self.header.DESIGNATOR), QtCore.Qt.AscendingOrder)
 
         # having headers we might deploy the data into the multicolumn
         # view. We need to collect all the data:
         for itemData in self.SCH.BOM():
             line = map(QtGui.QStandardItem, list(itemData))
-            columns = self.header.get_columns([self.header.DESIGNATOR,
+            columns = self.header.getColumns([self.header.DESIGNATOR,
                                               self.header.LIBREF,
                                               self.header.VALUE,
                                               self.header.FOOTPRINT])
@@ -103,7 +103,7 @@ class BOMizator(QtGui.QMainWindow, form_class):
         # connect signals to treeView so we can invoke search engines
         self.treeView.doubleClicked.connect(self.tree_doubleclick)
         self.treeView.selectionModel().selectionChanged.connect(
-            self.tree_selection)
+            self.treeSelection)
         # register accepting drops
         self.treeView.setAcceptDrops(True)
         self.treeView.setDropIndicatorShown(True)
@@ -115,9 +115,9 @@ class BOMizator(QtGui.QMainWindow, form_class):
         # restore windows parameters
         self._readAndApplyWindowAttributeSettings()
         # update status for the first time
-        self.tree_selection()
+        self.treeSelection()
 
-    def tree_selection(self):
+    def treeSelection(self):
         """ When selection changes, the status bar gets updated with
         information about selection
         """
@@ -202,13 +202,13 @@ class BOMizator(QtGui.QMainWindow, form_class):
         # datasheet' menu. But only single one is allowed at time
         if len(indexes) == 1 and\
            indexes[0].column() ==\
-           self.header.get_column(self.header.DATASHEET):
+           self.header.getColumn(self.header.DATASHEET):
             # create menu and corresponding action
             self.datasheet = self.indexData(indexes[0])
             menu = QtGui.QMenu()
             open_action = menu.addAction(
                 self.tr("Open %s" % (self.datasheet, )))
-            open_action.triggered.connect(self.open_datasheet)
+            open_action.triggered.connect(self.openDatasheet)
             menu.exec_(self.treeView.viewport().mapToGlobal(position))
 
         # variant 2: we can select from libref, value, footprint in
@@ -226,7 +226,7 @@ class BOMizator(QtGui.QMainWindow, form_class):
             d[str(index.column())] += 1
         # now get list of values and find if each of them is exactly
         # one. First condition: look for columns which can be used for this:
-        eligible_columns = all(map(lambda c: c in self.header.get_columns(
+        eligible_columns = all(map(lambda c: c in self.header.getColumns(
             [self.header.LIBREF,
              self.header.VALUE,
              self.header.FOOTPRINT]), map(int, d.keys())))
@@ -237,10 +237,10 @@ class BOMizator(QtGui.QMainWindow, form_class):
             # menu 'select same', 'disable same'
             menu = QtGui.QMenu()
             select_same = menu.addAction(self.tr("Select same"))
-            select_same.triggered.connect(self.select_same_filter)
+            select_same.triggered.connect(self.selectSameFilter)
             menu.exec_(self.treeView.viewport().mapToGlobal(position))
 
-    def select_same_filter(self):
+    def selectSameFilter(self):
         """ in treeview selects the rows matching the selected items filters
         """
         # we have unique columns selected, and now we need to browse
@@ -259,14 +259,14 @@ class BOMizator(QtGui.QMainWindow, form_class):
                 idx,
                 QtGui.QItemSelectionModel.Select)
 
-    def open_datasheet(self):
+    def openDatasheet(self):
         """ opens the browser with datasheet
         """
         # now fire the web browser with this page opened
         b = webbrowser.get('firefox')
         b.open(self.datasheet, new=0, autoraise=True)
 
-    def open_search_browser(self, searchtext):
+    def openSearchBrowser(self, searchtext):
         """ This function calls default plugin to supply the web
         search string for a given text. This one is then used to open
         a browser window with searched item. Now, searching does not
@@ -287,9 +287,9 @@ class BOMizator(QtGui.QMainWindow, form_class):
         """
         # we process only columns libref and value as those are used
         # to search (most of the time)
-        if index.column() in self.header.get_columns([self.header.LIBREF,
-                                                      self.header.VALUE]):
-            self.open_search_browser(self.indexData(index))
+        if index.column() in self.header.getColumns([self.header.LIBREF,
+                                                     self.header.VALUE]):
+            self.openSearchBrowser(self.indexData(index))
 
 
 def main():

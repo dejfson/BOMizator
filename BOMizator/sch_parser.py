@@ -57,19 +57,19 @@ class sch_parser(object):
         # the project.
         self.matches = self.collectFiles()
 
-        self.current_state = self._sm_catch_header
+        self.current_state = self._smCatchHeader
         self.components = defaultdict(list)
 
         # define attributes dictionary for the component, each entry
         # has to correspond to specific attributes
         self.attribute_entry = {
-            'L': self._attribute_generic,
-            'U': self._attribute_generic,
-            'P': self._attribute_generic,
-            'A': self._attribute_ar,
-            'F': self._attribute_f,
-            '\t': self._attribute_tab,
-            '$': self._attribute_termination}
+            'L': self._attributeGeneric,
+            'U': self._attributeGeneric,
+            'P': self._attributeGeneric,
+            'A': self._attributeAr,
+            'F': self._attributeF,
+            '\t': self._attributeTab,
+            '$': self._attributeTermination}
 
     def collectFiles(self):
         """ uses project directory to pass through the projects
@@ -125,16 +125,16 @@ class sch_parser(object):
                     insheet = False
         return [fname, ] + subsheet
 
-    def _sm_catch_header(self, line):
+    def _smCatchHeader(self, line):
         """ state machine state catching the component start in the
         line of the code. line is a single line read from the
         schematic file
         """
         if line.startswith("$Comp"):
             self.current_component = {}
-            self.current_state = self._sm_component_body
+            self.current_state = self._smComponentBody
 
-    def _sm_component_body(self, line):
+    def _smComponentBody(self, line):
         """ state machine state decoding the body of the
         component. This is done by looking for each particular
         attributes and processing them into separate flags, added into
@@ -146,7 +146,7 @@ class sch_parser(object):
         # attribute is assigned
         self.attribute_entry[line[0]](line.strip())
 
-    def _attribute_termination(self, line):
+    def _attributeTermination(self, line):
         """ dollar sign introduces entity ending
         """
         if line.startswith('$EndComp'):
@@ -162,9 +162,9 @@ class sch_parser(object):
                 self.components[
                     self.current_component['L'][1]] = self.current_component
 
-            self.current_state = self._sm_catch_header
+            self.current_state = self._smCatchHeader
 
-    def _attribute_generic(self, line):
+    def _attributeGeneric(self, line):
         """ parses 'L' attribute of the component. This type of
         attribute is generic, e.g. L MCP23016 U2, where first value is
         library reference, and we just store all the parameters from
@@ -173,7 +173,7 @@ class sch_parser(object):
         attrs = line.split(" ")
         self.current_component[line[0]] = attrs[1:]
 
-    def _attribute_tab(self, line):
+    def _attributeTab(self, line):
         """ tab attribute starts the component body, we keep these
         parameters as they are, just add them into the list
         """
@@ -183,7 +183,7 @@ class sch_parser(object):
             self.current_component['X'] = []
             self.current_component['X'].append(line)
 
-    def _attribute_ar(self, line):
+    def _attributeAr(self, line):
         """ AR-type attribute is used in hierarchical design. Its form
         is e.g. following:
 AR Path="/55092EEE/56BE633D/56BE9140" Ref="C202"  Part="1"
@@ -237,7 +237,7 @@ THE FIRST DESIGNATOR FOUND""")
             print("Defined AR attribute as ",
                   self.current_component['AR'])
 
-    def _attribute_f(self, line):
+    def _attributeF(self, line):
         """ F-type attributes are different. the second number is
         specific. There can be up to 11 F parameters depending of
         values which user uses as data fields in the components. We
@@ -270,7 +270,7 @@ THE FIRST DESIGNATOR FOUND""")
             self.current_component['F'] = {}
             self.current_component['F'][data[1]] = data[2:]
 
-    def parse_components(self):
+    def parseComponents(self):
         """ after initial filenames matching this function parses all
         the schematics files and gets the components names from the
         files. These are pulled into the dictionary, which is later on
@@ -286,7 +286,7 @@ THE FIRST DESIGNATOR FOUND""")
                 for line in f:
                     self.current_state(line)
 
-    def strip_quote(self, text):
+    def stripQuote(self, text):
         """ helper function replacing quotes by empty string
         """
         return text.replace('"', '')
@@ -331,8 +331,8 @@ THE FIRST DESIGNATOR FOUND""")
             for designator in designators:
                 data = [designator,  # designator
                         value['L'][0],  # library reference
-                        self.strip_quote(value['F']['1'][0]),  # value
-                        self.strip_quote(value['F']['2'][0])]  # footprint
+                        self.stripQuote(value['F']['1'][0]),  # value
+                        self.stripQuote(value['F']['2'][0])]  # footprint
 
                 # now we have to see in 'L' attributes entires correct
                 # attribute names
@@ -340,27 +340,27 @@ THE FIRST DESIGNATOR FOUND""")
                 for f_number, f_data in value['F'].items():
                     if int(f_number) == 3:
                         # datasheet (this is part of schematics)
-                        datasheet = self.strip_quote(f_data[0])
+                        datasheet = self.stripQuote(f_data[0])
                     elif int(f_number) > 3 and\
                          f_data[-1].find("supplier_ref") != -1:
                         # supplier reference number
-                        supplier = self.strip_quote(f_data[0])
+                        supplier = self.stripQuote(f_data[0])
                     elif int(f_number) > 3 and\
                          f_data[-1].find("supplier") != -1:
                         # supplier name
-                        supp_no = self.strip_quote(f_data[0])
+                        supp_no = self.stripQuote(f_data[0])
                     elif int(f_number) > 3 and\
                          f_data[-1].find("manufacturer") != -1:
                         # supplier name
-                        mfg = self.strip_quote(f_data[0])
+                        mfg = self.stripQuote(f_data[0])
                     elif int(f_number) > 3 and\
                          f_data[-1].find("manufacturer_ref") != -1:
                         # supplier name
-                        mfgno = self.strip_quote(f_data[0])
+                        mfgno = self.stripQuote(f_data[0])
 
                 yield data + [mfg, mfgno, supplier, supp_no, datasheet]
 
 if __name__ == '__main__':
     # test stuff
     a = sch_parser('/home/belohrad/git/beaglebone_relay_multiplexor/beaglebone_relad_kicad')
-    a.parse_components()
+    a.parseComponents()
