@@ -32,7 +32,9 @@ Implements custom sorting to take into account designators
 from PyQt4 import QtGui, QtCore
 from .headers import headers
 from .supplier_selector import supplier_selector
+from .colors import colors
 import re
+import sys
 
 
 class QDesignatorSortModel(QtGui.QSortFilterProxyModel):
@@ -90,6 +92,15 @@ class QDesignatorSortModel(QtGui.QSortFilterProxyModel):
         extension can be whatever. Hence following is still allowed:
         Q12_a, but following is not allowed: Q_a12
         """
+        if designator.find("?") != -1:
+            # this is failure as it means that the schematic was not
+            # properly annotated
+            colors().printFail(
+                "DESIGN IS NOT PROPERLY ANNOTATED, FOUND DESIGNATOR " +
+                designator +
+                " PLEASE ANNOTATE FIRST THE SCHEMATIC")
+            # this is fatal and we cannot continue
+            sys.exit(-1)
         # for this we use simple search, assuming that there is only
         # one number in the entire designator, and the designator is
         # unique. Saying this we can search regular expression and

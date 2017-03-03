@@ -34,7 +34,7 @@ all the embedded components
 import fnmatch
 import os
 from collections import defaultdict
-from .colors import *
+from .colors import colors
 
 
 class sch_parser(object):
@@ -105,7 +105,7 @@ class sch_parser(object):
         """ opens the sheet fname, parses it for sub-sheets and
         returns their list.
         """
-        print(COLORINFO+"Parsing "+fname+COLORNUL)
+        colors().printInfo("Parsing " + fname)
         subsheet = []
         with open(fname, "rt") as f:
             insheet = False
@@ -145,7 +145,6 @@ class sch_parser(object):
         # deteminant of which attribute the component entry
         # corresponds to. If it is not found, then the 'default' line
         # attribute is assigned
-        print(line)
         self.attribute_entry[line[0]](line.strip())
 
     def _attribute_termination(self, line):
@@ -225,9 +224,9 @@ class sch_parser(object):
         used either to get the info about the component, _or_ add/modify
         appropriate attributes.
         """
-        print(self.matches)
         for fname in self.matches:
-            print(COLORINFO+"Parsing "+fname+COLORNUL)
+            colors().printInfo("Parsing " +
+                               fname)
             with open(fname, "rt") as f:
                 # parsing the file for specific tokens of component
                 # start/stop is a simple state machine

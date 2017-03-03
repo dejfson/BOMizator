@@ -30,8 +30,34 @@ Some generic constants to define colorset
 """
 
 # define ansi terminal colorset
-COLOROK = "\033[92m"
-COLORWARN = "\033[93m"
-COLORFAIL = "\033[91m"
-COLORNUL = "\033[0m"
-COLORINFO = '\033[94m'
+
+
+class colors(object):
+    """defines ANSI colors for pretty print
+    """
+    COLOROK = "\033[92m"
+    COLORWARN = "\033[93m"
+    COLORFAIL = "\033[91m"
+    COLORNUL = "\033[0m"
+    COLORINFO = '\033[94m'
+
+    def printColor(self, color, string):
+        """ prints the text on the console using ANSI colors
+        """
+        print(color +
+              string +
+              self.COLORNUL)
+
+    def printFail(self, string):
+        """ prints test in using failure color
+        """
+        self.printColor(self.COLORFAIL,
+                        string)
+
+    def printWarn(self, string):
+        self.printColor(self.COLORWARN,
+                        string)
+
+    def printInfo(self, string):
+        self.printColor(self.COLORINFO,
+                        string)
