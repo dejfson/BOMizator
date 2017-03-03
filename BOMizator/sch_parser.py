@@ -45,7 +45,7 @@ class sch_parser(object):
         """ dirname = KiCad project directory containing schematics files
         """
         self.dirname = dirname
-        self.debug = False
+        self.debug = True
         self.matches = []
         # we cannot do a simple looking for schematic files. Instead
         # we need to walk through the files and look for particular
@@ -66,7 +66,7 @@ class sch_parser(object):
             'L': self._attribute_generic,
             'U': self._attribute_generic,
             'P': self._attribute_generic,
-            'A': self._attribute_generic,
+            'A': self._attribute_ar,
             'F': self._attribute_f,
             '\t': self._attribute_tab,
             '$': self._attribute_termination}
@@ -125,7 +125,6 @@ class sch_parser(object):
                     insheet = False
         return [fname, ] + subsheet
 
-
     def _sm_catch_header(self, line):
         """ state machine state catching the component start in the
         line of the code. line is a single line read from the
@@ -183,6 +182,60 @@ class sch_parser(object):
         except KeyError:
             self.current_component['X'] = []
             self.current_component['X'].append(line)
+
+    def _attribute_ar(self, line):
+        """ AR-type attribute is used in hierarchical design. Its form
+        is e.g. following:
+AR Path="/55092EEE/56BE633D/56BE9140" Ref="C202"  Part="1"
+AR Path="/55092EEE/56C1F5DB/56BE9140" Ref="C219"  Part="1"
+
+        It states, that this particular component is used in two
+        sheets identified by their paths and refered as two
+        components: C202 and C219. This greatly simplifies parsing of
+        the components as we do not need to store the hiearchy and by
+        hard way analyse the trees, but it is just enough to collect
+        all AR attributes as these were the real components (which in
+        fact they are). Note as well, that one of the AR attributes
+        will always point to the original designator of firstly
+        generated board, hence AR attributes _always_ supercede the L
+        attribute, where the original designator is stored. Note that
+        there are always multiple ARs, hence we need to store them as
+        dictionarys identified _by designator_
+        """
+
+        # first make list of a=b parameters
+        separate = filter(lambda dat:
+                          dat != '',
+                          line.replace('"', '').split(" ")[1:])
+        # then separate them into dictionary
+        args = dict(map(lambda c: c.split('='), separate))
+        # get rid of 'Ref' designator from the dictionary as this one
+        # is used as key to 'AR' attribute
+        dfields = dict(filter(lambda keyval:
+                              keyval[0] != 'Ref',
+                              args.items()))
+        # we try to assign the data, however if we succeed, this
+        # is faulty condition as it means, that there was already
+        # previous designator of the same name. And designators
+        # should be unique
+        # first we find if the designator is not by chance already
+        # in. If so, WE SHOW IT AS WARNING
+        try:
+            if args['Ref'] in self.current_component['AR'].keys():
+                colors().printFail("Designator " +
+                                   args['Ref'] +
+                                   """ defined multiple times in the\
+ project. CHECK YOUR ANNOTATIONS AS THEY MIGHT BE INCORRECT. KEEPING
+THE FIRST DESIGNATOR FOUND""")
+            else:
+                self.current_component['AR'][args['Ref']] = dfields
+        except KeyError:
+            # AR attribute for the first time declared
+            self.current_component['AR'] = {}
+            self.current_component['AR'][args['Ref']] = dfields
+        if self.debug and not args['Ref'][0] == '#':
+            print("Defined AR attribute as ",
+                  self.current_component['AR'])
 
     def _attribute_f(self, line):
         """ F-type attributes are different. the second number is
@@ -267,28 +320,37 @@ class sch_parser(object):
         # 'V', '-1670', '1700', '50', '', '0001', 'C', 'CNN']}}
 
         for key, value in self.components.items():
-            data = [value['L'][1],  # designator
-                    value['L'][0],  # library reference
-                    self.strip_quote(value['F']['1'][0]),  # value of component
-                    self.strip_quote(value['F']['2'][0])]  # footprint
+            # if AR attribute is defined for the component, it
+            # takes over the default designator
+            try:
+                designators = value['AR'].keys()
+            except KeyError:
+                # otherwise take default component designator
+                designators = [value['L'][1], ]
 
-            # now we have to see in 'L' attributes entires correct
-            # attribute names
-            datasheet, mfg, mfgno = '', '', ''
-            for f_number, f_data in value['F'].items():
-                if int(f_number) == 3:
-                    # datasheet (this is part of schematics)
-                    datasheet = self.strip_quote(f_data[0])
-                elif int(f_number) > 3 and\
-                     f_data[-1].find("supplier_ref") != -1:
-                    # supplier reference number
-                    mfgno = self.strip_quote(f_data[0])
-                elif int(f_number) > 3 and\
-                     f_data[-1].find("supplier") != -1:
-                    # supplier name
-                    mfg = self.strip_quote(f_data[0])
+            for designator in designators:
+                data = [designator,  # designator
+                        value['L'][0],  # library reference
+                        self.strip_quote(value['F']['1'][0]),  # value
+                        self.strip_quote(value['F']['2'][0])]  # footprint
 
-            yield data + [mfg, mfgno, datasheet]
+                # now we have to see in 'L' attributes entires correct
+                # attribute names
+                datasheet, mfg, mfgno = '', '', ''
+                for f_number, f_data in value['F'].items():
+                    if int(f_number) == 3:
+                        # datasheet (this is part of schematics)
+                        datasheet = self.strip_quote(f_data[0])
+                    elif int(f_number) > 3 and\
+                         f_data[-1].find("supplier_ref") != -1:
+                        # supplier reference number
+                        mfgno = self.strip_quote(f_data[0])
+                    elif int(f_number) > 3 and\
+                         f_data[-1].find("supplier") != -1:
+                        # supplier name
+                        mfg = self.strip_quote(f_data[0])
+
+                yield data + [mfg, mfgno, datasheet]
 
 if __name__ == '__main__':
     # test stuff
