@@ -60,7 +60,6 @@ class BOMizator(QtGui.QMainWindow, form_class):
         QtGui.QMainWindow.__init__(self, parent, QtCore.Qt.WindowFlags(flags))
         self.setupUi(self)
 
-        self.BOM = []
         self.settings = QtCore.QSettings()
 
         self.projectDirectory = projectDirectory

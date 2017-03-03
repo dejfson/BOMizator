@@ -336,7 +336,7 @@ THE FIRST DESIGNATOR FOUND""")
 
                 # now we have to see in 'L' attributes entires correct
                 # attribute names
-                datasheet, mfg, mfgno = '', '', ''
+                datasheet, mfg, mfgno, supplier, supp_no = '', '', '', '', ''
                 for f_number, f_data in value['F'].items():
                     if int(f_number) == 3:
                         # datasheet (this is part of schematics)
@@ -344,13 +344,21 @@ THE FIRST DESIGNATOR FOUND""")
                     elif int(f_number) > 3 and\
                          f_data[-1].find("supplier_ref") != -1:
                         # supplier reference number
-                        mfgno = self.strip_quote(f_data[0])
+                        supplier = self.strip_quote(f_data[0])
                     elif int(f_number) > 3 and\
                          f_data[-1].find("supplier") != -1:
                         # supplier name
+                        supp_no = self.strip_quote(f_data[0])
+                    elif int(f_number) > 3 and\
+                         f_data[-1].find("manufacturer") != -1:
+                        # supplier name
                         mfg = self.strip_quote(f_data[0])
+                    elif int(f_number) > 3 and\
+                         f_data[-1].find("manufacturer_ref") != -1:
+                        # supplier name
+                        mfgno = self.strip_quote(f_data[0])
 
-                yield data + [mfg, mfgno, datasheet]
+                yield data + [mfg, mfgno, supplier, supp_no, datasheet]
 
 if __name__ == '__main__':
     # test stuff

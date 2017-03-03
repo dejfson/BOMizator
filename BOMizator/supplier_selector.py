@@ -87,7 +87,7 @@ class supplier_selector(object):
                 colors().printOK("FOUND")
                 return data
             except KeyError:
-                colors.printFail("NOT FOUND")
+                colors().printFail("NOT FOUND")
                 pass
         # when here, no plugin matched the selection, raise KeyError
         colors().printFail("No installed plugin matches the URL selection")
