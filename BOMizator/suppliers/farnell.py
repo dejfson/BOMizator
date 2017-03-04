@@ -70,7 +70,7 @@ wcs/stores/servlet/Search?st=%s" % (searchtext,)
             f.write(html)
 
         # this is dependent of web page structure
-        parsed_html = BeautifulSoup(html, "html5lib")
+        parsed_html = BeautifulSoup(html)
         techdoc = parsed_html.body.find('ul',
                                         attrs={'id': 'technicalData'})
         sheet = techdoc.find('a').attrs['href']
