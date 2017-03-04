@@ -29,7 +29,6 @@
 Farnell webpages search engine
 """
 
-from PyQt4 import QtCore
 import urllib3
 try:
     from BeautifulSoup import BeautifulSoup
@@ -46,6 +45,7 @@ class farnell(object):
     def __init__(self):
         self.name = "FARNELL"
         self.header = headers()
+        self.debug = True
 
     def get_url(self, searchtext):
         """ returns URL of farnell, which triggers searching for a
@@ -74,7 +74,6 @@ wcs/stores/servlet/Search?st=%s" % (searchtext,)
         techdoc = parsed_html.body.find('ul',
                                         attrs={'id': 'technicalData'})
         sheet = techdoc.find('a').attrs['href']
-
         return sheet
 
     def parse_URL(self, urltext):
@@ -88,16 +87,26 @@ wcs/stores/servlet/Search?st=%s" % (searchtext,)
         """
 
         try:
-            realpart = urltext.split("?")[0]
+            # remove doubletrailing first (http://, https://)
+            realpart = urltext.split("?")[0].replace("//", "/")
             # from the real part we need to abstract the parameters:
+            if self.debug:
+                print(realpart)
             header,\
-                nothing,\
                 site,\
                 manufacturer,\
                 reference,\
                 description,\
                 deep,\
                 partnum = realpart.split("/")
+            if self.debug:
+                print(header,
+                      site,
+                      manufacturer,
+                      reference,
+                      description,
+                      deep,
+                      partnum)
             # series of checks: site has to contain farnell:
             if site.upper().find("FARNELL") == -1:
                 print("\n\tNo Farnell identifier detected")
@@ -112,6 +121,8 @@ wcs/stores/servlet/Search?st=%s" % (searchtext,)
             # to actually fetch and parse the page. For the moment
             # 'nothing'
             datasheet = self.harvest_datasheet(str(urltext))
+            if self.debug:
+                print("Datasheet link: ",datasheet)
             # now we convert the data into dictionary:
             datanames = (self.header.MANUFACTURER,
                          self.header.MFRNO,
