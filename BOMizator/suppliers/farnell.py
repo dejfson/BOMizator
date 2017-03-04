@@ -45,7 +45,7 @@ class farnell(object):
     def __init__(self):
         self.name = "FARNELL"
         self.header = headers()
-        self.debug = True
+        self.debug = False
 
     def get_url(self, searchtext):
         """ returns URL of farnell, which triggers searching for a

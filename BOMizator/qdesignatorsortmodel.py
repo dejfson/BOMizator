@@ -30,11 +30,14 @@ Implements custom sorting to take into account designators
 """
 
 from PyQt4 import QtGui, QtCore
+from collections import defaultdict
 from .headers import headers
 from .supplier_selector import supplier_selector
 from .colors import colors
 import re
 import sys
+import hashlib
+import json
 
 
 class QDesignatorSortModel(QtGui.QSortFilterProxyModel):
@@ -43,13 +46,33 @@ class QDesignatorSortModel(QtGui.QSortFilterProxyModel):
     perception. Hence U1, U2, U3 and not U1, U10, U11 as by default.
     """
 
-    def __init__(self, parent=None):
-        """ creates headers object used for comparison
+    # signal informing that a component was added into the cache. To
+    # be cached in app to store the cache appropriately
+    addedComponentIntoCache = QtCore.pyqtSignal()
+
+    def __init__(self, parent=None, componentsCache={}):
+        """ creates headers object used for comparison. The parent
+        identifies the treeView. componentsCache is a dictionary (it
+        is defaultdict of defaultdicts), which identifies each dropped
+        component out of libref/value/footprint such, that it can be
+        reusable. Point of all this is, that when user drops in place
+        a component from a supplier, he might use this component for
+        any other _same_ component in the future. Hence if dropped,
+        the component cache is storing libref/value/footprint wrt
+        (mfg, mfgno, supplier, supplierno, datasheet) such, that next
+        time user requests the context menu, this component is offered
+        from cache if exists. When the component cache is taken care
+        of by user (git repo e.g.), then during the time a component
+        library is made. It is however up to user to keep the
+        components database correct as no further formal verification
+        can be done. This is a desirable feature of a hardware
+        engineer :) (at least me as the author)
         """
         super(QDesignatorSortModel, self).__init__(parent)
         self.header = headers()
         # get all sellers filters
         self.suppliers = supplier_selector()
+        self.componentsCache = componentsCache
 
     def setSelectionFilter(self, filt):
         """ Runs through all the rows in the data, checks if
@@ -212,10 +235,18 @@ class QDesignatorSortModel(QtGui.QSortFilterProxyModel):
             # drop destination is outside of the selection, we only
             # replace given row
             if treeparent.row() in rows:
+                # many items selected
                 replace_in_rows = rows
             else:
+                # only single item selected
                 replace_in_rows = [treeparent.row(), ]
 
+            # get the data out of those indices
+            collector = defaultdict(list)
+            colidx = self.header.getColumns([
+                self.header.LIBREF,
+                self.header.VALUE,
+                self.header.FOOTPRINT])
             # now the data replacement. EACH ITEM HAS ITS OWN MODELINDEX
             # and we get the modelindices from parent. Do for each of them
             for row in replace_in_rows:
@@ -225,6 +256,69 @@ class QDesignatorSortModel(QtGui.QSortFilterProxyModel):
                         self.index(row,
                                    self.header.getColumn(key)),
                         value)
+                # the point with rows is, that we need to collect
+                # libref/value/footprint for each selected row, as it
+                # they are the same for the entire selection, we are
+                # eligible to write down the component selection _into
+                # the component cache_ to be reused for the next
+                # time. This can be done only if the selection of the
+                # component is unique otherwise we would make a mess
+                # in the database
+                for icol in colidx:
+                    # get source index (remember, we are only proxy)
+                    idsrc = self.mapToSource(
+                        self.index(row, icol))
+                    txt = idsrc.model().itemFromIndex(idsrc).text()
+                    collector[icol].append(txt)
+            # collected data get converted into sets, hence it will
+            # erase all common parts
+            # this will make (column, set) assignment such, that if
+            # all the components selected are the same, it will result
+            # in exactly 1 element in the list for each column
+            c = list(map(lambda itext: (itext[0], set(itext[1])),
+                     collector.items()))
+            # so we filter the columns which have more than one
+            # element
+            moreOne = list(filter(lambda item: len(item[1]) != 1, c))
+            # and if the list is _empty_, that is good as we can use
+            # mapping
+            if len(moreOne) > 0:
+                self.colors.printInfo("""Cannot store the dropped component\
+ into the component cache, because the selection does not resolve in\
+ unique LIBREF/VALUE/FOOTPRINT.""")
+            else:
+                # this is defaultdict of defaultdict, we can add
+                # components into such dictionary even if they are not
+                # created
+                cmpn = dict(c)
+                cls = self.header.getColumns([self.header.LIBREF,
+                                              self.header.VALUE,
+                                              self.header.FOOTPRINT])
+                # we need to convert set back to list
+                cnm = list(map(lambda idx: list(cmpn[idx])[0], cls))
+                # Particular problem here
+                # is that we need to detect duplicates in the
+                # component mfg/no/ref/supplier. this is best done by
+                # introducing unique key from parsed data, hash seems
+                # to be OK. We add this hash as a separate dictionary
+                # key (additional layer) so we're sure that if the
+                # hash exists, the component of the same properties is
+                # already entered and we ignore it
+                cmphash = hashlib.md5(
+                    json.dumps(parsed_data,
+                               sort_keys=True).encode("utf-8")).hexdigest()
+                hashes = self.componentsCache[cnm[0]][cnm[1]][cnm[2]]
+                if cmphash in hashes.keys():
+                    print("This component is already in the cache.")
+                else:
+                    # store in the component database
+                    self.componentsCache[cnm[0]]\
+                        [cnm[1]]\
+                        [cnm[2]]\
+                        [cmphash] = parsed_data
+                    # and inform upper
+                    self.addedComponentIntoCache.emit()
+
         except KeyError:
             pass
         QtGui.QApplication.restoreOverrideCursor()

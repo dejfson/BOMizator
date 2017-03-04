@@ -41,6 +41,7 @@ manufacturer part independently of the values of the libraries.
 import sys
 import os
 import webbrowser
+import json
 from collections import defaultdict
 from PyQt4 import QtGui, uic, QtCore
 from .sch_parser import sch_parser
@@ -73,20 +74,30 @@ class BOMizator(QtGui.QMainWindow, form_class):
         self.settings = QtCore.QSettings()
         # get from the options the path to the component cache - a
         # filename, which is used to store the data
-        self.componentsCache = self.settings.value(
-            "componentsCacheDirectory",
-            os.path.join(projectDirectory, "componentsCache.xml"),
+        self.componentsCacheFile = self.settings.value(
+            "componentsCacheFile",
+            os.path.join(projectDirectory, "componentsCache.json"),
             str)
-        print("Using component cache from %s" % (self.componentsCache))
+        print("Using component cache from %s" %
+              (self.componentsCacheFile))
+        # load the complete dictionary
+        try:
+            with open(self.componentsCacheFile) as data_file:
+                self.componentsCache = json.load(data_file)
+        except FileNotFoundError:
+            # empty defaultdict of defaultdict
+            self.componentsCache = self.rec_dd()
         self.projectDirectory = projectDirectory
         self.SCH = sch_parser(self.projectDirectory)
         self.SCH.parseComponents()
 
         self.model = QtGui.QStandardItemModel(self.treeView)
         # search proxy:
-        self.proxy = QDesignatorSortModel(self.treeView)
+        self.proxy = QDesignatorSortModel(self.treeView, self.componentsCache)
         self.proxy.setSourceModel(self.model)
         self.proxy.setDynamicSortFilter(True)
+        self.proxy.addedComponentIntoCache.connect(self.saveComponentCache)
+
         # assign proxy to treeView so we influence how the stuff is sorted
         self.treeView.setModel(self.proxy)
         self.treeView.setSortingEnabled(True)
@@ -131,6 +142,21 @@ class BOMizator(QtGui.QMainWindow, form_class):
         self._readAndApplyWindowAttributeSettings()
         # update status for the first time
         self.treeSelection()
+
+    def saveComponentCache(self):
+        """ signal caught when component cache changed and save is required
+        """
+        with open(self.componentsCacheFile, 'wt') as outfile:
+            json.dump(self.componentsCache, outfile)
+
+    def rec_dd(self):
+        """
+        http://stackoverflow.com/questions/19189274/defaultdict-of-defaultdict-nested
+
+function generating nested defaultdicts. Used for loading and
+        operating the components cache
+        """
+        return defaultdict(self.rec_dd)
 
     def hideShowDisabledComponents(self, hideComponents):
         """ if hideComponents is true, then the model to display all
