@@ -70,9 +70,14 @@ class BOMizator(QtGui.QMainWindow, form_class):
             QtCore.QSettings(os.path.join(projectDirectory,
                                           "bomizator.ini"),
                              QtCore.QSettings.IniFormat)
-
         self.settings = QtCore.QSettings()
-
+        # get from the options the path to the component cache - a
+        # filename, which is used to store the data
+        self.componentsCache = self.settings.value(
+            "componentsCacheDirectory",
+            os.path.join(projectDirectory, "componentsCache.xml"),
+            str)
+        print("Using component cache from %s" % (self.componentsCache))
         self.projectDirectory = projectDirectory
         self.SCH = sch_parser(self.projectDirectory)
         self.SCH.parseComponents()
@@ -98,7 +103,6 @@ class BOMizator(QtGui.QMainWindow, form_class):
         hideDisabled = self.settings.value("hideDisabledComponents",
                                            False,
                                            bool)
-        print(hideDisabled)
         self.action_Hide_disabled_components.setEnabled(not hideDisabled)
         self.action_Show_disabled_components.setEnabled(hideDisabled)
         self.action_Hide_disabled_components.triggered.connect(
