@@ -11,5 +11,5 @@ setup(name='BOMizator',
       description="KiCad BOM to suppliers linker",
       author='David Belohrad',
       author_email='david.belohrad@cern.ch',
-      install_requires=['bs4', 'urllib3'],
+      install_requires=['bs4', 'urllib3', 'html5lib'],
       scripts=['bin/bomizator', ])
