@@ -387,17 +387,19 @@ function generating nested defaultdicts. Used for loading and
         oneDisabled = not all(enabled)
         # let's add menus
         if oneDisabled:
-            enableThis = menu.addAction(self.tr("Enable"))
-            enableThis.triggered.connect(lambda: self.enableProxyItems(True))
+            menu.addAction(self.tr("Enable"),
+                           partial(self.enableProxyItems,
+                                   True))
             execMenu = True
         if oneEnabled:
-            enableThis = menu.addAction(self.tr("Disable"))
-            enableThis.triggered.connect(lambda: self.enableProxyItems(False))
+            menu.addAction(self.tr("Disable"),
+                           partial(self.enableProxyItems,
+                                   False))
             execMenu = True
         if oneEnabled and oneDisabled:
-            enableThis = menu.addAction(self.tr("Invert enable/disable"))
-            enableThis.triggered.connect(lambda:
-                                         self.invertProxyEnableItems(False))
+            menu.addAction(self.tr("Invert enable/disable"),
+                           partial(self.invertProxyEnableItems,
+                                   False))
             execMenu = True
 
         # last part of context menu is to look for components in cache
