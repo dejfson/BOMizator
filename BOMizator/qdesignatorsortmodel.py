@@ -207,6 +207,53 @@ class QDesignatorSortModel(QtGui.QSortFilterProxyModel):
         a = set(a)
         return a
 
+    def selectionUnique(self):
+        """ returns unique component libref/value/footprint if the
+        current selection (i.e. libref/value/footprint) resolves in
+        unique single component. This is used e.g. for looking into
+        component cache. If the selection is not unique, none is returned
+        """
+        rows = self.getSelectedRows()
+        # get the data out of those indices
+        collector = defaultdict(list)
+        # we need to convert iterator to list otherwise it cannot be
+        # used in the loop
+        colidx = list(self.header.getColumns([
+            self.header.LIBREF,
+            self.header.VALUE,
+            self.header.FOOTPRINT]))
+        for row in rows:
+            for icol in colidx:
+                # get source index (remember, we are only proxy)
+                idsrc = self.mapToSource(
+                    self.index(row, icol))
+                txt = idsrc.model().itemFromIndex(idsrc).text()
+                collector[icol].append(txt)
+        # collected data get converted into sets, hence it will
+        # erase all common parts
+        # this will make (column, set) assignment such, that if
+        # all the components selected are the same, it will result
+        # in exactly 1 element in the list for each column
+        c = list(map(lambda itext: (itext[0], set(itext[1])),
+                     collector.items()))
+        # so we filter the columns which have more than one
+        # element
+        moreOne = list(filter(lambda item: len(item[1]) != 1, c))
+        # and if the list is _empty_, that is good as we can use
+        # mapping. Note that c variable contains _set_ and not
+        # list.
+        if moreOne == []:
+            # this is unique component, we can pop each item from set
+            # to create simple dictionary
+            a = dict(map(lambda dkey: (dkey[0], dkey[1].pop()), c))
+            # so a is dictionary of e.g. this type:
+            # {1: 'GRJ188R70J225KE11D', 2: 'GRJ188R70J225KE11D', 3:
+            # 'Capacitors_SMD:C_0603'}
+            # key is column name as defined in headers, we return
+            # libref/value/footprint as unique identifier of the component
+            return a
+        return None
+
     def dropMimeData(self, data, action, row, column, treeparent):
         """ takes care of data modifications. The data _must contain_
         URL from the web pages of one of the pages supported by
@@ -223,8 +270,18 @@ class QDesignatorSortModel(QtGui.QSortFilterProxyModel):
             # appropriate row and _many_ columns, depending on whether a
             # single item is selected, or multiple items (in terms of
             # designators) are selected. Following command returns
-            # dictionary of all found items
-            parsed_data = self.suppliers.parse_URL(data.text())
+            # dictionary of all found items. We check here against the
+            # instance, as dropMimeData is used as well by a direct
+            # call when getting the data from the component cache as
+            # the treatment is exactly the same, except that 'data' in
+            # case of direct call contain already parsed data from the
+            # component cache dictionary
+            if isinstance(data, QtCore.QMimeData):
+                parsed_data = self.suppliers.parse_URL(data.text())
+            else:
+                # get the data directly as this function was called
+                # from context menu selection
+                parsed_data = data
             # first we find all items, which are selected. we are only
             # interested in rows, as those are determining what
             # designators are used.

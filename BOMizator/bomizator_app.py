@@ -43,6 +43,7 @@ import os
 import webbrowser
 import json
 from collections import defaultdict
+from functools import partial
 from PyQt4 import QtGui, uic, QtCore
 from .sch_parser import sch_parser
 from .headers import headers
@@ -399,8 +400,61 @@ function generating nested defaultdicts. Used for loading and
                                          self.invertProxyEnableItems(False))
             execMenu = True
 
+        # last part of context menu is to look for components in cache
+        component = self.proxy.selectionUnique()
+        # map cols to list as needed:
+        idxs = map(self.header.getColumn, [self.header.LIBREF,
+                                           self.header.VALUE,
+                                           self.header.FOOTPRINT])
+        # get indices into cmpcache:
+        itms = list(map(lambda cx: component[cx], idxs))
+        # this is not so nicely implemented, is there any other way
+        # how to check in nested defaultdicts if the key exists?
+        if itms[0] in self.componentsCache:
+            if itms[1] in self.componentsCache[itms[0]]:
+                if itms[2] in self.componentsCache[itms[0]][itms[1]]:
+                    # get all the reference data
+                    refdata = self.componentsCache[itms[0]]\
+                              [itms[1]]\
+                              [itms[2]].items()
+                    # we have specific components, we can add them
+                    # into the menu such, that it will trigger
+                    # automatic refill
+                    menu.addSeparator()
+                    # for hashed, data in refdata:
+                    for hashed, cmpData in refdata:
+                        # we have to construct the string to be
+                        # displayed.
+                        txt = cmpData[self.header.MANUFACTURER] +\
+                              " " +\
+                              cmpData[self.header.MFRNO] +\
+                              " from " +\
+                              cmpData[self.header.SUPPLIER]
+                        menu.addAction(txt,
+                                       partial(self.fillFromComponentCache,
+                                               cmpData))
+                    execMenu = True
+
         if execMenu:
             menu.exec_(self.treeView.viewport().mapToGlobal(position))
+
+    def fillFromComponentCache(self, cmpData):
+        """ function called from context menu when user selects a
+        unique component and this component is found in the component
+        cache such, that it fits the libref/value/footprint. Inthis
+        case a context menu will contain name of this component. When
+        triggered, this function is called with cmpData containing the
+        dictionary with mfg/mfgno/supplier/supplierno/datasheet. This
+        function mimics 'dropMimeData' action to fully reuse its
+        implementation to fill-in these data in the selected
+        rows/components (which can be one or many depending of how the
+        user selects the items)
+        """
+        print(cmpData)
+        # we have to have at least one selected index as otherwise we
+        # do not know where to stick the data
+        aa = self.treeView.selectedIndexes()[0]
+        self.proxy.dropMimeData(cmpData, None, -1, -1, aa)
 
     def enableProxyItems(self, enable):
         """ looks for all selected items in proxy, maps them into base
