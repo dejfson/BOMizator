@@ -102,10 +102,17 @@ class QDesignatorSortModel(QtGui.QSortFilterProxyModel):
                 to_select += items
         return to_select
 
-    def getText(self, left):
-        """ returns text from the modelindex data
+    def getText(self, left, isProxied=False):
+        """ returns text from the modelindex data. If isProxied is
+        true, the left modelindex is corresponding proxy
+        modelindex. if isProxied is false, then left modelindex is the
+        modelindex of QStandardItemModel (instead of proxy)
         """
-        return left.model().itemFromIndex(left).text()
+        if isProxied:
+            idsrc = self.mapToSource(left)
+        else:
+            idsrc = left
+        return idsrc.model().itemFromIndex(idsrc).text()
 
     def getDesignatorNumber(self, designator):
         """ parses given designator and returns tuple (alphas, digit),
@@ -230,9 +237,7 @@ class QDesignatorSortModel(QtGui.QSortFilterProxyModel):
         for row in rows:
             for icol in colidx:
                 # get source index (remember, we are only proxy)
-                idsrc = self.mapToSource(
-                    self.index(row, icol))
-                txt = self.getText(idsrc)
+                txt = self.getText(self.index(row, icol), True)
                 collector[icol].append(txt)
         # collected data get converted into sets, hence it will
         # erase all common parts
@@ -325,9 +330,7 @@ class QDesignatorSortModel(QtGui.QSortFilterProxyModel):
                 # in the database
                 for icol in colidx:
                     # get source index (remember, we are only proxy)
-                    idsrc = self.mapToSource(
-                        self.index(row, icol))
-                    txt = self.getText(idsrc)
+                    txt = self.getText(self.index(row, icol), True)
                     collector[icol].append(txt)
             # collected data get converted into sets, hence it will
             # erase all common parts
