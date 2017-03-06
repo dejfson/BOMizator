@@ -58,4 +58,4 @@ class QBOMTreeView(QtGui.QTreeView):
                                          self.model().columnCount()-1)
                 else:
                     return QtCore.QModelIndex()
-        super(QBOMTreeView, self).moveCursor(cursorAction, modifiers)
+        return super(QBOMTreeView, self).moveCursor(cursorAction, modifiers)
