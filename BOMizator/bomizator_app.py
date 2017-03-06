@@ -401,6 +401,7 @@ function generating nested defaultdicts. Used for loading and
         # INFORMATION, PROPOSE CLEAR
 
 
+
         ################################################################################
         # WHEN RIGHT CLICK ON COMPONENTS(s) PROPOSE COMPONENT FROM
         # CACHE IF THAT ONE EXISTS AND SELECTION RESOLVES TO UNIQUE
@@ -409,9 +410,7 @@ function generating nested defaultdicts. Used for loading and
         try:
             component = self.proxy.selectionUnique()
             # map cols to list as needed:
-            idxs = map(self.header.getColumn, [self.header.LIBREF,
-                                               self.header.VALUE,
-                                               self.header.FOOTPRINT])
+            idxs = map(self.header.getColumn, self.header.UNIQUEITEM)
             # get indices into cmpcache:
             itms = list(map(lambda cx: component[cx], idxs))
             # this is not so nicely implemented, is there any other way

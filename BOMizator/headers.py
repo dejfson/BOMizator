@@ -46,6 +46,12 @@ class headers(object):
     SUPPNO = "Supplier no"
     DATASHEET = "Datasheet"
 
+    # list defining names of all columns which uniquely identify the
+    # component
+    UNIQUEITEM = [LIBREF,
+                  VALUE,
+                  FOOTPRINT]
+
     # itemenabled is the enable/disable flag associated with a
     # particular modelindex. We can get the info about it just by
     # calling data

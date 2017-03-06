@@ -207,6 +207,14 @@ class QDesignatorSortModel(QtGui.QSortFilterProxyModel):
         a = set(a)
         return a
 
+    def getItemData(self, rows):
+        """ returns list of dictionaries containing the data from
+        currently selected items
+        """
+        rows = self.getSelectedRows()
+        collector = defaultdict(list)
+
+
     def selectionUnique(self):
         """ returns unique component libref/value/footprint if the
         current selection (i.e. libref/value/footprint) resolves in
@@ -218,10 +226,7 @@ class QDesignatorSortModel(QtGui.QSortFilterProxyModel):
         collector = defaultdict(list)
         # we need to convert iterator to list otherwise it cannot be
         # used in the loop
-        colidx = list(self.header.getColumns([
-            self.header.LIBREF,
-            self.header.VALUE,
-            self.header.FOOTPRINT]))
+        colidx = list(self.header.getColumns(self.header.UNIQUEITEM))
         for row in rows:
             for icol in colidx:
                 # get source index (remember, we are only proxy)
@@ -300,10 +305,7 @@ class QDesignatorSortModel(QtGui.QSortFilterProxyModel):
 
             # get the data out of those indices
             collector = defaultdict(list)
-            colidx = self.header.getColumns([
-                self.header.LIBREF,
-                self.header.VALUE,
-                self.header.FOOTPRINT])
+            colidx = self.header.getColumns(self.header.UNIQUEITEM)
             # now the data replacement. EACH ITEM HAS ITS OWN MODELINDEX
             # and we get the modelindices from parent. Do for each of them
             for row in replace_in_rows:
@@ -348,9 +350,7 @@ class QDesignatorSortModel(QtGui.QSortFilterProxyModel):
                 # components into such dictionary even if they are not
                 # created
                 cmpn = dict(c)
-                cls = self.header.getColumns([self.header.LIBREF,
-                                              self.header.VALUE,
-                                              self.header.FOOTPRINT])
+                cls = self.header.getColumns(self.header.UNIQUEITEM)
                 # we need to convert set back to list
                 cnm = list(map(lambda idx: list(cmpn[idx])[0], cls))
                 # Particular problem here
