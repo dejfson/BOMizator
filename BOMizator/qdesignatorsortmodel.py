@@ -232,7 +232,7 @@ class QDesignatorSortModel(QtGui.QSortFilterProxyModel):
                 # get source index (remember, we are only proxy)
                 idsrc = self.mapToSource(
                     self.index(row, icol))
-                txt = idsrc.model().itemFromIndex(idsrc).text()
+                txt = self.getText(idsrc)
                 collector[icol].append(txt)
         # collected data get converted into sets, hence it will
         # erase all common parts
@@ -327,7 +327,7 @@ class QDesignatorSortModel(QtGui.QSortFilterProxyModel):
                     # get source index (remember, we are only proxy)
                     idsrc = self.mapToSource(
                         self.index(row, icol))
-                    txt = idsrc.model().itemFromIndex(idsrc).text()
+                    txt = self.getText(idsrc)
                     collector[icol].append(txt)
             # collected data get converted into sets, hence it will
             # erase all common parts
@@ -365,9 +365,7 @@ class QDesignatorSortModel(QtGui.QSortFilterProxyModel):
                     json.dumps(parsed_data,
                                sort_keys=True).encode("utf-8")).hexdigest()
                 hashes = self.componentsCache[cnm[0]][cnm[1]][cnm[2]]
-                if cmphash in hashes.keys():
-                    print("This component is already in the cache.")
-                else:
+                if cmphash not in hashes.keys():
                     # store in the component database
                     self.componentsCache[cnm[0]]\
                         [cnm[1]]\
