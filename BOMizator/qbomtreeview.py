@@ -40,7 +40,6 @@ class QBOMTreeView(QtGui.QTreeView):
 
     def moveCursor(self, cursorAction, modifiers):
         if cursorAction == QtGui.QAbstractItemView.MoveNext:
-            print("Mobing")
             index = self.currentIndex()
             if index.isValid():
                 if index.column()+1 < self.model().columnCount():

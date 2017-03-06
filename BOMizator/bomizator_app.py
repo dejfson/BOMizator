@@ -85,7 +85,7 @@ class BOMizator(QtGui.QMainWindow, form_class):
         try:
             with open(self.componentsCacheFile) as data_file:
                 self.componentsCache = json.load(data_file)
-        except FileNotFoundError:
+        except json.FileNotFoundError:
             # empty defaultdict of defaultdict
             self.componentsCache = self.rec_dd()
         self.projectDirectory = projectDirectory
@@ -325,6 +325,8 @@ function generating nested defaultdicts. Used for loading and
         menu = QtGui.QMenu()
         execMenu = False
 
+        ################################################################################
+        # WHEN RIGHT CLICK ON DATASHEET, PROPOSE ITS OPENING
         if len(indexes) == 1 and\
            indexes[0].column() ==\
            self.header.getColumn(self.header.DATASHEET):
@@ -335,6 +337,10 @@ function generating nested defaultdicts. Used for loading and
             open_action.triggered.connect(self.openDatasheet)
             execMenu = True
 
+        ################################################################################
+        # WHEN RIGHT CLICK ON LIBREF/VALUE/FOOTPRINT such that only
+        # one of them is selected, propose selecting filter
+        #
         # variant 2: we can select from libref, value, footprint in
         # each column _single item only_, and this one can be used to
         # create a selection mask. From obvious reasons selecting TWO
@@ -344,24 +350,12 @@ function generating nested defaultdicts. Used for loading and
         # can contain whatever information, ergo hell to make filter
         # first we have to make a 'histogram', i.e. counting
         # occurences of columns.
-        d = defaultdict(int)
-        # now run through all indices and do counting of columns
-        for index in indexes:
-            d[str(index.column())] += 1
-        # now get list of values and find if each of them is exactly
-        # one. First condition: look for columns which can be used for this:
-        eligible_columns = all(map(lambda c: c in self.header.getColumns(
-            [self.header.LIBREF,
-             self.header.VALUE,
-             self.header.FOOTPRINT]), map(int, d.keys())))
+        if self.proxy.selectionUnique():
+            menu.addAction(self.tr("Select same"), self.selectSameFilter)
 
-        # second: look if in each column there's exactly one value selected
-        eligible_context = all(map(lambda c: c == 1, d.values()))
-        if eligible_context and eligible_columns:
-            select_same = menu.addAction(self.tr("Select same"))
-            select_same.triggered.connect(self.selectSameFilter)
-            execMenu = True
-
+        ################################################################################
+        # WHEN RIGHT CLICK ON ANY ITEM(s) PROPOSE ENABLE/DISABLE
+        #
         # in all other possibilities it depends whether the item(s)
         # are enabled or disabled. We can select 'whatever' and make
         # it enabled/disabled. Modus operandi is e.g. following: i
@@ -402,40 +396,53 @@ function generating nested defaultdicts. Used for loading and
                                    False))
             execMenu = True
 
+        ################################################################################
+        # WHEN RIGHT CLICK ON ANY ITEMS, WHICH HAVE FILLED ALREADY
+        # INFORMATION, PROPOSE CLEAR
+
+
+        ################################################################################
+        # WHEN RIGHT CLICK ON COMPONENTS(s) PROPOSE COMPONENT FROM
+        # CACHE IF THAT ONE EXISTS AND SELECTION RESOLVES TO UNIQUE
+        # COMPONENT
         # last part of context menu is to look for components in cache
-        component = self.proxy.selectionUnique()
-        # map cols to list as needed:
-        idxs = map(self.header.getColumn, [self.header.LIBREF,
-                                           self.header.VALUE,
-                                           self.header.FOOTPRINT])
-        # get indices into cmpcache:
-        itms = list(map(lambda cx: component[cx], idxs))
-        # this is not so nicely implemented, is there any other way
-        # how to check in nested defaultdicts if the key exists?
-        if itms[0] in self.componentsCache:
-            if itms[1] in self.componentsCache[itms[0]]:
-                if itms[2] in self.componentsCache[itms[0]][itms[1]]:
-                    # get all the reference data
-                    refdata = self.componentsCache[itms[0]]\
-                              [itms[1]]\
-                              [itms[2]].items()
-                    # we have specific components, we can add them
-                    # into the menu such, that it will trigger
-                    # automatic refill
-                    menu.addSeparator()
-                    # for hashed, data in refdata:
-                    for hashed, cmpData in refdata:
-                        # we have to construct the string to be
-                        # displayed.
-                        txt = cmpData[self.header.MANUFACTURER] +\
-                              " " +\
-                              cmpData[self.header.MFRNO] +\
-                              " from " +\
-                              cmpData[self.header.SUPPLIER]
-                        menu.addAction(txt,
-                                       partial(self.fillFromComponentCache,
-                                               cmpData))
-                    execMenu = True
+        try:
+            component = self.proxy.selectionUnique()
+            # map cols to list as needed:
+            idxs = map(self.header.getColumn, [self.header.LIBREF,
+                                               self.header.VALUE,
+                                               self.header.FOOTPRINT])
+            # get indices into cmpcache:
+            itms = list(map(lambda cx: component[cx], idxs))
+            # this is not so nicely implemented, is there any other way
+            # how to check in nested defaultdicts if the key exists?
+            if itms[0] in self.componentsCache:
+                if itms[1] in self.componentsCache[itms[0]]:
+                    if itms[2] in self.componentsCache[itms[0]][itms[1]]:
+                        # get all the reference data
+                        refdata = self.componentsCache[itms[0]]\
+                                  [itms[1]]\
+                                  [itms[2]].items()
+                        # we have specific components, we can add them
+                        # into the menu such, that it will trigger
+                        # automatic refill
+                        menu.addSeparator()
+                        # for hashed, data in refdata:
+                        for hashed, cmpData in refdata:
+                            # we have to construct the string to be
+                            # displayed.
+                            txt = cmpData[self.header.MANUFACTURER] +\
+                                  " " +\
+                                  cmpData[self.header.MFRNO] +\
+                                  " from " +\
+                                  cmpData[self.header.SUPPLIER]
+                            menu.addAction(txt,
+                                           partial(self.fillFromComponentCache,
+                                                   cmpData))
+                        execMenu = True
+        except TypeError:
+            # seletion is not unique
+            pass
 
         if execMenu:
             menu.exec_(self.treeView.viewport().mapToGlobal(position))
@@ -452,7 +459,6 @@ function generating nested defaultdicts. Used for loading and
         rows/components (which can be one or many depending of how the
         user selects the items)
         """
-        print(cmpData)
         # we have to have at least one selected index as otherwise we
         # do not know where to stick the data
         aa = self.treeView.selectedIndexes()[0]
