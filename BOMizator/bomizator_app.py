@@ -416,6 +416,7 @@ function generating nested defaultdicts. Used for loading and
         if not allEmpty:
             menu.addAction(self.tr("Clear assignments"),
                            self.proxy.clearAssignments)
+            execMenu = True
 
         # ###############################################################################
         # WHEN RIGHT CLICK ON COMPONENTS(s) PROPOSE COMPONENT FROM
