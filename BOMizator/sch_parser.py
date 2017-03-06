@@ -42,7 +42,9 @@ class sch_parser(object):
     """
 
     def __init__(self, dirname):
-        """ dirname = KiCad project directory containing schematics files
+        """ dirname = KiCad project directory containing schematics
+        files. Dirname can be a file directly, or it can be directory
+        pointing to kicad .pro file
         """
         self.dirname = dirname
         self.debug = False
@@ -75,17 +77,20 @@ class sch_parser(object):
         """ uses project directory to pass through the projects
         """
 
-        matches = []
-        # find all project files within the directory (there should be
-        # one theoretically, but we accept any number, i.e. when
-        # subdirectory is given)
-        for root, dirnames, filenames in os.walk(self.dirname):
-            for filename in fnmatch.filter(filenames, '*.pro'):
-                matches.append(os.path.join(root, filename))
+        if os.path.isfile(self.dirname):
+            matches = [self.dirname, ]
+        else:
+            matches = []
+            # find all project files within the directory (there should be
+            # one theoretically, but we accept any number, i.e. when
+            # subdirectory is given)
+            for root, dirnames, filenames in os.walk(self.dirname):
+                for filename in fnmatch.filter(filenames, '*.pro'):
+                    matches.append(os.path.join(root, filename))
 
-        if matches == []:
-            raise AttributeError('Provided directory does not contain\
- any kicad schematic files')
+            if matches == []:
+                raise AttributeError('Provided directory does not contain\
+     any kicad schematic files')
 
         # having the project file the top-level schematic shares the
         # filenames, we can recursively search through using simple
