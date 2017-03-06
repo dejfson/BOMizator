@@ -87,8 +87,7 @@ class BOMizator(QtGui.QMainWindow, form_class):
             with open(self.componentsCacheFile) as data_file:
                 self.componentsCache = json.load(data_file)
         except json.FileNotFoundError:
-            # empty defaultdict of defaultdict
-            self.componentsCache = self.rec_dd()
+            self.componentsCache = {}
         self.projectDirectory = projectDirectory
         self.SCH = sch_parser(self.projectDirectory)
         self.SCH.parseComponents()
@@ -155,8 +154,9 @@ class BOMizator(QtGui.QMainWindow, form_class):
         """
         http://stackoverflow.com/questions/19189274/defaultdict-of-defaultdict-nested
 
-function generating nested defaultdicts. Used for loading and
-        operating the components cache
+function generating nested defaultdicts. Previously used for loading and
+        operating the components cache, but as it turned out to be
+        very dangerous to use, I'm reverting back to ordinary dictionary
         """
         return defaultdict(self.rec_dd)
 
