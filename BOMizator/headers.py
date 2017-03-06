@@ -52,6 +52,13 @@ class headers(object):
                   VALUE,
                   FOOTPRINT]
 
+    # this list defines all items which are added by user
+    USERITEMS = [MANUFACTURER,
+                 MFRNO,
+                 SUPPLIER,
+                 SUPPNO,
+                 DATASHEET]
+
     # itemenabled is the enable/disable flag associated with a
     # particular modelindex. We can get the info about it just by
     # calling data

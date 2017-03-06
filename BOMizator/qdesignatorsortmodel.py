@@ -74,6 +74,19 @@ class QDesignatorSortModel(QtGui.QSortFilterProxyModel):
         self.suppliers = supplier_selector()
         self.componentsCache = componentsCache
 
+    def clearAssignments(self):
+        """ all selected rows data get cleared. This will only remove
+        the information from the list, but the component cache stays
+        intact (hence once component entered into the component cache,
+        it will not be removed unless cache is updated externally)
+        """
+        rows = self.getSelectedRows()
+        # get the data out of those indices
+        colidx = list(self.header.getColumns(self.header.USERITEMS))
+        for row in rows:
+            for col in colidx:
+                self.setData(self.index(row, col), "")
+
     def setSelectionFilter(self, filt):
         """ Runs through all the rows in the data, checks if
         appropriate columns have the same data as those specified in
@@ -85,7 +98,7 @@ class QDesignatorSortModel(QtGui.QSortFilterProxyModel):
         match the filter
         """
         # list of modelindexes to be set selected in treeview
-        to_select = []
+        toSelect = []
         for row in range(self.rowCount()):
             # get indices of all columns
             items = []
@@ -99,8 +112,8 @@ class QDesignatorSortModel(QtGui.QSortFilterProxyModel):
             # should be the same as dict length:
             if len(items) == len(filt):
                 # we have those items, we can set them selected
-                to_select += items
-        return to_select
+                toSelect += items
+        return toSelect
 
     def getText(self, left, isProxied=False):
         """ returns text from the modelindex data. If isProxied is
@@ -214,13 +227,24 @@ class QDesignatorSortModel(QtGui.QSortFilterProxyModel):
         a = set(a)
         return a
 
-    def getItemData(self, rows):
+    def getItemData(self):
         """ returns list of dictionaries containing the data from
-        currently selected items
+        currently selected items.
         """
         rows = self.getSelectedRows()
-        collector = defaultdict(list)
-
+        collector = []
+        for row in rows:
+            # for each row we pick all the column data
+            allCols = self.header.HEADER.keys()
+            # map modelindexes
+            allIdx = map(lambda cl: self.index(row, cl),
+                         self.header.getColumns(allCols))
+            # list all the texts in the same order as allCols
+            allTxt = map(lambda idx: self.getText(idx, True), allIdx)
+            # zip into dictionary with proper names
+            allItem = dict(zip(allCols, allTxt))
+            collector.append(allItem)
+        return collector
 
     def selectionUnique(self):
         """ returns unique component libref/value/footprint if the

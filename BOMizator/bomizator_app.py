@@ -45,6 +45,7 @@ import json
 from collections import defaultdict
 from functools import partial
 from PyQt4 import QtGui, uic, QtCore
+from itertools import chain
 from .sch_parser import sch_parser
 from .headers import headers
 from .qdesignatorsortmodel import QDesignatorSortModel
@@ -325,7 +326,7 @@ function generating nested defaultdicts. Used for loading and
         menu = QtGui.QMenu()
         execMenu = False
 
-        ################################################################################
+        # ###############################################################################
         # WHEN RIGHT CLICK ON DATASHEET, PROPOSE ITS OPENING
         if len(indexes) == 1 and\
            indexes[0].column() ==\
@@ -337,7 +338,7 @@ function generating nested defaultdicts. Used for loading and
             open_action.triggered.connect(self.openDatasheet)
             execMenu = True
 
-        ################################################################################
+        # ###############################################################################
         # WHEN RIGHT CLICK ON LIBREF/VALUE/FOOTPRINT such that only
         # one of them is selected, propose selecting filter
         #
@@ -353,7 +354,7 @@ function generating nested defaultdicts. Used for loading and
         if self.proxy.selectionUnique():
             menu.addAction(self.tr("Select same"), self.selectSameFilter)
 
-        ################################################################################
+        # ###############################################################################
         # WHEN RIGHT CLICK ON ANY ITEM(s) PROPOSE ENABLE/DISABLE
         #
         # in all other possibilities it depends whether the item(s)
@@ -396,13 +397,27 @@ function generating nested defaultdicts. Used for loading and
                                    False))
             execMenu = True
 
-        ################################################################################
+        # ###############################################################################
         # WHEN RIGHT CLICK ON ANY ITEMS, WHICH HAVE FILLED ALREADY
         # INFORMATION, PROPOSE CLEAR
+        idata = self.proxy.getItemData()
+        # now we search through all user defined items to see if all
+        # of them are empty
+        rowdata = []
+        for item in idata:
+            # filter interesting data - keep non-zero ones and only
+            # those which are user definable
+            idata = filter(lambda component:
+                           (component[0] in self.header.USERITEMS) and
+                           component[1] != '', item.items())
+            rowdata.append(list(idata))
+        allEmpty = all(map(lambda ctr: not ctr, rowdata))
+        # if at least one is not empty, we add option to clear out
+        if not allEmpty:
+            menu.addAction(self.tr("Clear assignments"),
+                           self.proxy.clearAssignments)
 
-
-
-        ################################################################################
+        # ###############################################################################
         # WHEN RIGHT CLICK ON COMPONENTS(s) PROPOSE COMPONENT FROM
         # CACHE IF THAT ONE EXISTS AND SELECTION RESOLVES TO UNIQUE
         # COMPONENT
@@ -431,10 +446,10 @@ function generating nested defaultdicts. Used for loading and
                             # we have to construct the string to be
                             # displayed.
                             txt = cmpData[self.header.MANUFACTURER] +\
-                                  " " +\
-                                  cmpData[self.header.MFRNO] +\
-                                  " from " +\
-                                  cmpData[self.header.SUPPLIER]
+                                " " +\
+                                cmpData[self.header.MFRNO] +\
+                                " from " +\
+                                cmpData[self.header.SUPPLIER]
                             menu.addAction(txt,
                                            partial(self.fillFromComponentCache,
                                                    cmpData))
