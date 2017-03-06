@@ -227,11 +227,16 @@ class QDesignatorSortModel(QtGui.QSortFilterProxyModel):
         a = set(a)
         return a
 
-    def getItemData(self):
+    def getItemData(self, getAll=False):
         """ returns list of dictionaries containing the data from
-        currently selected items.
+        currently selected items. Second parameter specifies whether
+        we should get all the rows (entire bom), or just selected portion
         """
-        rows = self.getSelectedRows()
+        if not getAll:
+            rows = self.getSelectedRows()
+        else:
+            rows = range(self.rowCount())
+
         collector = []
         for row in rows:
             # for each row we pick all the column data

@@ -35,6 +35,8 @@ import fnmatch
 import os
 from collections import defaultdict
 from .colors import colors
+from .headers import headers
+import shlex
 
 
 class sch_parser(object):
@@ -48,7 +50,7 @@ class sch_parser(object):
         """
         self.dirname = dirname
         self.debug = False
-        self.matches = []
+        self.header = headers()
         # we cannot do a simple looking for schematic files. Instead
         # we need to walk through the files and look for particular
         # project file, which tells us (from the filename), which is
@@ -57,10 +59,17 @@ class sch_parser(object):
         # files appearing in the project. If we do not do so, we might
         # parse schematic files, which are broken, or are not part of
         # the project.
-        self.matches = self.collectFiles()
+        self.matches = set(self.collectFiles())
 
         self.current_state = self._smCatchHeader
-        self.components = defaultdict(list)
+        # components is a list of defaultdict(str). each component is
+        # identified by dictionary of
+        # designator/libref/value/footprint .... to uniquely match it
+        # to the bill of material. IF SOME ATTRIBUTES DO NOT EXIST (as
+        # e.g. mfg), they are not created during the file writing, but
+        # they are created on fly by a dynamic assignment of the data.
+        # this list is the one giving the BOM data
+        self.components = []
 
         # define attributes dictionary for the component, each entry
         # has to correspond to specific attributes
@@ -72,6 +81,43 @@ class sch_parser(object):
             'F': self._attributeF,
             '\t': self._attributeTab,
             '$': self._attributeTermination}
+
+    def save(self, data):
+        """ function parses all the project schematic files,
+        identifies all the components and _replaces particular
+        attributes_ to get all the information from the treeview
+        stored directly in kicad sch as attribute. Now, the attribute
+        in kicad corresponding to 'user' attribute is the one starting
+        with 'F'. First three F attributes (F0, F1, F2) are defined
+        purpose. The F3 attribute is 'documentation',
+        i.e. datasheet. All other attributes are user definable and
+        have following format:
+        F 4 "1737246" H 9850 1300 60  0001 C CNN "FARNELL"
+
+        F4 is the attribute, followed by attribute's value,
+        horizontal, x, y, length, visibility, center, further, and at
+        the end the attribute name, which is in this case farnell. WE
+        CANNOT IMPOSE THE ATTRIBUTE NUMBER TO BE FIXED as user might
+        already enter another attributes from the schematic, but we
+        can make our own just by adding first free number, or we can
+        modify already existing ones, if these are different from the
+        data given.
+
+        The data variable is the complete dictionary of the data to be
+        changed. They are only updated in the schematics if the
+        attribute of a given component is either missing, or different
+        from our data.
+
+        The algorithm for save uses the same mechanism as loading the
+        data - the state machine parses the document, identifying
+        header, position, designator etc, and when in saving mode we
+        put an attention into parsing the F attributes and their
+        change depending of currently detected designator.
+
+        """
+        print(data)
+        print(self.components)
+
 
     def collectFiles(self):
         """ uses project directory to pass through the projects
@@ -164,8 +210,51 @@ class sch_parser(object):
                     print("Found component ",
                           self.current_component['L'][1], ":",
                           self.current_component['F']['1'][0])
-                self.components[
-                    self.current_component['L'][1]] = self.current_component
+                # now we compact the information such, that we create
+                # dictionary of items and we form list of it
+                xm = defaultdict(str)
+                # if AR attribute is defined for the component, it
+                # takes over the default designator
+                try:
+                    designators = self.current_component['AR'].keys()
+                except KeyError:
+                    # otherwise take default component designator
+                    designators = [self.current_component['L'][1], ]
+
+                for designator in designators:
+                    # designator
+                    xm[self.header.DESIGNATOR] = designator
+                    # library reference
+                    xm[self.header.LIBREF] = self.current_component['L'][0]
+                    # value
+                    xm[self.header.VALUE] = self.stripQuote(
+                        self.current_component['F']['1'][0])  # value
+                    # footprint
+                    xm[self.header.FOOTPRINT] = self.stripQuote(
+                        self.current_component['F']['2'][0])  # footprint
+
+                    for f_number, f_data in self.current_component['F'].items():
+                        if int(f_number) == 3:
+                            # datasheet (this is part of schematics)
+                            xm[self.header.DATASHEET] = self.stripQuote(f_data[0])
+                        elif int(f_number) > 3 and\
+                             f_data[-1].find(self.header.SUPPNO) != -1:
+                            # supplier reference number
+                            xm[self.header.SUPPNO] = self.stripQuote(f_data[0])
+                        elif int(f_number) > 3 and\
+                             f_data[-1].find(self.header.SUPPLIER) != -1:
+                            # supplier name
+                            xm[self.header.SUPPLIER] = self.stripQuote(f_data[0])
+                        elif int(f_number) > 3 and\
+                             f_data[-1].find(self.header.MANUFACTURER) != -1:
+                            # supplier name
+                            xm[self.header.MANUFACTURER] = self.stripQuote(f_data[0])
+                        elif int(f_number) > 3 and\
+                             f_data[-1].find(self.header.MFRNO) != -1:
+                            # supplier name
+                            xm[self.header.MFGNO] = self.stripQuote(f_data[0])
+
+                self.components.append(xm)
 
             self.current_state = self._smCatchHeader
 
@@ -260,9 +349,16 @@ THE FIRST DESIGNATOR FOUND""")
         F 4 "1439758" H 5900 5800 60  0001 C CNN "supplier_ref"
         F 5 "FARNELL" H 5900 5800 60  0001 C CNN "supplier"
 
+        the real danger is, when a user defined attribute contains
+        spaces (and it can), hence we cannot simply split the data by
+        space, but we need to have a look locally between
+        quotes. e.g.:
+        F 5 "FARNELL" H 5900 5800 60  0001 C CNN "supplier reference"
+        is still valid attribute. This split is done by shlex module
+
         """
 
-        data = line.split(" ")
+        data = shlex.split(line)
         # what we do here: F attribute is just another dictionary with
         # key equal to attribute number (as they have to be exported
         # in the same way later), all the rest of the attributes is
@@ -304,66 +400,9 @@ THE FIRST DESIGNATOR FOUND""")
         [ designator, libref, value, footprint,
         """
 
-        # this kind of data to be expected:
-        # Q1 {'P': ['8900', '9700'], 'U': ['1', '1', '589E4C6E'], 'L':
-        # ['BSS138', 'Q1'], 'X': ['1    8900 9700', '1    0    0
-        # -1'], 'F': {'1': ['"BSS138"', 'H', '9091', '9655', '50', '',
-        # '0000', 'L', 'CNN'], '0': ['"Q1"', 'H', '9091', '9746',
-        # '50', '', '0000', 'L', 'CNN'], '3': ['""', 'H', '-1950',
-        # '2100', '50', '', '0001', 'L', 'CNN'], '2':
-        # ['"TO_SOT_Packages_SMD:SOT-23"', 'H', '-1750', '2025', '50',
-        # '', '0001', 'L', 'CIN'], '4': ['"2306392"', 'H', '8900',
-        # '9700', '60', '', '0001', 'C', 'CNN', '"FARNELL"']}}
-
-        # or for resistance:
-        # {'P': ['8550', '9850'], 'U': ['1', '1', '589E4F2C'], 'L':
-        # ['R', 'R7'], 'X': ['1    8550 9850', '1    0    0    -1'],
-        # 'F': {'1': ['"10k"', 'H', '8620', '9805', '50', '', '0000',
-        # 'L', 'CNN'], '0': ['"R7"', 'H', '8620', '9896', '50', '',
-        # '0000', 'L', 'CNN'], '3': ['""', 'H', '-1600', '1700', '50',
-        # '', '0001', 'C', 'CNN'], '2': ['"Resistors_SMD:R_1206"',
-        # 'V', '-1670', '1700', '50', '', '0001', 'C', 'CNN']}}
-
-        for key, value in self.components.items():
-            # if AR attribute is defined for the component, it
-            # takes over the default designator
-            try:
-                designators = value['AR'].keys()
-            except KeyError:
-                # otherwise take default component designator
-                designators = [value['L'][1], ]
-
-            for designator in designators:
-                data = [designator,  # designator
-                        value['L'][0],  # library reference
-                        self.stripQuote(value['F']['1'][0]),  # value
-                        self.stripQuote(value['F']['2'][0])]  # footprint
-
-                # now we have to see in 'L' attributes entires correct
-                # attribute names
-                datasheet, mfg, mfgno, supplier, supp_no = '', '', '', '', ''
-                for f_number, f_data in value['F'].items():
-                    if int(f_number) == 3:
-                        # datasheet (this is part of schematics)
-                        datasheet = self.stripQuote(f_data[0])
-                    elif int(f_number) > 3 and\
-                         f_data[-1].find("supplier_ref") != -1:
-                        # supplier reference number
-                        supplier = self.stripQuote(f_data[0])
-                    elif int(f_number) > 3 and\
-                         f_data[-1].find("supplier") != -1:
-                        # supplier name
-                        supp_no = self.stripQuote(f_data[0])
-                    elif int(f_number) > 3 and\
-                         f_data[-1].find("manufacturer") != -1:
-                        # supplier name
-                        mfg = self.stripQuote(f_data[0])
-                    elif int(f_number) > 3 and\
-                         f_data[-1].find("manufacturer_ref") != -1:
-                        # supplier name
-                        mfgno = self.stripQuote(f_data[0])
-
-                yield data + [mfg, mfgno, supplier, supp_no, datasheet]
+        # returning each component separately
+        for component in self.components:
+                yield component
 
 if __name__ == '__main__':
     # test stuff

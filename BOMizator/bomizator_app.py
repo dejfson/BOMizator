@@ -74,11 +74,11 @@ class BOMizator(QtGui.QMainWindow, form_class):
  parsed")
             sys.exit(-1)
 
+        # show/hide disabled components
         self.action_Hide_disabled_components.triggered.connect(
             lambda: self.hideShowDisabledComponents(True))
         self.action_Show_disabled_components.triggered.connect(
             lambda: self.hideShowDisabledComponents(False))
-
         # connect signals to treeView so we can invoke search engines
         self.treeView.doubleClicked.connect(self.treeDoubleclick)
         self.treeView.selectionModel().selectionChanged.connect(
@@ -94,10 +94,19 @@ class BOMizator(QtGui.QMainWindow, form_class):
         # various menu items
         self.action_Quit.triggered.connect(QtGui.qApp.quit)
         self.action_Open.triggered.connect(self.openProject)
+        self.action_Save.triggered.connect(self.saveProject)
         # restore windows parameters
         self._readAndApplyWindowAttributeSettings()
         # update status for the first time
         self.treeSelection()
+
+    def saveProject(self):
+        """ this function generates the data out of all the components
+        in the current data model, and passes these components to
+        schematics parser to save
+        """
+        entireDict = self.proxy.getItemData(True)
+        self.SCH.save(entireDict)
 
     def saveComponentCache(self):
         """ signal caught when component cache changed and save is required
@@ -143,8 +152,13 @@ function generating nested defaultdicts. Previously used for loading and
         self.model.removeRows(0, self.model.rowCount())
         # having headers we might deploy the data into the multicolumn
         # view. We need to collect all the data:
-        for cmpCount, itemData in enumerate(self.SCH.BOM()):
-            line = map(QtGui.QStandardItem, list(itemData))
+        for cmpCount, component in enumerate(self.SCH.BOM()):
+            # this line will generate row of standard items collected
+            # according to column definition in header
+            line = map(QtGui.QStandardItem,
+                       list(map(lambda c:
+                                component[c],
+                                self.header.getHeaders())))
             # set all items to be enabled by default
             columns = self.header.getColumns([self.header.DESIGNATOR,
                                               self.header.LIBREF,
@@ -161,8 +175,9 @@ function generating nested defaultdicts. Previously used for loading and
             # now, if we want to see the disabled items in the menu:
             if (not hideDisabled and not enabled) or enabled:
                 self.model.appendRow(datarow)
-        # total amount of components in the data
-        self.numComponents = cmpCount
+        # total amount of components in the data (+1 because enumerate
+        # first item is zero)
+        self.numComponents = cmpCount + 1
 
     def enableItems(self, stidems, enable=True):
         """ info whether item is disabled or enabled is stored in user
@@ -346,11 +361,11 @@ function generating nested defaultdicts. Previously used for loading and
                            partial(self.enableProxyItems,
                                    False))
             execMenu = True
-        if oneEnabled and oneDisabled:
-            menu.addAction(self.tr("Invert enable/disable"),
-                           partial(self.invertProxyEnableItems,
-                                   False))
-            execMenu = True
+        # if oneEnabled and oneDisabled:
+        #     menu.addAction(self.tr("Invert enable/disable"),
+        #                    partial(self.invertProxyEnableItems,
+        #                            False))
+        #     execMenu = True
 
         # ###############################################################################
         # WHEN RIGHT CLICK ON ANY ITEMS, WHICH HAVE FILLED ALREADY
