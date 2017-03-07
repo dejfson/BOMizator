@@ -99,7 +99,7 @@ class sch_parser(object):
             for key, val in newdata.items():
                 target[key] = val
 
-    def save(self, data):
+    def save(self):
         """ function parses all the project schematic files,
         identifies all the components and _replaces particular
         attributes_ to get all the information from the treeview
@@ -134,6 +134,7 @@ class sch_parser(object):
         """
 
         inComponent = False
+        print(self.components)
         # go through all the schematic files
         for schfile in self.matches:
             # and now let's run through
@@ -162,12 +163,7 @@ class sch_parser(object):
                              code.startswith("$EndComp"):
                             inComponent = False
                         # catching L attribute containing footprint
-                        # and designator. Point is, that we do not
-                        # need to handle 'AR' attribute here, because
-                        # the default designator is _always_ present
-                        # and corresponds to one of the AR
-                        # designators. Hence enough to search through
-                        # one of them
+                        # and designator.
                         elif inComponent and not ignore and\
                              code.startswith("L "):
                             # get designator and reference
@@ -185,8 +181,11 @@ class sch_parser(object):
                             replaceby = list(
                                 filter(lambda com:
                                        com[self.header.DESIGNATOR] ==
-        designator, data))[0]
+                                       designator, self.components))[0]
                             print(replaceby)
+                        # elif inComponent and not ignore and\
+                        #      code.startswith("AR "):
+                        #     # we catch AR
                         # we can completely ignore here U attribute as
                         # well as numeric attributes because we do not
                         # need them. We however need P attribute just
