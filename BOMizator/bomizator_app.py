@@ -152,11 +152,34 @@ function generating nested defaultdicts. Previously used for loading and
         # having headers we might deploy the data into the multicolumn
         # view. We need to collect all the data:
         for cmpCount, component in enumerate(self.SCH.BOM()):
-            # this line will generate row of standard items collected
-            # according to column definition in header
+            # each component can have multiple designators. That
+            # because when hierarchical schematics are used, the
+            # components share the same definition, but using AR
+            # attribute they get more designators as the same
+            # component is used in multiple sheets. Hence we have to
+            # iterate over the designators and pull each of them
+            # separately to the table. NOTE THAT THIS CREATES TROUBLES
+            # FOR BOM, AS USER MIGHT WANT TO SPECIFY FOR DIFFERENT
+            # CHANNELS DIFFERENT VALUE COMPONENTS. Typically this
+            # might be e.g. gains in channel amplifiers. In this model
+            # it will allow such change, but the problem is that KICAD
+            # does not recognize those as two separate components, but
+            # one component having link to two designators. HENCE
+            # EXPORTED SCH WILL ONLY CONTAIN THE VALUE WHICH IS SAVED
+            # AS LAST. For the moment I do not think that this has
+            # some simple solution, as that's the way kicad handles
+            # those. Hence we will display BOTH DESIGNATORS AT THE
+            # SAME TIME IN THE DESIGNATOR COLUMN TO SHOW UP THAT THIS
+            # SITUATION HAPPENS
+            desiline = component.copy()
+            # we use copy to twist the designators to be simple text
+            # structures
+            desiline[self.header.DESIGNATOR] = ', '.join(
+                component[self.header.DESIGNATOR])
+
             line = map(QtGui.QStandardItem,
                        list(map(lambda c:
-                                component[c],
+                                desiline[c],
                                 self.header.getHeaders())))
             # set all items to be enabled by default
             columns = self.header.getColumns([self.header.DESIGNATOR,

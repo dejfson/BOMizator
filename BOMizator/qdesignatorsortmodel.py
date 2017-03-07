@@ -433,8 +433,20 @@ class QDesignatorSortModel(QtGui.QSortFilterProxyModel):
  writing into the component cache")
 
         # emit the change so upstream knows that we have just changed
-        # components data
-        self.componentsDataChanged.emit(affectedDesignators,
+        # components data. Problem are 'affectedDesignators', as
+        # theoretically they should contain list of designators. In
+        # fact in multichannel designs one designator can represent
+        # multiple designators as a single text. we need to explode
+        # those to basic elements and then regenerate affected
+        # designators
+
+        # this will explode all sub-designators from
+        parsed = map(lambda x:
+                     x.replace(' ', '').split(','),
+                     affectedDesignators)
+        # flatten all the designators
+        flatten = [val for sublist in parsed for val in sublist]
+        self.componentsDataChanged.emit(flatten,
                                         parsed_data)
         QtGui.QApplication.restoreOverrideCursor()
         return True

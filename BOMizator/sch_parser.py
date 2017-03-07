@@ -88,11 +88,17 @@ class sch_parser(object):
         items to change, designators is a list of designators whose
         values have changed
         """
-        # we filter all the components having the designators
-        print(designators)
+        # we filter all the components having the designators. Problem
+        # here is, that in order to filter items of interest we need
+        # to compare if one of the designators is in one of the set of
+        # the components, and we need to do it one by one (due to
+        # multichannel design)
         targets = filter(lambda com:
-                         com[self.header.DESIGNATOR] in designators,
+                         any(map(lambda des:
+                                 des in com[self.header.DESIGNATOR],
+                                 designators)),
                          self.components)
+
         for target in targets:
             # we browse here all the components and update their
             # parameters
@@ -304,38 +310,37 @@ class sch_parser(object):
                     # otherwise take default component designator
                     designators = [self.current_component['L'][1], ]
 
-                for designator in designators:
-                    # designator
-                    xm[self.header.DESIGNATOR] = designator
-                    # library reference
-                    xm[self.header.LIBREF] = self.current_component['L'][0]
-                    # value
-                    xm[self.header.VALUE] = self.stripQuote(
-                        self.current_component['F']['1'][0])  # value
-                    # footprint
-                    xm[self.header.FOOTPRINT] = self.stripQuote(
-                        self.current_component['F']['2'][0])  # footprint
+                # designator
+                xm[self.header.DESIGNATOR] = set(designators)
+                # library reference
+                xm[self.header.LIBREF] = self.current_component['L'][0]
+                # value
+                xm[self.header.VALUE] = self.stripQuote(
+                    self.current_component['F']['1'][0])  # value
+                # footprint
+                xm[self.header.FOOTPRINT] = self.stripQuote(
+                    self.current_component['F']['2'][0])  # footprint
 
-                    for f_number, f_data in self.current_component['F'].items():
-                        if int(f_number) == 3:
-                            # datasheet (this is part of schematics)
-                            xm[self.header.DATASHEET] = self.stripQuote(f_data[0])
-                        elif int(f_number) > 3 and\
-                             f_data[-1].find(self.header.SUPPNO) != -1:
-                            # supplier reference number
-                            xm[self.header.SUPPNO] = self.stripQuote(f_data[0])
-                        elif int(f_number) > 3 and\
-                             f_data[-1].find(self.header.SUPPLIER) != -1:
-                            # supplier name
-                            xm[self.header.SUPPLIER] = self.stripQuote(f_data[0])
-                        elif int(f_number) > 3 and\
-                             f_data[-1].find(self.header.MANUFACTURER) != -1:
-                            # supplier name
-                            xm[self.header.MANUFACTURER] = self.stripQuote(f_data[0])
-                        elif int(f_number) > 3 and\
-                             f_data[-1].find(self.header.MFRNO) != -1:
-                            # supplier name
-                            xm[self.header.MFGNO] = self.stripQuote(f_data[0])
+                for f_number, f_data in self.current_component['F'].items():
+                    if int(f_number) == 3:
+                        # datasheet (this is part of schematics)
+                        xm[self.header.DATASHEET] = self.stripQuote(f_data[0])
+                    elif int(f_number) > 3 and\
+                         f_data[-1].find(self.header.SUPPNO) != -1:
+                        # supplier reference number
+                        xm[self.header.SUPPNO] = self.stripQuote(f_data[0])
+                    elif int(f_number) > 3 and\
+                         f_data[-1].find(self.header.SUPPLIER) != -1:
+                        # supplier name
+                        xm[self.header.SUPPLIER] = self.stripQuote(f_data[0])
+                    elif int(f_number) > 3 and\
+                         f_data[-1].find(self.header.MANUFACTURER) != -1:
+                        # supplier name
+                        xm[self.header.MANUFACTURER] = self.stripQuote(f_data[0])
+                    elif int(f_number) > 3 and\
+                         f_data[-1].find(self.header.MFRNO) != -1:
+                        # supplier name
+                        xm[self.header.MFGNO] = self.stripQuote(f_data[0])
 
                 self.components.append(xm)
 
