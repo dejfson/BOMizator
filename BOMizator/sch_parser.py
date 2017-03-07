@@ -163,6 +163,7 @@ class sch_parser(object):
                             # the list, they would cause keyerror
                             designator, libref = None, None
                             center = None
+                            replaceby = None
                         # end of component identified
                         elif inComponent and\
                              code.startswith("$EndComp"):
@@ -178,20 +179,23 @@ class sch_parser(object):
                             # _exactly one_. If not, there's an issue!
                             # (so that's why we do not try here, but
                             # assume)
-                            print(designator)
                             if designator.startswith("#"):
                                 ignore = True
-                                continue
-
-                            replaceby = list(
-                                filter(lambda com:
-                                       com[self.header.DESIGNATOR] ==
-                                       designator, self.components))[0]
-                            print(replaceby)
-                        # elif inComponent and not ignore and\
-                        #      code.startswith("AR "):
-                        #     # we catch AR
-                        # we can completely ignore here U attribute as
+                            else:
+                                # the point is: EACH DESIGNATOR MUST
+                                # RESOLVE IN EXACTLY ONE COMPONENT. If
+                                # not, this is an error. It gets slightly
+                                # more difficult as hierarchical designs
+                                # export multiple designators for each
+                                # component if that one is part of a
+                                # shared sheet. That's why we're looking
+                                # for a designator in _set of designators_.
+                                replaceby = list(
+                                    filter(lambda com:
+                                           designator in com[
+                                               self.header.DESIGNATOR],
+                                           self.components))[0]
+                        # we can completely ignore here U and AR attributes as
                         # well as numeric attributes because we do not
                         # need them. We however need P attribute just
                         # in case to add new (not-existing) attribute
@@ -199,7 +203,32 @@ class sch_parser(object):
                              code.startswith("P "):
                             # center point of the component
                             center = shlex.split(code)[1:]
-                        # F-parameters - the core of our work
+                        # F-parameters - the core of our work: we have
+                        # to look on their content and modify/add if
+                        # necessary.
+                        elif inComponent and not ignore and\
+                             code.startswith("F "):
+                            # here we have to split lexically as
+                            # parameters might contain spaces within
+                            # quotes, which count as a single string
+                            fattr = shlex.split(code)
+                            # we completely ignore attribures F0->F2
+                            # as they identify component
+                            if fattr[1] not in ['0', '1', '2']:
+                                # follow custom attributes. F3 is
+                                # always present and it is a
+                                # datasheet, we always overwrite it
+                                if fattr[1] == '3':
+                                    # refurbish datasheet attribute
+                                    print("Datasheet ", replaceby)
+                                    lineOut = ' '.join(
+                                        [fattr[0], fattr[1]] +
+                                        ['"' +
+                                         replaceby.pop(self.header.DATASHEET) +
+                                         '"', ] +
+                                        fattr[3:])
+
+                        print(lineOut)
 
 
 
@@ -341,9 +370,31 @@ class sch_parser(object):
                         # supplier name
                         xm[self.header.MFGNO] = self.stripQuote(f_data[0])
 
-                self.components.append(xm)
+                # before we append this component into selection we
+                # might check, whether it is not yet existing. This is
+                # done by checking in all previously defined
+                # components. This MIGHT happen with multipart
+                # devices, which are in schematic treated separately
+                if not self.designatorDefined(xm[self.header.DESIGNATOR]):
+                    self.components.append(xm)
+                else:
+                    print("Component(s) ", xm[self.header.DESIGNATOR],
+                          " already defined. Multipart component?")
 
             self.current_state = self._smCatchHeader
+
+    def designatorDefined(self, designator):
+        """ returns true if none of the designators given is already defined
+        """
+        # Bit difficult to read, but: the inner map returns vector of
+        # true/false for each designator contained in designators of
+        # particular component. Any of them will trigger true. Then we
+        # pass through entire component space to find if any component
+        # claims the designator
+        return any(map(lambda com:
+                       any(map(lambda desig: desig in com[self.header.DESIGNATOR],
+                               designator)),
+                       self.components))
 
     def _attributeGeneric(self, line):
         """ parses 'L' attribute of the component. This type of
