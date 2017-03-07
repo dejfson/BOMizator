@@ -325,7 +325,6 @@ class QDesignatorSortModel(QtGui.QSortFilterProxyModel):
             # from context menu selection
             parsed_data = data
 
-        print(parsed_data)
         # first we find all items, which are selected. we are only
         # interested in rows, as those are determining what
         # designators are used.
