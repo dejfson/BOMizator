@@ -140,7 +140,6 @@ class sch_parser(object):
         """
 
         inComponent = False
-        print(self.components)
         # go through all the schematic files
         for schfile in self.matches:
             # and now let's run through
