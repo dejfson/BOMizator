@@ -139,7 +139,7 @@ function generating nested defaultdicts. Previously used for loading and
 
     def fillModel(self, hideDisabled=True):
         """ resets the components treeview, and reloads it with the
-        model data
+        model data.
         """
         # disabled designators are from separate file:
         # load all disabled designators (if any) from the settings
@@ -492,7 +492,8 @@ function generating nested defaultdicts. Previously used for loading and
             self.proxy.setSourceModel(self.model)
             self.proxy.setDynamicSortFilter(True)
             self.proxy.addedComponentIntoCache.connect(self.saveComponentCache)
-
+            # connect proxy to component change
+            self.proxy.componentsDataChanged.connect(self.SCH.updateComponents)
             # assign proxy to treeView so we influence how the stuff is sorted
             self.treeView.setModel(self.proxy)
             self.treeView.setSortingEnabled(True)

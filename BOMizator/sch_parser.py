@@ -82,6 +82,23 @@ class sch_parser(object):
             '\t': self._attributeTab,
             '$': self._attributeTermination}
 
+    def updateComponents(self, designators, newdata):
+        """ Update all the componenents identified by designators by
+        new data for each key of newdata. Newdata is a dictionary of
+        items to change, designators is a list of designators whose
+        values have changed
+        """
+        # we filter all the components having the designators
+        print(designators)
+        targets = filter(lambda com:
+                         com[self.header.DESIGNATOR] in designators,
+                         self.components)
+        for target in targets:
+            # we browse here all the components and update their
+            # parameters
+            for key, val in newdata.items():
+                target[key] = val
+
     def save(self, data):
         """ function parses all the project schematic files,
         identifies all the components and _replaces particular
@@ -115,8 +132,75 @@ class sch_parser(object):
         change depending of currently detected designator.
 
         """
-        print(data)
-        print(self.components)
+
+        inComponent = False
+        # go through all the schematic files
+        for schfile in self.matches:
+            # and now let's run through
+            with open(schfile, "rt") as codeline:
+                # first let's open new filename
+                with open(schfile+"tmp", "wt") as wrline:
+                    for code in codeline:
+                        # by default the line we write into output
+                        # file is the same as input one
+                        lineOut = code
+                        # let's wait until component header gets in
+                        if not inComponent and\
+                           code.startswith("$Comp"):
+                            inComponent = True
+                            # ignore is used to skip all
+                            # non-interesting components, starting
+                            # with hash (as e.g. #PWR11)
+                            ignore = False
+                            # clear out such, that if some attributes
+                            # were not identified during traversing
+                            # the list, they would cause keyerror
+                            designator, libref = None, None
+                            center = None
+                        # end of component identified
+                        elif inComponent and\
+                             code.startswith("$EndComp"):
+                            inComponent = False
+                        # catching L attribute containing footprint
+                        # and designator. Point is, that we do not
+                        # need to handle 'AR' attribute here, because
+                        # the default designator is _always_ present
+                        # and corresponds to one of the AR
+                        # designators. Hence enough to search through
+                        # one of them
+                        elif inComponent and not ignore and\
+                             code.startswith("L "):
+                            # get designator and reference
+                            _, libref, designator = shlex.split(code)
+                            # and we can identify which component
+                            # we're replacing. There has to be
+                            # _exactly one_. If not, there's an issue!
+                            # (so that's why we do not try here, but
+                            # assume)
+                            print(designator)
+                            if designator.startswith("#"):
+                                ignore = True
+                                continue
+
+                            replaceby = list(
+                                filter(lambda com:
+                                       com[self.header.DESIGNATOR] ==
+        designator, data))[0]
+                            print(replaceby)
+                        # we can completely ignore here U attribute as
+                        # well as numeric attributes because we do not
+                        # need them. We however need P attribute just
+                        # in case to add new (not-existing) attribute
+                        elif inComponent and not ignore and\
+                             code.startswith("P "):
+                            # center point of the component
+                            center = shlex.split(code)[1:]
+                        # F-parameters - the core of our work
+
+
+
+
+        self.saveMode = True
 
 
     def collectFiles(self):

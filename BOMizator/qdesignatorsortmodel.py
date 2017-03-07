@@ -49,6 +49,10 @@ class QDesignatorSortModel(QtGui.QSortFilterProxyModel):
     # signal informing that a component was added into the cache. To
     # be cached in app to store the cache appropriately
     addedComponentIntoCache = QtCore.pyqtSignal()
+    # this signal is emitted when user drops data into the
+    # rows. Dictionary of affected components is passed through this
+    # signal to the application so the data can be appropriately handled
+    componentsDataChanged = QtCore.pyqtSignal(list, dict)
 
     def __init__(self, parent=None, componentsCache={}):
         """ creates headers object used for comparison. The parent
@@ -320,6 +324,8 @@ class QDesignatorSortModel(QtGui.QSortFilterProxyModel):
             # get the data directly as this function was called
             # from context menu selection
             parsed_data = data
+
+        print(parsed_data)
         # first we find all items, which are selected. we are only
         # interested in rows, as those are determining what
         # designators are used.
@@ -339,6 +345,8 @@ class QDesignatorSortModel(QtGui.QSortFilterProxyModel):
         # get the data out of those indices
         collector = defaultdict(list)
         colidx = self.header.getColumns(self.header.UNIQUEITEM)
+        # list of affected designators
+        affectedDesignators = []
         # now the data replacement. EACH ITEM HAS ITS OWN MODELINDEX
         # and we get the modelindices from parent. Do for each of them
         for row in replace_in_rows:
@@ -348,6 +356,10 @@ class QDesignatorSortModel(QtGui.QSortFilterProxyModel):
                     self.index(row,
                                self.header.getColumn(key)),
                     value)
+            affectedDesignators.append(self.getText(
+                self.index(row,
+                           self.header.getColumn(
+                               self.header.DESIGNATOR)), True))
             # the point with rows is, that we need to collect
             # libref/value/footprint for each selected row, as it
             # they are the same for the entire selection, we are
@@ -409,7 +421,6 @@ class QDesignatorSortModel(QtGui.QSortFilterProxyModel):
             # and now if the component is unique and used for the
             # first time the hash is not found, however no keyerror is risen
             hashes = self.componentsCache[cnm[0]][cnm[1]][cnm[2]]
-            print(parsed_data, self.componentsCache, hashes)
             if cmphash not in hashes.keys():
                 # store in the component database
                 self.componentsCache[cnm[0]]\
@@ -421,5 +432,9 @@ class QDesignatorSortModel(QtGui.QSortFilterProxyModel):
                 print("This component is used for first time,\
  writing into the component cache")
 
+        # emit the change so upstream knows that we have just changed
+        # components data
+        self.componentsDataChanged.emit(affectedDesignators,
+                                        parsed_data)
         QtGui.QApplication.restoreOverrideCursor()
         return True
