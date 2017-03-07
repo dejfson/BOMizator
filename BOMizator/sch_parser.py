@@ -149,7 +149,7 @@ class sch_parser(object):
                     for code in codeline:
                         # by default the line we write into output
                         # file is the same as input one
-                        lineOut = code
+                        lineOut = code.rstrip()
                         # let's wait until component header gets in
                         if not inComponent and\
                            code.startswith("$Comp"):
@@ -190,11 +190,25 @@ class sch_parser(object):
                                 # component if that one is part of a
                                 # shared sheet. That's why we're looking
                                 # for a designator in _set of designators_.
-                                replaceby = list(
+                                datain = list(
                                     filter(lambda com:
                                            designator in com[
                                                self.header.DESIGNATOR],
                                            self.components))[0]
+                                # we need to create a copy for poping
+                                # the data out (such we find which
+                                # items are still to be written into
+                                # the component)
+                                replaceby = datain.copy()
+                                # we pop out items, which are
+                                # non-writable:
+                                replaceby.pop(self.header.VALUE)
+                                replaceby.pop(self.header.FOOTPRINT)
+                                replaceby.pop(self.header.LIBREF)
+                                replaceby.pop(self.header.DESIGNATOR)
+                                # save highest seen F attribute
+                                # (needed to add new attr)
+                                highestF = 0
                         # we can completely ignore here U and AR attributes as
                         # well as numeric attributes because we do not
                         # need them. We however need P attribute just
@@ -212,29 +226,73 @@ class sch_parser(object):
                             # parameters might contain spaces within
                             # quotes, which count as a single string
                             fattr = shlex.split(code)
+                            # store highest F attribute seen
+                            if highestF < int(fattr[1]):
+                                highestF = int(fattr[1])
+
                             # we completely ignore attribures F0->F2
                             # as they identify component
                             if fattr[1] not in ['0', '1', '2']:
                                 # follow custom attributes. F3 is
                                 # always present and it is a
                                 # datasheet, we always overwrite it
+                                # this will _ONLY REPLACE EXISTING
+                                # ATTRIBUTES_
                                 if fattr[1] == '3':
                                     # refurbish datasheet attribute
-                                    print("Datasheet ", replaceby)
                                     lineOut = ' '.join(
                                         [fattr[0], fattr[1]] +
                                         ['"' +
                                          replaceby.pop(self.header.DATASHEET) +
                                          '"', ] +
                                         fattr[3:])
+                                elif fattr[-1] in replaceby.keys():
+                                    # we have found one of the
+                                    # attributes, modify its value
+                                    lineOut = ' '.join(
+                                        [fattr[0], fattr[1]] +
+                                        ['"' +
+                                         replaceby.pop(fattr[-1]) +
+                                         '"', ] +
+                                        fattr[3:])
+                        elif inComponent and not ignore and\
+                             code.startswith("\t"):
+                            # this is definition code. At this
+                            # place we need to _add nonexisting F
+                            # attributes_ before we write down
+                            # others, as e.g.:
+                            # F 4 "NC" H 6775 4400 60  0000 C CNN "Mounted"
+                            newattrs = []
+                            try:
+                                # go through all the undefined attributes:
+                                for number, (key, val) in\
+                                    enumerate(replaceby.items()):
+                                    newattrs.append(
+                                    'F %d "%s" H %s %s 60 0001 C CNN "%s"'\
+                                    % (highestF + 1 + number,
+                                       val,
+                                       center[0],
+                                       center[1],
+                                       key))
+                                # at the end of loop we need to clear
+                                # out the dictionary as all attributes
+                                # were defined
+                                replaceby = {}
+                                # add the original code:
+                                newattrs += [code, ]
 
-                        print(lineOut)
+                                lineOut = "\n".join(newattrs).rstrip()
+                            except KeyError:
+                                # there's nothing in the dictionary
+                                # any more, however to be sure we rise
+                                # keyerror if there's indeed something
+                                if len(replaceby):
+                                    raise KeyError(replaceby)
 
-
-
-
-        self.saveMode = True
-
+                        wrline.write(lineOut+"\n")
+            # now we just move the newly created file to the old one
+            # and ... pray
+            os.rename(schfile+"tmp", schfile)
 
     def collectFiles(self):
         """ uses project directory to pass through the projects
@@ -338,6 +396,8 @@ class sch_parser(object):
                     # otherwise take default component designator
                     designators = [self.current_component['L'][1], ]
 
+                if self.debug:
+                    print(self.current_component)
                 # designator
                 xm[self.header.DESIGNATOR] = set(designators)
                 # library reference
@@ -368,7 +428,7 @@ class sch_parser(object):
                     elif int(f_number) > 3 and\
                          f_data[-1].find(self.header.MFRNO) != -1:
                         # supplier name
-                        xm[self.header.MFGNO] = self.stripQuote(f_data[0])
+                        xm[self.header.MFRNO] = self.stripQuote(f_data[0])
 
                 # before we append this component into selection we
                 # might check, whether it is not yet existing. This is
