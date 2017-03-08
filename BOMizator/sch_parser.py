@@ -240,12 +240,14 @@ class sch_parser(object):
                                 # ATTRIBUTES_
                                 if fattr[1] == '3':
                                     # refurbish datasheet attribute
-                                    lineOut = ' '.join(
+                                    lpart = ' '.join(
                                         [fattr[0], fattr[1]] +
                                         ['"' +
                                          replaceby.pop(self.header.DATASHEET) +
                                          '"', ] +
-                                        fattr[3:])
+                                        fattr[3:7])
+                                    rpart = ' '.join(fattr[7:])
+                                    lineOut = lpart + "  " + rpart
                                 elif fattr[-1] in replaceby.keys():
                                     # we have found one of the
                                     # attributes, modify its value
@@ -254,7 +256,8 @@ class sch_parser(object):
                                         ['"' +
                                          replaceby.pop(fattr[-1]) +
                                          '"', ] +
-                                        fattr[3:-1] +
+                                        fattr[3:7] +
+                                        fattr[7:-1] +
                                         ['"' +
                                          fattr[-1] +
                                          '"'])
@@ -267,11 +270,18 @@ class sch_parser(object):
                             # F 4 "NC" H 6775 4400 60  0000 C CNN "Mounted"
                             newattrs = []
                             try:
-                                # go through all the undefined attributes:
+                                # go through all the undefined
+                                # attributes:
+                                # NOTE THAT THERE ARE (FROM UNKNOWN
+                                # REASONS) TWO SPACES BETWEEN WIDTH
+                                # AND VISIBILITY ATTRIBUTE. we will
+                                # keep it as kicad wants as we want to
+                                # see only differences caused by
+                                # bomizator, and not due to different formatting
                                 for number, (key, val) in\
                                     enumerate(replaceby.items()):
                                     newattrs.append(
-                                    'F %d "%s" H %s %s 60 0001 C CNN "%s"'\
+                                    'F %d "%s" H %s %s 60  0001 C CNN "%s"'\
                                     % (highestF + 1 + number,
                                        val,
                                        center[0],
