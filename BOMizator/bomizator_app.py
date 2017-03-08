@@ -45,10 +45,8 @@ import json
 from collections import defaultdict
 from functools import partial
 from PyQt4 import QtGui, uic, QtCore
-from itertools import chain
 from .headers import headers
 from .qdesignatorsortmodel import QBOMModel, QDesignatorSortModel
-from .colors import colors
 
 
 localpath = os.path.dirname(os.path.realpath(__file__))
@@ -231,6 +229,10 @@ function generating nested defaultdicts. Previously used for loading and
         return set(a)
 
 
+    def clearAssignments(self):
+        """ instructs model to delete selected item data
+        """
+        self.model.clearAssignments(self.getSelectedRows())
 
     def openMenu(self, position):
         """ opens context menu. Context menu is basically a
@@ -343,7 +345,7 @@ function generating nested defaultdicts. Previously used for loading and
         # if at least one is not empty, we add option to clear out
         if not allEmpty:
             menu.addAction(self.tr("Clear assignments"),
-                           self.model.clearAssignments)
+                           self.clearAssignments)
             execMenu = True
 
         # ###############################################################################

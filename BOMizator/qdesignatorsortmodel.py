@@ -286,13 +286,13 @@ class QBOMModel(QtGui.QStandardItemModel):
                 toSelect += items
         return toSelect
 
-    def clearAssignments(self):
+    def clearAssignments(self, rows):
         """ all selected rows data get cleared. This will only remove
         the information from the list, but the component cache stays
         intact (hence once component entered into the component cache,
-        it will not be removed unless cache is updated externally)
+        it will not be removed unless cache is updated
+        externally). ROWS IS A LIST OF ROWS TO AFFECT IN MODEL VIEW
         """
-        rows = self.getSelectedRows()
         # get the data out of those indices
         colidx = list(self.header.getColumns(self.header.USERITEMS))
         for row in rows:
