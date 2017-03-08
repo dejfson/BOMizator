@@ -46,9 +46,8 @@ from collections import defaultdict
 from functools import partial
 from PyQt4 import QtGui, uic, QtCore
 from itertools import chain
-from .sch_parser import sch_parser
 from .headers import headers
-from .qdesignatorsortmodel import QDesignatorSortModel
+from .qdesignatorsortmodel import QBOMModel, QDesignatorSortModel
 from .colors import colors
 
 
@@ -136,13 +135,6 @@ function generating nested defaultdicts. Previously used for loading and
         self.fillModel(hideComponents)
         self.treeSelection()
 
-    def sortedDesignators(self, designators):
-        """ Designator can be simple ['q101'], or it can be compound
-        of multiple designators ['q101', 'q323', 'q23']. We sort the
-        designators and return simple joined string of them
-        """
-        return ', '.join(sorted(designators))
-
     def fillModel(self, hideDisabled=True):
         """ resets the components treeview, and reloads it with the
         model data.
@@ -154,84 +146,14 @@ function generating nested defaultdicts. Previously used for loading and
             'disabledDesignators',
             [],
             str)
-        # clearout the model
-        self.model.removeRows(0, self.model.rowCount())
-        # having headers we might deploy the data into the multicolumn
-        # view. We need to collect all the data:
-        for cmpCount, component in enumerate(self.SCH.BOM()):
-            # each component can have multiple designators. That
-            # because when hierarchical schematics are used, the
-            # components share the same definition, but using AR
-            # attribute they get more designators as the same
-            # component is used in multiple sheets. Hence we have to
-            # iterate over the designators and pull each of them
-            # separately to the table. NOTE THAT THIS CREATES TROUBLES
-            # FOR BOM, AS USER MIGHT WANT TO SPECIFY FOR DIFFERENT
-            # CHANNELS DIFFERENT VALUE COMPONENTS. Typically this
-            # might be e.g. gains in channel amplifiers. In this model
-            # it will allow such change, but the problem is that KICAD
-            # does not recognize those as two separate components, but
-            # one component having link to two designators. HENCE
-            # EXPORTED SCH WILL ONLY CONTAIN THE VALUE WHICH IS SAVED
-            # AS LAST. For the moment I do not think that this has
-            # some simple solution, as that's the way kicad handles
-            # those. Hence we will display BOTH DESIGNATORS AT THE
-            # SAME TIME IN THE DESIGNATOR COLUMN TO SHOW UP THAT THIS
-            # SITUATION HAPPENS
-            desiline = component.copy()
-            # we use copy to twist the designators to be simple text
-            # structures. Makes the designators sorted as well
-            desiline[self.header.DESIGNATOR] = self.sortedDesignators(
-                component[self.header.DESIGNATOR])
-
-            line = map(QtGui.QStandardItem,
-                       list(map(lambda c:
-                                desiline[c],
-                                self.header.getHeaders())))
-            # set all items to be enabled by default
-            columns = self.header.getColumns([self.header.DESIGNATOR,
-                                              self.header.LIBREF,
-                                              self.header.VALUE,
-                                              self.header.FOOTPRINT])
-            editable = filter(lambda item: item in columns, line)
-            map(lambda ei: ei.setEditable(False), editable)
-            # depending if designator is disabled/enabled we set it up
-            shat = list(line)
-            enabled = True
-            if shat[0].text() in disabledDesignators:
-                enabled = False
-            datarow = self.enableItems(shat, enabled)
-            # now, if we want to see the disabled items in the menu:
-            if (not hideDisabled and not enabled) or enabled:
-                self.model.appendRow(datarow)
-        # total amount of components in the data (+1 because enumerate
-        # first item is zero)
-        self.numComponents = cmpCount + 1
-
-    def enableItems(self, stidems, enable=True):
-        """ info whether item is disabled or enabled is stored in user
-        role, as we do not want to disable the item completely (that's
-        because when disabled, it is not selectable any more). This
-        function takes all the stitems and enables, disables
-        them. This is done by setting role of BOMizator.ItemEnabled on
-        a particular index. NOTE THAT THIS FUNCTION HAS TO BE ALWAYS
-        CALLED FOR ALL STDITEMS FROM A ROW AS WE WANT TO DISABLE THE
-        COMPONENTS BY ROWS. Function returns the original list.
-        """
-        for xi in stidems:
-            # we enable the line
-            xi.setData(enable, self.header.ItemEnabled)
-            if enable:
-                xi.setForeground(QtGui.QColor('black'))
-            else:
-                xi.setForeground(QtGui.QColor('gray'))
-        return stidems
+        self.model.fillModel(disabledDesignators,
+                             hideDisabled)
 
     def treeSelection(self):
         """ When selection changes, the status bar gets updated with
         information about selection
         """
-        default = "Loaded %d components." % (self.numComponents)
+        default = "Loaded %d components." % (self.model.rowCount())
         # look on amount of disabled components,
         disabledDesignators = self.localSettings.value(
             'disabledDesignators',
@@ -247,18 +169,6 @@ function generating nested defaultdicts. Previously used for loading and
         if len(rows) > 0:
             default += " %d components selected." % (len(rows))
         self.statusbar.showMessage(default)
-
-    def indexData(self, index, role=QtCore.Qt.DisplayRole):
-        """ convenience function returning the data of given
-        modelindex. Gets complicated because we are using filter
-        proxy, hence the index has to be converted to source model index.
-        """
-        try:
-            return self.proxy.itemData(index)[role]
-        except KeyError:
-            colors().printFail("ENABLE/DISABLE role does not exist:")
-            print(self.proxy.itemData(index))
-            raise KeyError
 
     def resizeEvent(self, event):
         """ reimplementation of resize event to store state into settings
@@ -306,6 +216,22 @@ function generating nested defaultdicts. Previously used for loading and
             self.settings.setValue("size", self.size())
         self.settings.endGroup()
 
+    def getSelectedRows(self):
+        """ returns tuple of rows, which are selected. This is done by
+        looking through the rows and columns and detecting
+        selections. THE MODELINDEXES RETURNED ARE RELATED TO MODEL AND
+        NOT PROXY
+        """
+        a = []
+        lc = map(self.proxy.mapToSource,
+                 self.treeView.selectedIndexes())
+        for index in lc:
+            a.append(index.row())
+        # treeview always returns proxied models
+        return set(a)
+
+
+
     def openMenu(self, position):
         """ opens context menu. Context menu is basically a
         right-click on any cell requested. The column and row is
@@ -315,8 +241,13 @@ function generating nested defaultdicts. Previously used for loading and
         browser. In case of libref it can choose the same components
         etc...
         """
-        indexes = self.treeView.selectedIndexes()
 
+        # INDEX GOT FROM TREEVIEW IS ALWAYS LINKED TO PROXY AND NOT
+        # MODEL. IF DATA FROM ROWS ARE TO BE LOADED, THEY NEED TO BE
+        # MAPPED FIRST THROUGH THE PROXY
+        inxx = self.treeView.selectedIndexes()
+        # remap all indices to model
+        indexes = list(map(self.proxy.mapToSource, inxx))
         if len(indexes) < 1:
             return
 
@@ -331,7 +262,7 @@ function generating nested defaultdicts. Previously used for loading and
            indexes[0].column() ==\
            self.header.getColumn(self.header.DATASHEET):
             # create menu and corresponding action
-            self.datasheet = self.indexData(indexes[0])
+            self.datasheet = indexes[0].data()
             open_action = menu.addAction(
                 self.tr("Open %s" % (self.datasheet, )))
             open_action.triggered.connect(self.openDatasheet)
@@ -350,7 +281,7 @@ function generating nested defaultdicts. Previously used for loading and
         # can contain whatever information, ergo hell to make filter
         # first we have to make a 'histogram', i.e. counting
         # occurences of columns.
-        if self.proxy.selectionUnique():
+        if self.model.selectionUnique(self.getSelectedRows()):
             menu.addAction(self.tr("Select same"), self.selectSameFilter)
 
         # ###############################################################################
@@ -371,9 +302,7 @@ function generating nested defaultdicts. Previously used for loading and
         # THE SAME MODELINDEXES. and we are setting this property on
         # self.model indices and not on self.proxy indices
         enabled = list(map(lambda index:
-                           self.model.itemData(
-                               self.proxy.mapToSource(
-                                   index))[self.header.ItemEnabled],
+                           self.model.data(index, self.header.ItemEnabled),
                            indexes))
         # if any of these is true, there's at least one element enabled
         oneEnabled = any(enabled)
@@ -399,7 +328,7 @@ function generating nested defaultdicts. Previously used for loading and
         # ###############################################################################
         # WHEN RIGHT CLICK ON ANY ITEMS, WHICH HAVE FILLED ALREADY
         # INFORMATION, PROPOSE CLEAR
-        idata = self.proxy.getItemData()
+        idata = self.model.getItemData(self.getSelectedRows())
         # now we search through all user defined items to see if all
         # of them are empty
         rowdata = []
@@ -414,7 +343,7 @@ function generating nested defaultdicts. Previously used for loading and
         # if at least one is not empty, we add option to clear out
         if not allEmpty:
             menu.addAction(self.tr("Clear assignments"),
-                           self.proxy.clearAssignments)
+                           self.model.clearAssignments)
             execMenu = True
 
         # ###############################################################################
@@ -423,7 +352,7 @@ function generating nested defaultdicts. Previously used for loading and
         # COMPONENT
         # last part of context menu is to look for components in cache
         try:
-            component = self.proxy.selectionUnique()
+            component = self.model.selectionUnique()
             # map cols to list as needed:
             idxs = map(self.header.getColumn, self.header.UNIQUEITEM)
             # get indices into cmpcache:
@@ -512,19 +441,18 @@ function generating nested defaultdicts. Previously used for loading and
             except FileNotFoundError:
                 self.componentsCache = {}
             # generate new schematic parser
-            self.SCH = sch_parser(projectDirectory)
-            self.SCH.parseComponents()
-            self.model = QtGui.QStandardItemModel(self.treeView)
+            self.model = QBOMModel(self.componentsCache,
+                                   projectDirectory,
+                                   self.treeView)
             # search proxy:
-            self.proxy = QDesignatorSortModel(self.treeView,
-                                              self.componentsCache)
+            self.proxy = QDesignatorSortModel(self)
             self.proxy.setSourceModel(self.model)
             self.proxy.setDynamicSortFilter(True)
-            self.proxy.addedComponentIntoCache.connect(self.saveComponentCache)
+#            self.proxy.addedComponentIntoCache.connect(self.saveComponentCache)
             # manually entering data should be saved as well
-            self.model.itemChanged.connect(self.proxy.cellDataChanged)
+#            self.model.itemChanged.connect(self.proxy.cellDataChanged)
             # connect proxy to component change
-            self.proxy.componentsDataChanged.connect(self.SCH.updateComponents)
+#            self.proxy.componentsDataChanged.connect(self.SCH.updateComponents)
             # assign proxy to treeView so we influence how the stuff is sorted
             self.treeView.setModel(self.proxy)
             self.treeView.setSortingEnabled(True)
@@ -580,8 +508,7 @@ function generating nested defaultdicts. Previously used for loading and
         """ looks for all selected items in proxy, maps them into base
         and enables/disables as needed.
         """
-        indexes = self.treeView.selectedIndexes()
-        rowsAffected = set(list(map(lambda ix: ix.row(), indexes)))
+        rowsAffected = self.getSelectedRows()
         # having rows we can pull out all items from specific rowCount
         allItems = []
         for row in rowsAffected:
@@ -610,15 +537,16 @@ function generating nested defaultdicts. Previously used for loading and
         """
         # we have unique columns selected, and now we need to browse
         # each row of data, check if all the conditions are satisfied,
-        # and if so, then select the columns
+        # and if so, then select the columns. Indexes in in PROXY
         indexes = self.treeView.selectedIndexes()
         # get dictionary of 'column':filter_data
         d = defaultdict(int)
         for index in indexes:
-            d[index.column()] = self.indexData(index)
+            d[index.column()] = index.data()
         # and this has to be done in model as we're working over model
         # data. filter is a dictionary 'column':<filter_string>
-        to_enable = self.proxy.setSelectionFilter(d)
+        to_enable = map(self.proxy.mapFromSource,
+                        self.model.setSelectionFilter(d))
         for idx in to_enable:
             self.treeView.selectionModel().select(
                 idx,
@@ -639,7 +567,7 @@ function generating nested defaultdicts. Previously used for loading and
         just means that a page with search resuls will open, and user
         it responsible to look for a specific component further.
         """
-        url = self.proxy.suppliers.search_for_component(searchtext)
+        url = self.model.suppliers.search_for_component(searchtext)
         # now fire the web browser with this page opened
         b = webbrowser.get('firefox')
         b.open(url, new=0, autoraise=True)
@@ -648,13 +576,15 @@ function generating nested defaultdicts. Previously used for loading and
         """ when user doubleclicks item, we search for it in farnel
         (or later whatever else) web pages. this requires a lot of
         fiddling as the component search enginer for each seller are
-        different. Index is the type QModelIndex
+        different. Index is the type QModelIndex _but_ of PROXY and
+        not directly the model
         """
         # we process only columns libref and value as those are used
         # to search (most of the time)
-        if index.column() in self.header.getColumns([self.header.LIBREF,
-                                                     self.header.VALUE]):
-            self.openSearchBrowser(self.indexData(index))
+        idx = self.proxy.mapToSource(index)
+        if idx.column() in self.header.getColumns([self.header.LIBREF,
+                                                   self.header.VALUE]):
+            self.openSearchBrowser(index.data())
 
 
 def main():

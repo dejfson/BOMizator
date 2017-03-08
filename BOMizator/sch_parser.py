@@ -39,7 +39,7 @@ from .headers import headers
 import shlex
 
 
-class sch_parser(object):
+class schParser(object):
     """ Parses the KiCad schematics files for components
     """
 
