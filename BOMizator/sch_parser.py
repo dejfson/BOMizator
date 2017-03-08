@@ -149,7 +149,7 @@ class sch_parser(object):
                     for code in codeline:
                         # by default the line we write into output
                         # file is the same as input one
-                        lineOut = code.rstrip()
+                        lineOut = code
                         # let's wait until component header gets in
                         if not inComponent and\
                            code.startswith("$Comp"):
@@ -247,20 +247,22 @@ class sch_parser(object):
                                          '"', ] +
                                         fattr[3:7])
                                     rpart = ' '.join(fattr[7:])
-                                    lineOut = lpart + "  " + rpart
+                                    lineOut = lpart + "  " + rpart + "\n"
                                 elif fattr[-1] in replaceby.keys():
                                     # we have found one of the
                                     # attributes, modify its value
-                                    lineOut = ' '.join(
+                                    lpart = ' '.join(
                                         [fattr[0], fattr[1]] +
                                         ['"' +
                                          replaceby.pop(fattr[-1]) +
                                          '"', ] +
-                                        fattr[3:7] +
+                                        fattr[3:7])
+                                    rpart = ' '.join(
                                         fattr[7:-1] +
                                         ['"' +
                                          fattr[-1] +
-                                         '"'])
+                                         '"\n'])
+                                    lineOut = lpart + "  " + rpart
                         elif inComponent and not ignore and\
                              code.startswith("\t"):
                             # this is definition code. At this
@@ -292,9 +294,9 @@ class sch_parser(object):
                                 # were defined
                                 replaceby = {}
                                 # add the original code:
-                                newattrs += [code, ]
-
-                                lineOut = "\n".join(newattrs).rstrip()
+                                lout = '\n'.join(newattrs)
+                                print(lout)
+                                lineOut = lout + code
                             except KeyError:
                                 # there's nothing in the dictionary
                                 # any more, however to be sure we rise
@@ -302,7 +304,7 @@ class sch_parser(object):
                                 if len(replaceby):
                                     raise KeyError(replaceby)
 
-                        wrline.write(lineOut+"\n")
+                        wrline.write(lineOut)
             # now we just move the newly created file to the old one
             # and ... pray
             os.rename(schfile+"tmp", schfile)
