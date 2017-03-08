@@ -504,6 +504,25 @@ function generating nested defaultdicts. Previously used for loading and
         aa = self.treeView.selectedIndexes()[0]
         self.proxy.dropMimeData(cmpData, None, -1, -1, aa)
 
+    def enableItems(self, stidems, enable=True):
+        """ info whether item is disabled or enabled is stored in user
+        role, as we do not want to disable the item completely (that's
+        because when disabled, it is not selectable any more). This
+        function takes all the stitems and enables, disables
+        them. This is done by setting role of BOMizator.ItemEnabled on
+        a particular index. NOTE THAT THIS FUNCTION HAS TO BE ALWAYS
+        CALLED FOR ALL STDITEMS FROM A ROW AS WE WANT TO DISABLE THE
+        COMPONENTS BY ROWS. Function returns the original list.
+        """
+        for xi in stidems:
+            # we enable the line
+            xi.setData(enable, self.header.ItemEnabled)
+            if enable:
+                xi.setForeground(QtGui.QColor('black'))
+            else:
+                xi.setForeground(QtGui.QColor('gray'))
+        return stidems
+
     def enableProxyItems(self, enable):
         """ looks for all selected items in proxy, maps them into base
         and enables/disables as needed.
@@ -513,7 +532,7 @@ function generating nested defaultdicts. Previously used for loading and
         allItems = []
         for row in rowsAffected:
             singlerow = map(lambda col: self.model.itemFromIndex(
-                self.proxy.mapToSource(self.proxy.index(row, col))),
+                self.model.index(row, col)),
                             range(self.model.columnCount()))
             allItems += list(singlerow)
         self.enableItems(allItems, enable)
