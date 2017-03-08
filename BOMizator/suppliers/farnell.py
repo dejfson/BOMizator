@@ -36,7 +36,7 @@ except ImportError:
     from bs4 import BeautifulSoup
 # import headers to be able to match the string names correctly
 from BOMizator.headers import headers
-
+from BOMizator.colors import colors
 
 class farnell(object):
     """ defines web search interface for uk.farnell.com.
@@ -69,11 +69,15 @@ wcs/stores/servlet/Search?st=%s" % (searchtext,)
         with open("/tmp/htmlread.html", "wt") as f:
             f.write(html)
 
-        # this is dependent of web page structure
-        parsed_html = BeautifulSoup(html)
-        techdoc = parsed_html.body.find('ul',
-                                        attrs={'id': 'technicalData'})
-        sheet = techdoc.find('a').attrs['href']
+        try:
+            # this is dependent of web page structure
+            parsed_html = BeautifulSoup(html)
+            techdoc = parsed_html.body.find('ul',
+                                            attrs={'id': 'technicalData'})
+            sheet = techdoc.find('a').attrs['href']
+        except AttributeError:
+            colors().printInfo("Datasheet not found")
+            sheet = ''
         return sheet
 
     def parse_URL(self, urltext):

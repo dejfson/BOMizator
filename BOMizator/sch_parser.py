@@ -254,7 +254,10 @@ class sch_parser(object):
                                         ['"' +
                                          replaceby.pop(fattr[-1]) +
                                          '"', ] +
-                                        fattr[3:])
+                                        fattr[3:-1] +
+                                        ['"' +
+                                         fattr[-1] +
+                                         '"'])
                         elif inComponent and not ignore and\
                              code.startswith("\t"):
                             # this is definition code. At this

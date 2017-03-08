@@ -231,6 +231,20 @@ class QDesignatorSortModel(QtGui.QSortFilterProxyModel):
         a = set(a)
         return a
 
+    def manuallyEnteredData(self, idsrc):
+        """when user manually enters data into the model, we get its
+        index (treeview index, not proxy index). This has to be used
+        to update the data wrt designators. The index returned is the
+        one of _MODEL_, not proxy
+        """
+
+        a = self.mapFromSource(self.index(idsrc.row(),
+                                          self.header.getColumn(
+                                              self.header.DESIGNATOR)))
+
+        print(self.getText(a),idsrc.text())
+
+
     def getItemData(self, getAll=False):
         """ returns list of dictionaries containing the data from
         currently selected items. Second parameter specifies whether
