@@ -299,6 +299,157 @@ class QBOMModel(QtGui.QStandardItemModel):
             for col in colidx:
                 self.setData(self.index(row, col), "")
 
+    def dropMimeData(self, data, action, row, column, treeparent):
+        """ takes care of data modifications. The data _must contain_
+        URL from the web pages of one of the pages supported by
+        plugins. This is verified against the suppliers object, which
+        returns correctly parsed data.
+        """
+        QtGui.QApplication.setOverrideCursor(QtCore.Qt.WaitCursor)
+        # note: the row and column needs a bit of explication. It
+        # always returns -1 in both. And that's because we're using
+        # QTreeView, and row/column shows _where in parent we need to
+        # insert the data_. But in fact, we want to _replace the
+        # parent_ by our data. Respectively we need to replace data in
+        # appropriate row and _many_ columns, depending on whether a
+        # single item is selected, or multiple items (in terms of
+        # designators) are selected. Following command returns
+        # dictionary of all found items. We check here against the
+        # instance, as dropMimeData is used as well by a direct
+        # call when getting the data from the component cache as
+        # the treatment is exactly the same, except that 'data' in
+        # case of direct call contain already parsed data from the
+        # component cache dictionary
+        if isinstance(data, QtCore.QMimeData):
+            parsed_data = self.suppliers.parse_URL(data.text())
+        else:
+            # get the data directly as this function was called
+            # from context menu selection
+            parsed_data = data
+
+        # first we find all items, which are selected. we are only
+        # interested in rows, as those are determining what
+        # designators are used.
+        rows = self.parent().getSelectedRows()
+        # and with all selected rows we distinguish, whether we have
+        # dropped the data into selected rows. If so, we will
+        # overwritte all the information in _each row_. If however the
+        # drop destination is outside of the selection, we only
+        # replace given row
+        if treeparent.row() in rows:
+            # many items selected
+            replace_in_rows = rows
+        else:
+            # only single item selected
+            replace_in_rows = [treeparent.row(), ]
+
+        # get the data out of those indices
+        collector = defaultdict(list)
+        colidx = self.header.getColumns(self.header.UNIQUEITEM)
+        # list of affected designators
+        affectedDesignators = []
+        # now the data replacement. EACH ITEM HAS ITS OWN MODELINDEX
+        # and we get the modelindices from parent. Do for each of them
+        for row in replace_in_rows:
+            # walk through each parsed item, and change the data
+            for key, value in parsed_data.items():
+                self.setData(
+                    self.index(row,
+                               self.header.getColumn(key)),
+                    value)
+            affectedDesignators.append(self.data(
+                self.index(row,
+                           self.header.getColumn(
+                               self.header.DESIGNATOR))))
+            # the point with rows is, that we need to collect
+            # libref/value/footprint for each selected row, as it
+            # they are the same for the entire selection, we are
+            # eligible to write down the component selection _into
+            # the component cache_ to be reused for the next
+            # time. This can be done only if the selection of the
+            # component is unique otherwise we would make a mess
+            # in the database
+            for icol in colidx:
+                txt = self.data(self.index(row, icol))
+                collector[icol].append(txt)
+        # collected data get converted into sets, hence it will
+        # erase all common parts
+        # this will make (column, set) assignment such, that if
+        # all the components selected are the same, it will result
+        # in exactly 1 element in the list for each column
+        c = list(map(lambda itext: (itext[0], set(itext[1])),
+                 collector.items()))
+        # so we filter the columns which have more than one
+        # element
+        moreOne = list(filter(lambda item: len(item[1]) != 1, c))
+        # and if the list is _empty_, that is good as we can use
+        # mapping
+        if moreOne:
+            self.colors.printInfo("""Cannot store the dropped component\
+ into the component cache, because the selection does not resolve in\
+ unique LIBREF/VALUE/FOOTPRINT.""")
+        else:
+            # this is defaultdict of defaultdict, we can add
+            # components into such dictionary even if they are not
+            # created
+            cmpn = dict(c)
+            cls = list(self.header.getColumns(self.header.UNIQUEITEM))
+            # we need to convert set back to list
+            cnm = list(map(lambda idx: list(cmpn[idx])[0], cls))
+            # Particular problem here
+            # is that we need to detect duplicates in the
+            # component mfg/no/ref/supplier. this is best done by
+            # introducing unique key from parsed data, hash seems
+            # to be OK. We add this hash as a separate dictionary
+            # key (additional layer) so we're sure that if the
+            # hash exists, the component of the same properties is
+            # already entered and we ignore it
+            cmphash = hashlib.md5(
+                json.dumps(parsed_data,
+                           sort_keys=True).encode("utf-8")).hexdigest()
+            # now we need to generate all the sub-keys if they do not
+            # exist. Before a defautdict generating defaultdict was
+            # used, but this got hell to debug as anytime one tried to
+            # read a key, it was created. this is not really what we
+            # want, hence following generates the dictionary structure:
+            if not cnm[0] in self.componentsCache:
+                self.componentsCache[cnm[0]] = {}
+            if not cnm[1] in self.componentsCache[cnm[0]]:
+                self.componentsCache[cnm[0]][cnm[1]] = {}
+            if not cnm[2] in self.componentsCache[cnm[0]][cnm[1]]:
+                self.componentsCache[cnm[0]][cnm[1]][cnm[2]] = {}
+            # and now if the component is unique and used for the
+            # first time the hash is not found, however no keyerror is risen
+            hashes = self.componentsCache[cnm[0]][cnm[1]][cnm[2]]
+            if cmphash not in hashes.keys():
+                # store in the component database
+                self.componentsCache[cnm[0]]\
+                    [cnm[1]]\
+                    [cnm[2]]\
+                    [cmphash] = parsed_data
+                # and inform upper
+                self.addedComponentIntoCache.emit()
+                print("This component is used for first time,\
+ writing into the component cache")
+
+        # emit the change so upstream knows that we have just changed
+        # components data. Problem are 'affectedDesignators', as
+        # theoretically they should contain list of designators. In
+        # fact in multichannel designs one designator can represent
+        # multiple designators as a single text. we need to explode
+        # those to basic elements and then regenerate affected
+        # designators
+
+        # this will explode all sub-designators from
+        parsed = map(lambda x:
+                     x.replace(' ', '').split(','),
+                     affectedDesignators)
+        # flatten all the designators
+        flatten = [val for sublist in parsed for val in sublist]
+        self.componentsDataChanged.emit(flatten,
+                                        parsed_data)
+        QtGui.QApplication.restoreOverrideCursor()
+        return True
 
 class QDesignatorSortModel(QtGui.QSortFilterProxyModel):
     """ Reimplements sorting of the treeview such, that designator and
@@ -386,159 +537,3 @@ class QDesignatorSortModel(QtGui.QSortFilterProxyModel):
 
 #         # print(self.getText(a),idsrc.text())
 #         print("MANUAL ENTER")
-
-
-
-
-#     def dropMimeData(self, data, action, row, column, treeparent):
-#         """ takes care of data modifications. The data _must contain_
-#         URL from the web pages of one of the pages supported by
-#         plugins. This is verified against the suppliers object, which
-#         returns correctly parsed data.
-#         """
-#         QtGui.QApplication.setOverrideCursor(QtCore.Qt.WaitCursor)
-#         # note: the row and column needs a bit of explication. It
-#         # always returns -1 in both. And that's because we're using
-#         # QTreeView, and row/column shows _where in parent we need to
-#         # insert the data_. But in fact, we want to _replace the
-#         # parent_ by our data. Respectively we need to replace data in
-#         # appropriate row and _many_ columns, depending on whether a
-#         # single item is selected, or multiple items (in terms of
-#         # designators) are selected. Following command returns
-#         # dictionary of all found items. We check here against the
-#         # instance, as dropMimeData is used as well by a direct
-#         # call when getting the data from the component cache as
-#         # the treatment is exactly the same, except that 'data' in
-#         # case of direct call contain already parsed data from the
-#         # component cache dictionary
-#         if isinstance(data, QtCore.QMimeData):
-#             parsed_data = self.suppliers.parse_URL(data.text())
-#         else:
-#             # get the data directly as this function was called
-#             # from context menu selection
-#             parsed_data = data
-
-#         # first we find all items, which are selected. we are only
-#         # interested in rows, as those are determining what
-#         # designators are used.
-#         rows = self.getSelectedRows()
-#         # and with all selected rows we distinguish, whether we have
-#         # dropped the data into selected rows. If so, we will
-#         # overwritte all the information in _each row_. If however the
-#         # drop destination is outside of the selection, we only
-#         # replace given row
-#         if treeparent.row() in rows:
-#             # many items selected
-#             replace_in_rows = rows
-#         else:
-#             # only single item selected
-#             replace_in_rows = [treeparent.row(), ]
-
-#         # get the data out of those indices
-#         collector = defaultdict(list)
-#         colidx = self.header.getColumns(self.header.UNIQUEITEM)
-#         # list of affected designators
-#         affectedDesignators = []
-#         # now the data replacement. EACH ITEM HAS ITS OWN MODELINDEX
-#         # and we get the modelindices from parent. Do for each of them
-#         for row in replace_in_rows:
-#             # walk through each parsed item, and change the data
-#             for key, value in parsed_data.items():
-#                 self.setData(
-#                     self.index(row,
-#                                self.header.getColumn(key)),
-#                     value)
-#             affectedDesignators.append(self.getText(
-#                 self.index(row,
-#                            self.header.getColumn(
-#                                self.header.DESIGNATOR)), True))
-#             # the point with rows is, that we need to collect
-#             # libref/value/footprint for each selected row, as it
-#             # they are the same for the entire selection, we are
-#             # eligible to write down the component selection _into
-#             # the component cache_ to be reused for the next
-#             # time. This can be done only if the selection of the
-#             # component is unique otherwise we would make a mess
-#             # in the database
-#             for icol in colidx:
-#                 # get source index (remember, we are only proxy)
-#                 txt = self.getText(self.index(row, icol), True)
-#                 collector[icol].append(txt)
-#         # collected data get converted into sets, hence it will
-#         # erase all common parts
-#         # this will make (column, set) assignment such, that if
-#         # all the components selected are the same, it will result
-#         # in exactly 1 element in the list for each column
-#         c = list(map(lambda itext: (itext[0], set(itext[1])),
-#                  collector.items()))
-#         # so we filter the columns which have more than one
-#         # element
-#         moreOne = list(filter(lambda item: len(item[1]) != 1, c))
-#         # and if the list is _empty_, that is good as we can use
-#         # mapping
-#         if moreOne:
-#             self.colors.printInfo("""Cannot store the dropped component\
-#  into the component cache, because the selection does not resolve in\
-#  unique LIBREF/VALUE/FOOTPRINT.""")
-#         else:
-#             # this is defaultdict of defaultdict, we can add
-#             # components into such dictionary even if they are not
-#             # created
-#             cmpn = dict(c)
-#             cls = list(self.header.getColumns(self.header.UNIQUEITEM))
-#             # we need to convert set back to list
-#             cnm = list(map(lambda idx: list(cmpn[idx])[0], cls))
-#             # Particular problem here
-#             # is that we need to detect duplicates in the
-#             # component mfg/no/ref/supplier. this is best done by
-#             # introducing unique key from parsed data, hash seems
-#             # to be OK. We add this hash as a separate dictionary
-#             # key (additional layer) so we're sure that if the
-#             # hash exists, the component of the same properties is
-#             # already entered and we ignore it
-#             cmphash = hashlib.md5(
-#                 json.dumps(parsed_data,
-#                            sort_keys=True).encode("utf-8")).hexdigest()
-#             # now we need to generate all the sub-keys if they do not
-#             # exist. Before a defautdict generating defaultdict was
-#             # used, but this got hell to debug as anytime one tried to
-#             # read a key, it was created. this is not really what we
-#             # want, hence following generates the dictionary structure:
-#             if not cnm[0] in self.componentsCache:
-#                 self.componentsCache[cnm[0]] = {}
-#             if not cnm[1] in self.componentsCache[cnm[0]]:
-#                 self.componentsCache[cnm[0]][cnm[1]] = {}
-#             if not cnm[2] in self.componentsCache[cnm[0]][cnm[1]]:
-#                 self.componentsCache[cnm[0]][cnm[1]][cnm[2]] = {}
-#             # and now if the component is unique and used for the
-#             # first time the hash is not found, however no keyerror is risen
-#             hashes = self.componentsCache[cnm[0]][cnm[1]][cnm[2]]
-#             if cmphash not in hashes.keys():
-#                 # store in the component database
-#                 self.componentsCache[cnm[0]]\
-#                     [cnm[1]]\
-#                     [cnm[2]]\
-#                     [cmphash] = parsed_data
-#                 # and inform upper
-#                 self.addedComponentIntoCache.emit()
-#                 print("This component is used for first time,\
-#  writing into the component cache")
-
-#         # emit the change so upstream knows that we have just changed
-#         # components data. Problem are 'affectedDesignators', as
-#         # theoretically they should contain list of designators. In
-#         # fact in multichannel designs one designator can represent
-#         # multiple designators as a single text. we need to explode
-#         # those to basic elements and then regenerate affected
-#         # designators
-
-#         # this will explode all sub-designators from
-#         parsed = map(lambda x:
-#                      x.replace(' ', '').split(','),
-#                      affectedDesignators)
-#         # flatten all the designators
-#         flatten = [val for sublist in parsed for val in sublist]
-#         self.componentsDataChanged.emit(flatten,
-#                                         parsed_data)
-#         QtGui.QApplication.restoreOverrideCursor()
-#         return True

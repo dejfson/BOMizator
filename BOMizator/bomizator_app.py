@@ -228,7 +228,6 @@ function generating nested defaultdicts. Previously used for loading and
         # treeview always returns proxied models
         return set(a)
 
-
     def clearAssignments(self):
         """ instructs model to delete selected item data
         """
@@ -354,7 +353,7 @@ function generating nested defaultdicts. Previously used for loading and
         # COMPONENT
         # last part of context menu is to look for components in cache
         try:
-            component = self.model.selectionUnique()
+            component = self.model.selectionUnique(self.getSelectedRows())
             # map cols to list as needed:
             idxs = map(self.header.getColumn, self.header.UNIQUEITEM)
             # get indices into cmpcache:
@@ -385,7 +384,7 @@ function generating nested defaultdicts. Previously used for loading and
                                            partial(self.fillFromComponentCache,
                                                    cmpData))
                         execMenu = True
-        except TypeError:
+        except AttributeError:
             # seletion is not unique
             pass
 
@@ -445,7 +444,7 @@ function generating nested defaultdicts. Previously used for loading and
             # generate new schematic parser
             self.model = QBOMModel(self.componentsCache,
                                    projectDirectory,
-                                   self.treeView)
+                                   self)
             # search proxy:
             self.proxy = QDesignatorSortModel(self)
             self.proxy.setSourceModel(self.model)
@@ -503,8 +502,9 @@ function generating nested defaultdicts. Previously used for loading and
         """
         # we have to have at least one selected index as otherwise we
         # do not know where to stick the data
+        print(cmpData)
         aa = self.treeView.selectedIndexes()[0]
-        self.proxy.dropMimeData(cmpData, None, -1, -1, aa)
+        self.model.dropMimeData(cmpData, None, -1, -1, aa)
 
     def enableItems(self, stidems, enable=True):
         """ info whether item is disabled or enabled is stored in user
