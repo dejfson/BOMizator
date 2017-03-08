@@ -522,7 +522,7 @@ function generating nested defaultdicts. Previously used for loading and
             self.proxy.setDynamicSortFilter(True)
             self.proxy.addedComponentIntoCache.connect(self.saveComponentCache)
             # manually entering data should be saved as well
-            self.model.itemChanged.connect(self.proxy.manuallyEnteredData)
+            self.model.itemChanged.connect(self.proxy.cellDataChanged)
             # connect proxy to component change
             self.proxy.componentsDataChanged.connect(self.SCH.updateComponents)
             # assign proxy to treeView so we influence how the stuff is sorted
