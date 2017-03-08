@@ -271,6 +271,8 @@ class sch_parser(object):
                             # others, as e.g.:
                             # F 4 "NC" H 6775 4400 60  0000 C CNN "Mounted"
                             newattrs = []
+                            # default assignment
+                            lineOut = code
                             try:
                                 # go through all the undefined
                                 # attributes:
@@ -294,9 +296,9 @@ class sch_parser(object):
                                 # were defined
                                 replaceby = {}
                                 # add the original code:
-                                lout = '\n'.join(newattrs)
-                                print(lout)
-                                lineOut = lout + code
+                                lout = '\n'.join(newattrs + [code, ])
+                                lineOut = lout
+                                print(lineOut)
                             except KeyError:
                                 # there's nothing in the dictionary
                                 # any more, however to be sure we rise
