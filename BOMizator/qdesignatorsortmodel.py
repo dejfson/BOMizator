@@ -238,11 +238,12 @@ class QDesignatorSortModel(QtGui.QSortFilterProxyModel):
         one of _MODEL_, not proxy
         """
 
-        a = self.mapFromSource(self.index(idsrc.row(),
-                                          self.header.getColumn(
-                                              self.header.DESIGNATOR)))
+        # a = self.mapFromSource(self.index(idsrc.row(),
+        #                                   self.header.getColumn(
+        #                                       self.header.DESIGNATOR)))
 
-        print(self.getText(a),idsrc.text())
+        # print(self.getText(a),idsrc.text())
+        print("MANUAL ENTER")
 
 
     def getItemData(self, getAll=False):

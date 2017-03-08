@@ -136,6 +136,13 @@ function generating nested defaultdicts. Previously used for loading and
         self.fillModel(hideComponents)
         self.treeSelection()
 
+    def sortedDesignators(self, designators):
+        """ Designator can be simple ['q101'], or it can be compound
+        of multiple designators ['q101', 'q323', 'q23']. We sort the
+        designators and return simple joined string of them
+        """
+        return ', '.join(sorted(designators))
+
     def fillModel(self, hideDisabled=True):
         """ resets the components treeview, and reloads it with the
         model data.
@@ -173,8 +180,8 @@ function generating nested defaultdicts. Previously used for loading and
             # SITUATION HAPPENS
             desiline = component.copy()
             # we use copy to twist the designators to be simple text
-            # structures
-            desiline[self.header.DESIGNATOR] = ', '.join(
+            # structures. Makes the designators sorted as well
+            desiline[self.header.DESIGNATOR] = self.sortedDesignators(
                 component[self.header.DESIGNATOR])
 
             line = map(QtGui.QStandardItem,
