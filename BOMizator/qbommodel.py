@@ -190,7 +190,6 @@ class QBOMModel(QtGui.QStandardItemModel):
         for designatorKey in self.SCH.BOM():
 
             component = self.SCH.getComponent(designatorKey)
-            print (designatorKey, component)
             # each component can have multiple designators. That
             # because when hierarchical schematics are used, the
             # components share the same definition, but using AR
