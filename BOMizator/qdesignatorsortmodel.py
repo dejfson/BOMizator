@@ -60,11 +60,14 @@ class QDesignatorSortModel(QtGui.QSortFilterProxyModel):
         # comma. If this is the case, we consider for comparison only
         # the first designator as it is expected that the others are
         # in the order of sorting already put as keys
-        a = left.data().split(",")[0]
-        b = right.data().split(",")[0]
-        desigs = list(map(
-            self.comparator.getNormalisedDesignator,
-            [a, b]))
-        # all other cases just simple textual comparison
-        print(desigs)
+        try:
+            a = left.data().split(",")[0]
+            b = right.data().split(",")[0]
+            desigs = list(map(
+                self.comparator.getNormalisedDesignator,
+                [a, b]))
+            # all other cases just simple textual comparison
+        except IndexError:
+            # unparseable, hence return simple string comparison
+            desigs = [left.data(), right.data()]
         return desigs[0] < desigs[1]
