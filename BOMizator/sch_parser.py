@@ -83,9 +83,10 @@ class schParser(object):
             '\t': self._attributeTab,
             '$': self._attributeTermination}
 
-    def updateComponents(self, designators, newdata):
-        """ Update all the componenents identified by designators by
-        new data for each key of newdata. Newdata is a dictionary of
+    def updateComponents(self, targets, newdata):
+        """ Update all the componenents identified by list of
+        normalised designators by new data for each key of
+        newdata. Newdata is a dictionary of
         items to change, designators is a list of designators whose
         values have changed
         """
@@ -94,13 +95,8 @@ class schParser(object):
         # to compare if one of the designators is in one of the set of
         # the components, and we need to do it one by one (due to
         # multichannel design)
-        targets = filter(lambda com:
-                         any(map(lambda des:
-                                 des in com[self.header.DESIGNATOR],
-                                 designators)),
-                         self.components)
-
-        for target in targets:
+        complist = map(lambda tg: self.components[tg], targets)
+        for target in complist:
             # we browse here all the components and update their
             # parameters
             for key, val in newdata.items():
@@ -195,12 +191,18 @@ class schParser(object):
                                 # export multiple designators for each
                                 # component if that one is part of a
                                 # shared sheet. That's why we're looking
-                                # for a designator in _set of designators_.
+                                # for a designator in _set of
+                                # designators_. For this we not only
+                                # use normalised designator as key
+                                # into self.components, but each
+                                # component as well keeps a separate
+                                # set of those designators, so they
+                                # can be easily searched for
                                 datain = list(
                                     filter(lambda com:
                                            designator in com[
                                                self.header.DESIGNATOR],
-                                           self.components))[0]
+                                           self.components.values()))[0]
                                 # we need to create a copy for poping
                                 # the data out (such we find which
                                 # items are still to be written into

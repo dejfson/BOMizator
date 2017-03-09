@@ -114,10 +114,13 @@ class QBOMModel(QtGui.QStandardItemModel):
         definitions such, that the newly entered data will match the
         underlying component data. the data item is in MODEL space.
         """
-
+        # the way how we change the data is that we modify the
+        # underlying schematic components dictionary
         colname = self.header.getColumnName(item.column())
         desigItem = self.getDesignator(item.row())
-        print("Cell data changed: ", item.row(), desigItem.text(), item.text())
+        self.SCH.updateComponents(
+            [desigItem.text(), ],
+            {colname: item.text()})
 
     def mimeTypes(self):
         """ This class accepts only text/plain drops, hence this
