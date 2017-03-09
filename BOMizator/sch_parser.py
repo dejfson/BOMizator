@@ -36,6 +36,7 @@ import os
 from collections import defaultdict
 from .colors import colors
 from .headers import headers
+from .qdesignatorcomparator import QDesignatorComparator
 import shlex
 
 
@@ -62,14 +63,14 @@ class schParser(object):
         self.matches = set(self.collectFiles())
 
         self.current_state = self._smCatchHeader
-        # components is a list of defaultdict(str). each component is
+        # components is a dictionary of dict. each component is
         # identified by dictionary of
         # designator/libref/value/footprint .... to uniquely match it
         # to the bill of material. IF SOME ATTRIBUTES DO NOT EXIST (as
         # e.g. mfg), they are not created during the file writing, but
         # they are created on fly by a dynamic assignment of the data.
         # this list is the one giving the BOM data
-        self.components = []
+        self.components = {}
 
         # define attributes dictionary for the component, each entry
         # has to correspond to specific attributes
@@ -104,6 +105,11 @@ class schParser(object):
             # parameters
             for key, val in newdata.items():
                 target[key] = val
+
+    def getComponent(self, normDesig):
+        """ returns component identified by normalised designator
+        """
+        return self.components[normDesig]
 
     def save(self):
         """ function parses all the project schematic files,
@@ -298,7 +304,6 @@ class schParser(object):
                                 # add the original code:
                                 lout = '\n'.join(newattrs + [code, ])
                                 lineOut = lout
-                                print(lineOut)
                             except KeyError:
                                 # there's nothing in the dictionary
                                 # any more, however to be sure we rise
@@ -389,6 +394,13 @@ class schParser(object):
         # attribute is assigned
         self.attribute_entry[line[0]](line.strip())
 
+    def getNormalisedDesignators(self, designators):
+        """ takes set of designators, sorts them and normalises to
+        produce a single string identifying all the designators of
+        given component
+        """
+        return ', '.join(sorted(designators, key=QDesignatorComparator()))
+
     def _attributeTermination(self, line):
         """ dollar sign introduces entity ending
         """
@@ -453,7 +465,8 @@ class schParser(object):
                 # components. This MIGHT happen with multipart
                 # devices, which are in schematic treated separately
                 if not self.designatorDefined(xm[self.header.DESIGNATOR]):
-                    self.components.append(xm)
+                    dsg = self.getNormalisedDesignators(xm[self.header.DESIGNATOR])
+                    self.components[dsg] = xm
                 else:
                     print("Component(s) ", xm[self.header.DESIGNATOR],
                           " already defined. Multipart component?")
@@ -471,7 +484,7 @@ class schParser(object):
         return any(map(lambda com:
                        any(map(lambda desig: desig in com[self.header.DESIGNATOR],
                                designator)),
-                       self.components))
+                       self.components.values()))
 
     def _attributeGeneric(self, line):
         """ parses 'L' attribute of the component. This type of
@@ -491,6 +504,13 @@ class schParser(object):
         except KeyError:
             self.current_component['X'] = []
             self.current_component['X'].append(line)
+
+    def getDesignatorText(self, desig):
+        """ input is a set of designators, output is the _textual
+        representation_ of the designators, they are concatenated by
+        comma and sorted in ascending order
+        """
+
 
     def _attributeAr(self, line):
         """ AR-type attribute is used in hierarchical design. Its form

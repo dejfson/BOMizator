@@ -103,7 +103,7 @@ class BOMizator(QtGui.QMainWindow, form_class):
         in the current data model, and passes these components to
         schematics parser to save
         """
-        self.SCH.save()
+        self.model.save()
 
     def saveComponentCache(self):
         """ signal caught when component cache changed and save is required

@@ -37,6 +37,7 @@ from .sch_parser import schParser
 from .supplier_selector import supplier_selector
 from .headers import headers
 
+
 class QBOMModel(QtGui.QStandardItemModel):
     """ reimplementation of standard item model to get the data load
     structure.
@@ -95,11 +96,28 @@ class QBOMModel(QtGui.QStandardItemModel):
         # should perform SCH write
         self.itemChanged.connect(self.cellDataChanged)
 
-    def cellDataChanged(self, item):
-        """ processes when cell data have been changed (either
-        programmatically or by user)
+    def getDesignator(self, row):
+        """ takes row in MODEL perspective and returns string
+        identifying designator for that particular row. Designator is
+        a string, which MAY contain multiple designators when
+        hierarchical design involved
         """
-        print("Cell data changed: ", item.text())
+        return self.itemFromIndex(self.index(row,
+                                             self.header.getColumn(
+                                                 self.header.DESIGNATOR)))
+
+    def cellDataChanged(self, item):
+        """ Any data change in the model (e.g. by calling setData, or
+        by manually typing the data into editable columns) will emit
+        signal, which we intercept here. The item is the _new value_
+        of the item in the data structure. We modify here components
+        definitions such, that the newly entered data will match the
+        underlying component data. the data item is in MODEL space.
+        """
+
+        colname = self.header.getColumnName(item.column())
+        desigItem = self.getDesignator(item.row())
+        print("Cell data changed: ", item.row(), desigItem.text(), item.text())
 
     def mimeTypes(self):
         """ This class accepts only text/plain drops, hence this
@@ -153,12 +171,11 @@ class QBOMModel(QtGui.QStandardItemModel):
                 xi.setForeground(QtGui.QColor('gray'))
         return stidems
 
-    def sortedDesignators(self, designators):
-        """ Designator can be simple ['q101'], or it can be compound
-        of multiple designators ['q101', 'q323', 'q23']. We sort the
-        designators and return simple joined string of them
+    def save(self):
+        """ calls schematic structure to save the model. It has no
+        action linked to component cache, which is updated 'on fly'
         """
-        return ', '.join(sorted(designators))
+        self.SCH.save()
 
     def fillModel(self, disabledDesignators=[],
                   hideDisabled=False):
@@ -170,7 +187,10 @@ class QBOMModel(QtGui.QStandardItemModel):
         self.removeRows(0, self.rowCount())
         # having headers we might deploy the data into the multicolumn
         # view. We need to collect all the data:
-        for cmpCount, component in enumerate(self.SCH.BOM()):
+        for designatorKey in self.SCH.BOM():
+
+            component = self.SCH.getComponent(designatorKey)
+            print (designatorKey, component)
             # each component can have multiple designators. That
             # because when hierarchical schematics are used, the
             # components share the same definition, but using AR
@@ -191,10 +211,9 @@ class QBOMModel(QtGui.QStandardItemModel):
             # SAME TIME IN THE DESIGNATOR COLUMN TO SHOW UP THAT THIS
             # SITUATION HAPPENS
             desiline = component.copy()
-            # we use copy to twist the designators to be simple text
-            # structures. Makes the designators sorted as well
-            desiline[self.header.DESIGNATOR] = self.sortedDesignators(
-                component[self.header.DESIGNATOR])
+            # normalised designator is printed out in designator
+            # column. This one is a join of sorted designators.
+            desiline[self.header.DESIGNATOR] = designatorKey
 
             line = map(QtGui.QStandardItem,
                        list(map(lambda c:

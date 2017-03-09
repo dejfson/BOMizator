@@ -30,10 +30,7 @@ Implements custom sorting to take into account designators
 """
 
 from PyQt4 import QtGui
-from .headers import headers
-from .colors import colors
-import re
-import sys
+from .qdesignatorcomparator import QDesignatorComparator
 
 
 class QDesignatorSortModel(QtGui.QSortFilterProxyModel):
@@ -42,61 +39,32 @@ class QDesignatorSortModel(QtGui.QSortFilterProxyModel):
     perception. Hence U1, U2, U3 and not U1, U10, U11 as by default.
     """
 
-    def __init__(self, parent=None):
+    def __init__(self, designatorColumn=0, parent=None):
+        """ sorting proxy assures that designators are correctly
+        sorted. For this give a column number, which contains
+        designators. This is to identify whether ordinary sorting or
+        string sorting has to be done
+        """
         super(QDesignatorSortModel, self).__init__(parent)
-        self.header = headers()
-
-    def getDesignatorNumber(self, designator):
-        """ parses given designator and returns tuple (alphas, digit),
-        which are then used for comparison. Allowed combinations:
-        <multiletter_designator><number><extension>, where
-        multiletter_designator is only alphas, number is 0-9 and
-        extension can be whatever. Hence following is still allowed:
-        Q12_a, but following is not allowed: Q_a12
-        """
-        if designator.find("?") != -1:
-            # this is failure as it means that the schematic was not
-            # properly annotated
-            colors().printFail(
-                "DESIGN IS NOT PROPERLY ANNOTATED, FOUND DESIGNATOR " +
-                designator +
-                " PLEASE ANNOTATE FIRST THE SCHEMATIC")
-            # this is fatal and we cannot continue
-            sys.exit(-1)
-        # for this we use simple search, assuming that there is only
-        # one number in the entire designator, and the designator is
-        # unique. Saying this we can search regular expression and
-        # extract beginning, number and ending
-        pre, dig, post = re.findall('^([A-Za-z]+)(\d+)(.*)', designator)[0]
-        # first we match joned beginning and end, which are textual
-        return (pre+post, int(dig))
-
-    def compareDesignators(self, left, right):
-        """ parses numbers from designators and returns which of them
-        is larger
-        """
-        strs1, dig1 = self.getDesignatorNumber(left.data())
-        strs2, dig2 = self.getDesignatorNumber(right.data())
-
-        # if strings differ, return their difference:
-        if strs1 != strs2:
-            return strs1 < strs2
-
-        # if strings are the same, compare _numerically_ the results
-        return dig1 < dig2
+        self.comparator = QDesignatorComparator()
+        self.column = designatorColumn
 
     def lessThan(self, left, right):
         """ makes comparison of two numbers/strings. We have to detect
         numbers in these things. The items given are modelindices IN
-        PROXY, hence have to be translated to proper model
+        PROXY, hence have to be translated to proper model. The
+        left/right might be identified as QModexIndex as well, in this
+        case we translate them to appropriate data strings
         """
-        # having modelindices we can grab the text and check for
-        # results depending of _column_.
-        # if column is designator, we parse the data as
-        # <chars><number> and sort according to number as integer
-        if left.column() == self.header.getColumn(
-                self.header.DESIGNATOR):
-            return self.compareDesignators(left, right)
-
+        # left and right can contain multiple designators separated
+        # comma. If this is the case, we consider for comparison only
+        # the first designator as it is expected that the others are
+        # in the order of sorting already put as keys
+        a = left.data().split(",")[0]
+        b = right.data().split(",")[0]
+        desigs = list(map(
+            self.comparator.getNormalisedDesignator,
+            [a, b]))
         # all other cases just simple textual comparison
-        return left.data() < right.data()
+        print(desigs)
+        return desigs[0] < desigs[1]

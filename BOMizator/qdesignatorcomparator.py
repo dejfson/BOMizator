@@ -46,7 +46,11 @@ class QDesignatorComparator(object):
         recalculated integer such, that the designators will be
         correctly sorted
         """
+        return self.getNormalisedDesignator(desig)
 
+    def getNormalisedDesignator(self, desig):
+        """ returns designator normalised for comparison
+        """
         # decompose to string and number. Let's say, that the number
         # goes from 0 to 9999 as designator count. If not, then we
         # raise invalid designator
