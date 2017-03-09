@@ -46,8 +46,9 @@ from collections import defaultdict
 from functools import partial
 from PyQt4 import QtGui, uic, QtCore
 from .headers import headers
-from .qdesignatorsortmodel import QBOMModel, QDesignatorSortModel
-
+from .colors import colors
+from .qdesignatorsortmodel import QDesignatorSortModel
+from .qbommodel import QBOMModel
 
 localpath = os.path.dirname(os.path.realpath(__file__))
 form_class = uic.loadUiType(os.path.join(localpath, "BOMLinker.ui"))[0]
@@ -384,8 +385,9 @@ function generating nested defaultdicts. Previously used for loading and
                                            partial(self.fillFromComponentCache,
                                                    cmpData))
                         execMenu = True
-        except AttributeError:
-            # seletion is not unique
+        except TypeError:
+            colors().printWarn("Selection is not unique, cannot\
+ propose cached component")
             pass
 
         if execMenu:
@@ -445,13 +447,12 @@ function generating nested defaultdicts. Previously used for loading and
             self.model = QBOMModel(self.componentsCache,
                                    projectDirectory,
                                    self)
+            self.model.droppedData.connect(self.droppedData)
             # search proxy:
             self.proxy = QDesignatorSortModel(self)
             self.proxy.setSourceModel(self.model)
             self.proxy.setDynamicSortFilter(True)
 #            self.proxy.addedComponentIntoCache.connect(self.saveComponentCache)
-            # manually entering data should be saved as well
-#            self.model.itemChanged.connect(self.proxy.cellDataChanged)
             # connect proxy to component change
 #            self.proxy.componentsDataChanged.connect(self.SCH.updateComponents)
             # assign proxy to treeView so we influence how the stuff is sorted
@@ -488,6 +489,28 @@ function generating nested defaultdicts. Previously used for loading and
         except UnboundLocalError:
             return projectDirectory
 
+    def droppedData(self, data, row, column):
+        """ catches when data are dropped into the model. Data have to
+        be textual and will be parsed by one of the suppliers strings.
+        """
+
+        # first we find all items, which are selected. we are only
+        # interested in rows, as those are determining what
+        # designators are used.
+        rows = self.getSelectedRows()
+        # and with all selected rows we distinguish, whether we have
+        # dropped the data into selected rows. If so, we will
+        # overwritte all the information in _each row_. If however the
+        # drop destination is outside of the selection, we only
+        # replace given row
+        if row in rows:
+            # many items selected
+            replace_in_rows = rows
+        else:
+            # only single item selected
+            replace_in_rows = [row, ]
+        self.model.updateModelData(replace_in_rows, data)
+
     def fillFromComponentCache(self, cmpData):
         """ function called from context menu when user selects a
         unique component and this component is found in the component
@@ -502,9 +525,8 @@ function generating nested defaultdicts. Previously used for loading and
         """
         # we have to have at least one selected index as otherwise we
         # do not know where to stick the data
-        print(cmpData)
-        aa = self.treeView.selectedIndexes()[0]
-        self.model.dropMimeData(cmpData, None, -1, -1, aa)
+        aa = self.proxy.mapToSource(self.treeView.selectedIndexes()[0])
+        self.droppedData(cmpData, aa.row(), aa.column())
 
     def enableItems(self, stidems, enable=True):
         """ info whether item is disabled or enabled is stored in user
