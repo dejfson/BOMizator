@@ -47,14 +47,19 @@ class farnell(object):
         self.header = headers()
         self.debug = False
 
-    def get_url(self, searchtext):
+    def getUrl(self, searchtext):
         """ returns URL of farnell, which triggers searching for a
         specific component or name.
         """
         return "http://uk.farnell.com/webapp/\
 wcs/stores/servlet/Search?st=%s" % (searchtext,)
 
-    def harvest_datasheet(self, urltext):
+    def getShortcut(self):
+        """ returns shortcut used for menu declarations
+        """
+        return "F"
+
+    def harvestDatasheet(self, urltext):
         """ the urltext is used to fetch the web page content and
         harvest the datasheet link from it. it does not work all the
         time as there are some ambiguities, but works reasonably well
@@ -124,7 +129,7 @@ wcs/stores/servlet/Search?st=%s" % (searchtext,)
             # component. This is not part of the URL and for this we need
             # to actually fetch and parse the page. For the moment
             # 'nothing'
-            datasheet = self.harvest_datasheet(str(urltext))
+            datasheet = self.harvestDatasheet(str(urltext))
             if self.debug:
                 print("Datasheet link: ",datasheet)
             # now we convert the data into dictionary:

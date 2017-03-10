@@ -63,7 +63,8 @@ class BOMizator(QtGui.QMainWindow, form_class):
         """
         QtGui.QMainWindow.__init__(self, parent, QtCore.Qt.WindowFlags(flags))
         self.setupUi(self)
-
+        self.supplierInfo = QtGui.QLabel("")
+        self.statusbar.addPermanentWidget(self.supplierInfo)
         self.isModified = False
         try:
             self.projectDirectory = self.openProject(projectDirectory)
@@ -511,11 +512,12 @@ function generating nested defaultdicts. Previously used for loading and
             # having model means that we know all the plugins
             # available and we can fill-in the plugins for searching
             self.menu_Suppliers.clear()
-            for plg in self.model.getPlugins():
+            for shortcut, plg in self.model.getPlugins():
                 # now we add for each plugin incorporated
                 self.menu_Suppliers.addAction(plg,
                                               partial(self.pluginChanged,
-                                                      plg))
+                                                      plg),
+                                              QtGui.QKeySequence(ord("S"), ord(shortcut)))
 
             # search proxy:
             self.proxy = QDesignatorSortModel(self)
@@ -538,6 +540,12 @@ function generating nested defaultdicts. Previously used for loading and
                                                bool)
             self.action_Hide_disabled_components.setEnabled(not hideDisabled)
             self.action_Show_disabled_components.setEnabled(hideDisabled)
+
+            # load lastly used plugin
+            lastPlugin = self.settings.value("lastUsedSearchPlugin",
+                                             "FARNELL",
+                                             str)
+            self.pluginChanged(lastPlugin)
 
             self.fillModel(hideDisabled)
             # as the model is filled with the data, we can resize columns
@@ -584,6 +592,10 @@ function generating nested defaultdicts. Previously used for loading and
         """ sets new default plugin
         """
         self.model.setDefaultPlugin(newplugin)
+        # update supplier in status bar
+        self.supplierInfo.setText(newplugin)
+        self.settings.setValue("lastUsedSearchPlugin",
+                               newplugin)
 
     def fillFromComponentCache(self, cmpData):
         """ function called from context menu when user selects a
@@ -684,7 +696,7 @@ function generating nested defaultdicts. Previously used for loading and
         just means that a page with search resuls will open, and user
         it responsible to look for a specific component further.
         """
-        url = self.model.suppliers.search_for_component(searchtext)
+        url = self.model.suppliers.searchForComponent(searchtext)
         # now fire the web browser with this page opened
         b = webbrowser.get('firefox')
         b.open(url, new=0, autoraise=True)

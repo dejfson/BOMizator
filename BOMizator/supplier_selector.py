@@ -54,24 +54,27 @@ class supplier_selector(object):
             localpath,
             plugins_directory)
         print("Loading plugins from ", self.plugins_directory, ":")
-        self.plugins = self.get_plugins()
-        self.set_default_plugin('FARNELL')
+        self.plugins = self.getPlugins()
+        self.setDefaultPlugin('FARNELL')
         # and now we're ready to accept search queries
+
+    def getShortcut(self, plugin):
+        return self.plugins[plugin].getShortcut()
 
     def getSearchString(self, plugin, tosearch):
         """ Function uses specific plugin to form a search-string text
         for his web site.
         """
-        return self.plugins[plugin].get_url(tosearch)
+        return self.plugins[plugin].getUrl(tosearch)
 
-    def set_default_plugin(self, plugin):
+    def setDefaultPlugin(self, plugin):
         """ sets the default search plugin engine
         """
         self.default_plugin = plugin
         # generate constructor with appropriate search plugin
         self.engine = self.plugins[self.default_plugin]
 
-    def parse_URL(self, urltext):
+    def parseUrl(self, urltext):
         """ Uses all plugins installed to detect if one of the plugins
         can accept the web page URL and parse its content to get the
         data into right format. If so, this function returns a dictionary
@@ -99,13 +102,13 @@ class supplier_selector(object):
         colors().printFail("No installed plugin matches the URL selection")
         raise KeyError
 
-    def get_url(self, searchtext):
+    def getUrl(self, searchtext):
         """ Using default plugin the search text is translated into
         URL, which can be used to open the web pages
         """
-        return self.engine.get_url(searchtext)
+        return self.engine.getUrl(searchtext)
 
-    def get_plugins(self):
+    def getPlugins(self):
         """ walks through plugins directory and returns list of plugins
         """
 
@@ -128,8 +131,8 @@ class supplier_selector(object):
             plugins_classes[info().name] = info()
         return plugins_classes
 
-    def search_for_component(self, component):
+    def searchForComponent(self, component):
         """ returns URL to be used in the component search for
         _active_ supplier
         """
-        return self.get_url(component)
+        return self.getUrl(component)

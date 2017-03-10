@@ -45,5 +45,10 @@ class radiospares(object):
         # @TODO implement radiospares parseURL
         raise KeyError
 
+    def getShortcut(self):
+        """ returns shortcut
+        """
+        return "R"
+
 
 DEFAULT_CLASS = radiospares

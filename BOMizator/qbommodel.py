@@ -104,14 +104,21 @@ class QBOMModel(QtGui.QStandardItemModel):
 
     def getPlugins(self):
         """ returns list of identified plugins of suppliers as read
-        from the plugins directory
+        from the plugins directory. Each list item is a tuple saying
+        (<shortcut string>, <pluginname>. Example: [('F',
+        "FARNELL"),]. This can be used to get quick action on
+        searching just by choosing proper shortcut. Note that MAP
+        ITERATOR is returned.
         """
-        return self.suppliers.get_plugins()
+        spl = self.suppliers.getPlugins()
+        return zip(
+            map(self.suppliers.getShortcut, spl),
+            spl)
 
     def setDefaultPlugin(self, plg):
         """ sets new default search plugin
         """
-        self.suppliers.set_default_plugin(plg)
+        self.suppliers.setDefaultPlugin(plg)
 
     def getDesignator(self, row):
         """ takes row in MODEL perspective and returns string
