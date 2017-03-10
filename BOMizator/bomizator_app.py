@@ -90,7 +90,7 @@ class BOMizator(QtGui.QMainWindow, form_class):
         self.treeView.customContextMenuRequested.connect(self.openMenu)
 
         # various menu items
-        self.action_Quit.triggered.connect(QtGui.qApp.quit)
+        self.action_Quit.triggered.connect(self.close)
         self.action_Open.triggered.connect(self.openProject)
         self.action_Save.triggered.connect(self.saveProject)
         self.action_Reload.triggered.connect(self.reloadProject)
