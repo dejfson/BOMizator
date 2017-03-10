@@ -81,7 +81,7 @@
      <x>0</x>
      <y>0</y>
      <width>1258</width>
-     <height>20</height>
+     <height>44</height>
     </rect>
    </property>
    <widget class="QMenu" name="menu_View">
@@ -97,6 +97,8 @@
     </property>
     <addaction name="action_Open"/>
     <addaction name="separator"/>
+    <addaction name="action_Reload"/>
+    <addaction name="separator"/>
     <addaction name="action_Save"/>
     <addaction name="separator"/>
     <addaction name="action_Quit"/>
@@ -110,7 +112,7 @@
     <string>&amp;Show disabled components</string>
    </property>
    <property name="shortcut">
-    <string>F6</string>
+    <string>F2</string>
    </property>
   </action>
   <action name="action_Hide_disabled_components">
@@ -118,7 +120,7 @@
     <string>&amp;Hide disabled components</string>
    </property>
    <property name="shortcut">
-    <string>F5</string>
+    <string>F3</string>
    </property>
   </action>
   <action name="action_Export">
@@ -158,6 +160,14 @@
   <action name="action_Save_as">
    <property name="text">
     <string>Save &amp;as ...</string>
+   </property>
+  </action>
+  <action name="action_Reload">
+   <property name="text">
+    <string>&amp;Reload</string>
+   </property>
+   <property name="shortcut">
+    <string>F5</string>
    </property>
   </action>
  </widget>

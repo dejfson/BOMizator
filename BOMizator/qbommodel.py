@@ -62,6 +62,11 @@ class QBOMModel(QtGui.QStandardItemModel):
     be cached in app to store the cache appropriately """
     addedComponentIntoCache = QtCore.pyqtSignal()
 
+    """ modelModified is emitted whenever model data change (=True) or
+    when the model gets saved (=False)
+    """
+    modelModified = QtCore.pyqtSignal(bool)
+
     def __init__(self, componentsCache={},
                  projectDirectory=None,
                  parent=None):
@@ -86,6 +91,7 @@ class QBOMModel(QtGui.QStandardItemModel):
         self.componentsCache = componentsCache
         self.projectDirectory = projectDirectory
 
+        self.setModified(False)
         self.header = headers()
         # get all sellers filters
         self.suppliers = supplier_selector()
@@ -106,6 +112,11 @@ class QBOMModel(QtGui.QStandardItemModel):
                                              self.header.getColumn(
                                                  self.header.DESIGNATOR)))
 
+    def isModified(self):
+        """ returns true if the model was modified and not saved
+        """
+        return self.modified
+
     def cellDataChanged(self, item):
         """ Any data change in the model (e.g. by calling setData, or
         by manually typing the data into editable columns) will emit
@@ -121,6 +132,7 @@ class QBOMModel(QtGui.QStandardItemModel):
         self.SCH.updateComponents(
             [desigItem.text(), ],
             {colname: item.text()})
+        self.setModified(True)
 
     def mimeTypes(self):
         """ This class accepts only text/plain drops, hence this
@@ -179,6 +191,23 @@ class QBOMModel(QtGui.QStandardItemModel):
         action linked to component cache, which is updated 'on fly'
         """
         self.SCH.save()
+        self.setModified(False)
+
+    def setModified(self, xmodified):
+        """ sets modification flag and emits modelModified when any
+        change happens
+        """
+        try:
+            announce = False
+            if self.modified != xmodified:
+                announce = True
+            self.modified = xmodified
+        except AttributeError:
+            self.modified = xmodified
+            announce = True
+
+        if announce:
+            self.modelModified.emit(xmodified)
 
     def fillModel(self, disabledDesignators=[],
                   hideDisabled=False):
