@@ -488,12 +488,12 @@ function generating nested defaultdicts. Previously used for loading and
                                    self)
             self.model.droppedData.connect(self.droppedData)
             self.model.modelModified.connect(self.modelModified)
+            self.model.addedComponentIntoCache.connect(self.saveComponentCache)
             # search proxy:
             self.proxy = QDesignatorSortModel(self)
             self.proxy.setSourceModel(self.model)
             self.proxy.setDynamicSortFilter(True)
             # @TODO saving cache of components
-            #self.proxy.addedComponentIntoCache.connect(self.saveComponentCache)
             self.treeView.setModel(self.proxy)
             self.treeView.setSortingEnabled(True)
             # get header object
