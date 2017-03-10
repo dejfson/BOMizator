@@ -277,6 +277,9 @@ function generating nested defaultdicts. Previously used for loading and
         if len(indexes) < 1:
             return
 
+        # if the selection is unique, the component is here:
+        component = self.model.selectionUnique(self.getSelectedRows())
+
         # some more validation: if datasheet clicked, we display 'open
         # datasheet' menu. But only single one is allowed at time
         menu = QtGui.QMenu()
@@ -308,7 +311,7 @@ function generating nested defaultdicts. Previously used for loading and
         # can contain whatever information, ergo hell to make filter
         # first we have to make a 'histogram', i.e. counting
         # occurences of columns.
-        if self.model.selectionUnique(self.getSelectedRows()):
+        if component:
             menu.addAction(self.tr("Select same"), self.selectSameFilter)
 
         # ###############################################################################
@@ -357,9 +360,9 @@ function generating nested defaultdicts. Previously used for loading and
         for item in idata:
             # filter interesting data - keep non-zero ones and only
             # those which are user definable
-            idata = filter(lambda component:
-                           (component[0] in self.header.USERITEMS) and
-                           component[1] != '', item.items())
+            idata = filter(lambda cxomponent:
+                           (cxomponent[0] in self.header.USERITEMS) and
+                           cxomponent[1] != '', item.items())
             rowdata.append(list(idata))
         allEmpty = all(map(lambda ctr: not ctr, rowdata))
         # if at least one is not empty, we add option to clear out
@@ -371,7 +374,7 @@ function generating nested defaultdicts. Previously used for loading and
         # ################################################################################
         # WHEN RIGHT CLICK ON (EXISTING), SUPPLIERNO SEARCH THE
         # SUPPLIER NUMBER USING HIS WEB PAGES
-        if len(indexes) == 1 and\
+        if component and\
            indexes[0].column() ==\
            self.header.getColumn(self.header.SUPPNO):
             iData = self.model.getItemData(self.getSelectedRows())[0]
