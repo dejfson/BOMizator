@@ -103,8 +103,14 @@
     <addaction name="separator"/>
     <addaction name="action_Quit"/>
    </widget>
+   <widget class="QMenu" name="menu_Suppliers">
+    <property name="title">
+     <string>&amp;Suppliers</string>
+    </property>
+   </widget>
    <addaction name="menu_File"/>
    <addaction name="menu_View"/>
+   <addaction name="menu_Suppliers"/>
   </widget>
   <widget class="QStatusBar" name="statusbar"/>
   <action name="action_Show_disabled_components">

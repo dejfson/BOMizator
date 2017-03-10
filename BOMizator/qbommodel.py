@@ -102,6 +102,17 @@ class QBOMModel(QtGui.QStandardItemModel):
         # should perform SCH write
         self.itemChanged.connect(self.cellDataChanged)
 
+    def getPlugins(self):
+        """ returns list of identified plugins of suppliers as read
+        from the plugins directory
+        """
+        return self.suppliers.get_plugins()
+
+    def setDefaultPlugin(self, plg):
+        """ sets new default search plugin
+        """
+        self.suppliers.set_default_plugin(plg)
+
     def getDesignator(self, row):
         """ takes row in MODEL perspective and returns string
         identifying designator for that particular row. Designator is

@@ -437,15 +437,18 @@ function generating nested defaultdicts. Previously used for loading and
         """ reloads the project. asks for being sure as it rewrites
         all the changes already performed
         """
-        msg = self.tr("""Reloading project will discard all unsaved
+        if self.model.isModified():
+            msg = self.tr("""Reloading project will discard all unsaved
  changes. Do you want to continue?""")
-        reply = QtGui.QMessageBox.question(self, self.tr('Message'),
-                                           msg,
-                                           QtGui.QMessageBox.Yes,
-                                           QtGui.QMessageBox.No)
+            reply = QtGui.QMessageBox.question(self, self.tr('Message'),
+                                               msg,
+                                               QtGui.QMessageBox.Yes,
+                                               QtGui.QMessageBox.No)
 
-        if reply == QtGui.QMessageBox.Yes:
-            # reopens the same project
+            if reply == QtGui.QMessageBox.Yes:
+                # reopens the same project
+                self.openProject(self.projectDirectory)
+        else:
             self.openProject(self.projectDirectory)
 
     def openProject(self, projectDirectory=None):
@@ -505,6 +508,15 @@ function generating nested defaultdicts. Previously used for loading and
             self.model.droppedData.connect(self.droppedData)
             self.model.modelModified.connect(self.modelModified)
             self.model.addedComponentIntoCache.connect(self.saveComponentCache)
+            # having model means that we know all the plugins
+            # available and we can fill-in the plugins for searching
+            self.menu_Suppliers.clear()
+            for plg in self.model.getPlugins():
+                # now we add for each plugin incorporated
+                self.menu_Suppliers.addAction(plg,
+                                              partial(self.pluginChanged,
+                                                      plg))
+
             # search proxy:
             self.proxy = QDesignatorSortModel(self)
             self.proxy.setSourceModel(self.model)
@@ -534,7 +546,6 @@ function generating nested defaultdicts. Previously used for loading and
 
             self.projectDirectory = projectDirectory
             self.modelModified(False)
-
 
         # if projectfile exists, we better return this as it helps us
         # to determine exactly what .pro file user wants (otherwise we
@@ -568,6 +579,11 @@ function generating nested defaultdicts. Previously used for loading and
             # only single item selected
             replace_in_rows = [row, ]
         self.model.updateModelData(replace_in_rows, data)
+
+    def pluginChanged(self, newplugin):
+        """ sets new default plugin
+        """
+        self.model.setDefaultPlugin(newplugin)
 
     def fillFromComponentCache(self, cmpData):
         """ function called from context menu when user selects a
