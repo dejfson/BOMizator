@@ -50,5 +50,10 @@ class radiospares(object):
         """
         return "R"
 
+    def getUrl(self, searchtext):
+        """ returns URL of farnell, which triggers searching for a
+        specific component or name.
+        """
+        return "http://fr.rs-online.com/web/zr/?searchTerm=%s" % (searchtext)
 
 DEFAULT_CLASS = radiospares
