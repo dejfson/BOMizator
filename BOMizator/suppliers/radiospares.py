@@ -41,9 +41,8 @@ class radiospares(object):
         """ parses URL and extract the data from radiospares item
         """
 
-        # for the moment not implemented
-        # @TODO implement radiospares parseURL
-        raise KeyError
+        print(urltext)
+        raise KeyError("Function not properly implemented")
 
     def getShortcut(self):
         """ returns shortcut
