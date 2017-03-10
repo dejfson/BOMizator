@@ -267,7 +267,7 @@ class QBOMModel(QtGui.QStandardItemModel):
             if (not hideDisabled and not enabled) or enabled:
                 self.appendRow(datarow)
 
-    def getItemData(self, rows, getAll=False):
+    def getItemData(self, rows):
         """ returns list of dictionaries containing the data from
         currently selected items. Second parameter specifies whether
         we should get all the rows (entire bom), or just selected

@@ -58,6 +58,12 @@ class supplier_selector(object):
         self.set_default_plugin('FARNELL')
         # and now we're ready to accept search queries
 
+    def getSearchString(self, plugin, tosearch):
+        """ Function uses specific plugin to form a search-string text
+        for his web site.
+        """
+        return self.plugins[plugin].get_url(tosearch)
+
     def set_default_plugin(self, plugin):
         """ sets the default search plugin engine
         """

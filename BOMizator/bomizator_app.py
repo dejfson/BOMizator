@@ -288,10 +288,11 @@ function generating nested defaultdicts. Previously used for loading and
            indexes[0].column() ==\
            self.header.getColumn(self.header.DATASHEET):
             # create menu and corresponding action
-            self.datasheet = indexes[0].data()
+            datasheet = indexes[0].data()
             open_action = menu.addAction(
-                self.tr("Open %s" % (self.datasheet, )))
-            open_action.triggered.connect(self.openDatasheet)
+                self.tr("Open %s" % (datasheet, )))
+            open_action.triggered.connect(partial(self.openBrowser,
+                                                  datasheet))
             execMenu = True
 
         # ###############################################################################
@@ -345,11 +346,6 @@ function generating nested defaultdicts. Previously used for loading and
                            partial(self.enableProxyItems,
                                    False))
             execMenu = True
-        # if oneEnabled and oneDisabled:
-        #     menu.addAction(self.tr("Invert enable/disable"),
-        #                    partial(self.invertProxyEnableItems,
-        #                            False))
-        #     execMenu = True
 
         # ###############################################################################
         # WHEN RIGHT CLICK ON ANY ITEMS, WHICH HAVE FILLED ALREADY
@@ -370,6 +366,23 @@ function generating nested defaultdicts. Previously used for loading and
         if not allEmpty:
             menu.addAction(self.tr("Clear assignments"),
                            self.clearAssignments)
+            execMenu = True
+
+        # ################################################################################
+        # WHEN RIGHT CLICK ON (EXISTING), SUPPLIERNO SEARCH THE
+        # SUPPLIER NUMBER USING HIS WEB PAGES
+        if len(indexes) == 1 and\
+           indexes[0].column() ==\
+           self.header.getColumn(self.header.SUPPNO):
+            iData = self.model.getItemData(self.getSelectedRows())[0]
+            url = self.model.suppliers.getSearchString(
+                iData[self.header.SUPPLIER],
+                iData[self.header.SUPPNO])
+            # create menu and corresponding action
+            menu.addSeparator()
+            menu.addAction(
+                self.tr("Open supplier's web page searching for %s" % (iData[self.header.SUPPNO])),
+                partial(self.openBrowser, url))
             execMenu = True
 
         # ###############################################################################
@@ -637,12 +650,12 @@ function generating nested defaultdicts. Previously used for loading and
                 idx,
                 QtGui.QItemSelectionModel.Select)
 
-    def openDatasheet(self):
+    def openBrowser(self, page):
         """ opens the browser with datasheet
         """
         # now fire the web browser with this page opened
         b = webbrowser.get('firefox')
-        b.open(self.datasheet, new=0, autoraise=True)
+        b.open(page, new=0, autoraise=True)
 
     def openSearchBrowser(self, searchtext):
         """ This function calls default plugin to supply the web
