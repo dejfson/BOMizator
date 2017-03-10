@@ -74,7 +74,7 @@ class supplier_selector(object):
         # generate constructor with appropriate search plugin
         self.engine = self.plugins[self.default_plugin]
 
-    def parseUrl(self, urltext):
+    def parseURL(self, urltext):
         """ Uses all plugins installed to detect if one of the plugins
         can accept the web page URL and parse its content to get the
         data into right format. If so, this function returns a dictionary
@@ -92,7 +92,7 @@ class supplier_selector(object):
                       "\tChecking " +
                       name +
                       " ... ", end='')
-                data = plug.parse_URL(urltext)
+                data = plug.parseURL(urltext)
                 colors().printOK("FOUND")
                 return data
             except KeyError:

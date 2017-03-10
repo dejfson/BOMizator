@@ -399,7 +399,7 @@ class QBOMModel(QtGui.QStandardItemModel):
         """
 
         QtGui.QApplication.setOverrideCursor(QtCore.Qt.WaitCursor)
-        textstr = self.suppliers.parse_URL(data.text())
+        textstr = self.suppliers.parseURL(data.text())
         self.droppedData.emit(
             textstr,
             treeparent.row(),

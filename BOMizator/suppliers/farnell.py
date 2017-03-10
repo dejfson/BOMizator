@@ -38,6 +38,16 @@ except ImportError:
 from BOMizator.headers import headers
 from BOMizator.colors import colors
 
+# FOR THE MOMENT THE FARNELL LOOKUP IS DONE BY PARSING THEIR WEB
+# PAGES. AND IT WORKS GREAT. HOWEVER IF THAT FOR SOME CASE FAILS, IT
+# SEEMS THAT FARNELL IS VERY WELL ORGANISED AND TRIES TO DO THE BEST
+# FOR HIS CUSTOMER, AND CAME WITH AN API, DESCRIBED HERE:
+# http://partner.element14.com/docs/Product_Search_API_REST__Description
+# SO IF THAT PAGES PARSER FOR SOME REASONS STOPS FUNCTIONING, WE MIGHT
+# REIMPLEMENT THE SEARCH ENGINE USING THEIR API. LOVELY! COMPARED TO
+# RADIOSPARES WEB PAGES IT IS LIKE A HEAVEN AGAINST HELL
+
+
 class farnell(object):
     """ defines web search interface for uk.farnell.com.
     """
@@ -85,7 +95,7 @@ wcs/stores/servlet/Search?st=%s" % (searchtext,)
             sheet = ''
         return sheet
 
-    def parse_URL(self, urltext):
+    def parseURL(self, urltext):
         """ From GIVEN URL (web pages) parses all the data to resolve
         the component. Farnell is relatively easy to do. Here is the
         typical URL, self-explanatory. NOTE THAT ALL OBJECTS ARE

@@ -37,7 +37,7 @@ class radiospares(object):
     def __init__(self):
         self.name = "RADIOSPARES"
 
-    def parse_URL(self, urltext):
+    def parseURL(self, urltext):
         """ parses URL and extract the data from radiospares item
         """
 
