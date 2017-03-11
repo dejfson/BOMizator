@@ -48,7 +48,6 @@ class schParser(object):
         """ projectFile points to a specific .pro file from KiCad
         """
         self.projectFile = projectFile
-
         # configuration filename is derived from projectname
         cfile = os.path.splitext(self.projectFile)[0]
         # projectDirectory is correctly pointing to given place
@@ -56,9 +55,9 @@ class schParser(object):
         # local settings are read directly from the project
         # directory. If exist, they store information about suppressed
         # items (and other things for the future)
+        bzfile = cfile + ".bmz"
         self.localSettings =\
-            QtCore.QSettings(os.path.join(cfile,
-                                          ".bmz"),
+            QtCore.QSettings(bzfile,
                              QtCore.QSettings.IniFormat)
         self.debug = False
         self.header = headers()
@@ -98,6 +97,17 @@ class schParser(object):
         # is loaded from project configuration file
         self.loadDisabledDesignators()
 
+        # general multiplier is used to multiple the unit-production
+        # amount of components by a specific amount to generate total
+        # BOM for x-pieces.
+        self.loadGlobalMultiplier()
+
+    def loadGlobalMultiplier(self):
+        self.globalMultiplier = self.localSettings.value(
+            'globalMultiplier',
+            1,
+            int)
+
     def loadDisabledDesignators(self):
         """ stores list of disabled operators into the local set
         """
@@ -105,7 +115,6 @@ class schParser(object):
             'disabledDesignators',
             [],
             str))
-        print(self.disabledDesignators)
 
     def getDisabledDesignators(self):
         """ returns _set_ of currently disabled designators. We return
@@ -118,7 +127,7 @@ class schParser(object):
         """ list of designators provided will be stored in the
         designator file.
         """
-        print(desig)
+        self.disabledDesignators = set(desig)
 
     def updateComponents(self, targets, newdata):
         """ Update all the componenents identified by list of
@@ -180,7 +189,9 @@ class schParser(object):
 
         # first save project variables
         self.localSettings.setValue('disabledDesignators',
-                                    self.disabledDesignators)
+                                    list(self.disabledDesignators))
+        self.localSettings.setValue('globalMultiplier',
+                                    self.globalMultiplier)
 
         # then parse schematic files and make them update the
         # parameters
