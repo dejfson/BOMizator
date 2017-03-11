@@ -90,13 +90,30 @@
         <string>BOM</string>
        </attribute>
        <layout class="QGridLayout" name="gridLayout_3">
-        <item row="0" column="0">
+        <item row="1" column="0" colspan="2">
          <widget class="QTreeView" name="bomView"/>
         </item>
-        <item row="1" column="0">
-         <widget class="QPushButton" name="pushButton">
+        <item row="0" column="0">
+         <widget class="QLabel" name="label">
+          <property name="text">
+           <string>&amp;General multiplier: </string>
+          </property>
+         </widget>
+        </item>
+        <item row="2" column="0">
+         <widget class="QPushButton" name="bomExport">
           <property name="text">
            <string>&amp;Export BOM</string>
+          </property>
+         </widget>
+        </item>
+        <item row="0" column="1">
+         <widget class="QLineEdit" name="bomMultiplier">
+          <property name="inputMask">
+           <string>999; </string>
+          </property>
+          <property name="text">
+           <string>1</string>
           </property>
          </widget>
         </item>

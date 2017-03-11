@@ -33,7 +33,6 @@ from PyQt4 import QtGui, QtCore
 import hashlib
 import json
 from collections import defaultdict
-from .sch_parser import schParser
 from .supplier_selector import supplier_selector
 from .headers import headers
 
@@ -67,8 +66,8 @@ class QBOMModel(QtGui.QStandardItemModel):
     """
     modelModified = QtCore.pyqtSignal(bool)
 
-    def __init__(self, componentsCache={},
-                 projectDirectory=None,
+    def __init__(self, projectData=None,
+                 componentsCache={},
                  parent=None):
         """ creates headers object used for comparison. The parent
         identifies the treeView. componentsCache is a dictionary (it
@@ -89,15 +88,13 @@ class QBOMModel(QtGui.QStandardItemModel):
         """
         super(QBOMModel, self).__init__(parent)
         self.componentsCache = componentsCache
-        self.projectDirectory = projectDirectory
-
+        self.SCH = projectData
         self.setModified(False)
         self.header = headers()
         # get all sellers filters
         self.suppliers = supplier_selector()
         self.componentsCache = componentsCache
-        self.SCH = schParser(projectDirectory)
-        self.SCH.parseComponents()
+
         # hook when cell data changed by some model editing. This
         # should perform SCH write
         self.itemChanged.connect(self.cellDataChanged)
