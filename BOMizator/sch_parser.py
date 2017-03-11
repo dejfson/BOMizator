@@ -37,6 +37,7 @@ from .colors import colors
 from .headers import headers
 from .qdesignatorcomparator import QDesignatorComparator
 import shlex
+from PyQt4 import QtCore
 
 
 class schParser(object):
@@ -48,6 +49,17 @@ class schParser(object):
         """
         self.projectFile = projectFile
 
+        # configuration filename is derived from projectname
+        cfile = os.path.splitext(self.projectFile)[0]
+        # projectDirectory is correctly pointing to given place
+        # set of actions to initialize the model
+        # local settings are read directly from the project
+        # directory. If exist, they store information about suppressed
+        # items (and other things for the future)
+        self.localSettings =\
+            QtCore.QSettings(os.path.join(cfile,
+                                          ".bmz"),
+                             QtCore.QSettings.IniFormat)
         self.debug = False
         self.header = headers()
         # we cannot do a simple looking for schematic files. Instead
@@ -80,6 +92,33 @@ class schParser(object):
             'F': self._attributeF,
             '\t': self._attributeTab,
             '$': self._attributeTermination}
+
+        # disabled designators are those which are 'grayed out' and
+        # any modification operation over them is ignored. Their list
+        # is loaded from project configuration file
+        self.loadDisabledDesignators()
+
+    def loadDisabledDesignators(self):
+        """ stores list of disabled operators into the local set
+        """
+        self.disabledDesignators = set(self.localSettings.value(
+            'disabledDesignators',
+            [],
+            str))
+        print(self.disabledDesignators)
+
+    def getDisabledDesignators(self):
+        """ returns _set_ of currently disabled designators. We return
+        set because it represents unique items. Each designator is
+        only single unique item (even if containing multiple designators)
+        """
+        return self.disabledDesignators
+
+    def disableDesignators(self, desig):
+        """ list of designators provided will be stored in the
+        designator file.
+        """
+        print(desig)
 
     def updateComponents(self, targets, newdata):
         """ Update all the componenents identified by list of
@@ -139,6 +178,12 @@ class schParser(object):
 
         """
 
+        # first save project variables
+        self.localSettings.setValue('disabledDesignators',
+                                    self.disabledDesignators)
+
+        # then parse schematic files and make them update the
+        # parameters
         inComponent = False
         # go through all the schematic files
         for schfile in self.matches:
