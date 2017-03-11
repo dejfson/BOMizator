@@ -499,7 +499,7 @@ function generating nested defaultdicts. Previously used for loading and
         selection was done (cancelled dialog)
         """
         canContinue = False
-        if not projectDirectory:
+        if not projectDirectory or not os.path.isfile(projectDirectory):
             # if not given directory from the command line, ask for it
             dlg = QtGui.QFileDialog()
             dlg.setFilter("Kicad project file (*.pro)")
