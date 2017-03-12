@@ -66,6 +66,10 @@ class QBOMModel(QtGui.QStandardItemModel):
     """
     modelModified = QtCore.pyqtSignal(bool)
 
+    """ emitted when enable/disable on particular components is issued
+    """
+    enabledComponents = QtCore.pyqtSignal(int)
+
     def __init__(self, projectData=None,
                  componentsCache={},
                  parent=None):
@@ -193,6 +197,7 @@ class QBOMModel(QtGui.QStandardItemModel):
         COMPONENTS BY ROWS. Function returns the original list.
         """
         for xi in stidems:
+            print("Enable: ", xi.text())
             # we enable the line
             xi.setData(enable, self.header.ItemEnabled)
             if enable:

@@ -127,6 +127,7 @@ class schParser(object):
         """ list of designators provided will be stored in the
         designator file.
         """
+        print(desig)
         self.disabledDesignators = set(desig)
 
     def updateComponents(self, targets, newdata):
