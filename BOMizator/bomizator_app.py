@@ -142,20 +142,16 @@ function generating nested defaultdicts. Previously used for loading and
         the components is restored from scratch and will not contain
         the hidden components.
         """
+
+        self.disabledComponentsHidden = hideComponents
         self.action_Hide_disabled_components.setEnabled(not hideComponents)
         self.action_Show_disabled_components.setEnabled(hideComponents)
         # save the state into configfile
         self.settings.setValue("hideDisabledComponents",
                                hideComponents)
-        self.fillModel(hideComponents)
-        self.treeSelection()
-
-    def fillModel(self, hideDisabled=True):
-        """ resets the components treeview, and reloads it with the
-        model data.
-        """
         self.model.fillModel(self.SCH.getDisabledDesignators(),
-                             hideDisabled)
+                             hideComponents)
+        self.treeSelection()
 
     def treeSelection(self):
         """ When selection changes, the status bar gets updated with
@@ -489,7 +485,6 @@ function generating nested defaultdicts. Previously used for loading and
         selection was done (cancelled dialog)
         """
         canContinue = False
-        print(os.path.isdir(projectDirectory))
         if not projectDirectory or\
            (not os.path.isfile(projectDirectory) and
             not os.path.isdir(projectDirectory)):
@@ -559,11 +554,11 @@ function generating nested defaultdicts. Previously used for loading and
                 self.header.DESIGNATOR), QtCore.Qt.AscendingOrder)
 
             # fill the model with the data
-            hideDisabled = self.settings.value("hideDisabledComponents",
+            self.disabledComponentsHidden = self.settings.value("hideDisabledComponents",
                                                False,
                                                bool)
-            self.action_Hide_disabled_components.setEnabled(not hideDisabled)
-            self.action_Show_disabled_components.setEnabled(hideDisabled)
+            self.action_Hide_disabled_components.setEnabled(not self.disabledComponentsHidden)
+            self.action_Show_disabled_components.setEnabled(self.disabledComponentsHidden)
 
             # load lastly used plugin
             lastPlugin = self.settings.value("lastUsedSearchPlugin",
@@ -571,7 +566,8 @@ function generating nested defaultdicts. Previously used for loading and
                                              str)
             self.pluginChanged(lastPlugin)
 
-            self.fillModel(hideDisabled)
+            self.model.fillModel(self.SCH.getDisabledDesignators(),
+                                 self.disabledComponentsHidden)
             # as the model is filled with the data, we can resize columns
             for i in range(len(self.header)):
                 self.treeView.resizeColumnToContents(i)
@@ -638,28 +634,10 @@ function generating nested defaultdicts. Previously used for loading and
         aa = self.proxy.mapToSource(self.treeView.selectedIndexes()[0])
         self.droppedData(cmpData, aa.row(), aa.column())
 
-    def enableItems(self, stidems, enable=True):
-        """ info whether item is disabled or enabled is stored in user
-        role, as we do not want to disable the item completely (that's
-        because when disabled, it is not selectable any more). This
-        function takes all the stitems and enables, disables
-        them. This is done by setting role of BOMizator.ItemEnabled on
-        a particular index. NOTE THAT THIS FUNCTION HAS TO BE ALWAYS
-        CALLED FOR ALL STDITEMS FROM A ROW AS WE WANT TO DISABLE THE
-        COMPONENTS BY ROWS. Function returns the original list.
-        """
-        for xi in stidems:
-            # we enable the line
-            xi.setData(enable, self.header.ItemEnabled)
-            if enable:
-                xi.setForeground(QtGui.QColor('black'))
-            else:
-                xi.setForeground(QtGui.QColor('gray'))
-        return stidems
-
     def enableProxyItems(self, enable):
         """ looks for all selected items in proxy, maps them into base
-        and enables/disables as needed.
+        and enables/disables as needed. This function is called from
+        contextmenu when enable/disable is selected
         """
         rowsAffected = self.getSelectedRows()
         # having rows we can pull out all items from specific rowCount
@@ -669,20 +647,24 @@ function generating nested defaultdicts. Previously used for loading and
                 self.model.index(row, col)),
                             range(self.model.columnCount()))
             allItems += list(singlerow)
-        self.enableItems(allItems, enable)
-        # and now we run through _all the items int the list_ and
-        # check whether they are enabled/disabled and write it down
-        # into the configuration file (local settings file) such, that
-        # next time the disabled items are properly marked. We do not
-        # care here going through proxy
-        desig = map(lambda row: (self.model.item(row, 0).text(),
-                            self.model.item(row, 0).data(
-                                self.header.ItemEnabled)),
-                    range(self.model.rowCount()))
-        # filter disabled designators
-        disab = list(map(lambda d: d[0], filter(lambda des: not des[1], desig)))
-        # list of disabled components is stored in local settings file
-        self.SCH.disableDesignators(disab)
+        # instructs model to disable all designators. This is just a
+        # view issue, nothing to do with real data storage. This
+        # inside calls setData with specific user role, which triggers
+        # in the model datachanged and hence sets up correctly
+        # disabled designators
+        self.model.enableItems(allItems, enable)
+        # if we currently do not show the disabled components (in a
+        # view), we have to remove the line from the model completely
+        if self.disabledComponentsHidden:
+            # we have to remove the row from the view. Problem with
+            # removing is, that we have to do it one by one, _and_
+            # when we remove a row, all indexing gets nuts, hence we
+            # need to sort first the rows, then iterate over them and
+            # subtract from index already rows existing
+            rows = sorted(list(set(map(lambda ie: ie.row(), allItems))))
+            for index, row in enumerate(rows):
+                self.model.removeRows(row - index, 1)
+
         self.treeSelection()
 
     def selectSameFilter(self):

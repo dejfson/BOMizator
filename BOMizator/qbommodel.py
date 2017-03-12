@@ -142,12 +142,19 @@ class QBOMModel(QtGui.QStandardItemModel):
         signal, which we intercept here. The item is the _new value_
         of the item in the data structure. We modify here components
         definitions such, that the newly entered data will match the
-        underlying component data. the data item is in MODEL space.
+        underlying component data. the data item is in MODEL
+        space. Unfortunately standard item model does not allow to
+        identify what _exactly_ changed, so we have to always operate
+        on all data
         """
         # the way how we change the data is that we modify the
         # underlying schematic components dictionary
         colname = self.header.getColumnName(item.column())
         desigItem = self.getDesignator(item.row())
+        # first update the enable/disable designator of the given
+        # component.
+        self.SCH.enableDesignator(desigItem.text(),
+                                  item.data(self.header.ItemEnabled))
         self.SCH.updateComponents(
             [desigItem.text(), ],
             {colname: item.text()})
@@ -197,7 +204,6 @@ class QBOMModel(QtGui.QStandardItemModel):
         COMPONENTS BY ROWS. Function returns the original list.
         """
         for xi in stidems:
-            print("Enable: ", xi.text())
             # we enable the line
             xi.setData(enable, self.header.ItemEnabled)
             if enable:
@@ -282,10 +288,11 @@ class QBOMModel(QtGui.QStandardItemModel):
             enabled = True
             if shat[0].text() in disabledDesignators:
                 enabled = False
-            datarow = self.enableItems(shat, enabled)
+            # sets disabled all the data rows
+            dataload = self.enableItems(shat, enabled)
             # now, if we want to see the disabled items in the menu:
             if (not hideDisabled and not enabled) or enabled:
-                self.appendRow(datarow)
+                self.appendRow(dataload)
 
     def getItemData(self, rows):
         """ returns list of dictionaries containing the data from
