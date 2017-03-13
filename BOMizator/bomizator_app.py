@@ -51,6 +51,7 @@ from .colors import colors
 from .qdesignatorsortmodel import QDesignatorSortModel
 from .qbommodel import QBOMModel
 from .sch_parser import schParser
+from .qbomitemmodel import QBOMItemModel
 
 localpath = os.path.dirname(os.path.realpath(__file__))
 form_class = uic.loadUiType(os.path.join(localpath, "BOMLinker.ui"))[0]
@@ -112,6 +113,12 @@ class BOMizator(QtGui.QMainWindow, form_class):
         with new model data
         """
         # @TODO implement recreation of BOMview from data
+        if self.tabWidget.tabText(newidx) == "BOM":
+            # we have to re-create the new item model for BOM display
+            # data
+            self.bomTree = QBOMItemModel(self.SCH, self)
+            self.bomView.setModel(self.bomTree)
+
         print(self.tabWidget.tabText(newidx))
 
     def saveProject(self):
