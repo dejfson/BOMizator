@@ -396,8 +396,13 @@ class QBOMModel(QtGui.QStandardItemModel):
         # get the data out of those indices
         colidx = list(self.header.getColumns(self.header.USERITEMS))
         for row in rows:
-            for col in colidx:
-                self.setData(self.index(row, col), "")
+            # apply only for enabled items:
+            if self.data(self.index(row,
+                                    self.header.getColumn(
+                                        self.header.DESIGNATOR)),
+                         self.header.ItemEnabled):
+                for col in colidx:
+                    self.setData(self.index(row, col), "")
 
     def dropMimeData(self, data, action, row, column, treeparent):
         """ takes care of data modifications. The data _must contain_
@@ -432,10 +437,11 @@ class QBOMModel(QtGui.QStandardItemModel):
         for row in replace_in_rows:
             # walk through each parsed item, and change the data
             for key, value in parsed_data.items():
-                self.setData(
-                    self.index(row,
-                               self.header.getColumn(key)),
-                    value)
+                mind = self.index(row,
+                                  self.header.getColumn(key))
+                if self.data(mind,
+                             self.header.ItemEnabled):
+                    self.setData(mind, value)
             # the point with rows is, that we need to collect
             # libref/value/footprint for each selected row, as it
             # they are the same for the entire selection, we are
