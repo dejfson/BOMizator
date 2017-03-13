@@ -187,15 +187,25 @@ function generating nested defaultdicts. Previously used for loading and
         """ reimplemented close to save window position
         """
         if self.model.isModified():
-            quit_msg = "Are you sure you want to exit the program?"
-            reply = QtGui.QMessageBox.question(self, 'Message',
-                                               quit_msg,
-                                               QtGui.QMessageBox.Yes,
-                                               QtGui.QMessageBox.No)
+            msgBox = QtGui.QMessageBox(self)
+            msgBox.setText(self.tr("The document has been modified"))
+            msgBox.setInformativeText(self.tr(
+                "Do you want to save your changes?"))
+            msgBox.setStandardButtons(
+                QtGui.QMessageBox.Save |
+                QtGui.QMessageBox.Discard |
+                QtGui.QMessageBox.Cancel)
+            msgBox.setDefaultButton(QtGui.QMessageBox.Save);
 
-            if reply == QtGui.QMessageBox.No:
+            reply = msgBox.exec_();
+
+            if reply == QtGui.QMessageBox.Cancel:
                 event.ignore()
                 return
+
+            if reply == QtGui.QMessageBox.Save:
+                # save data first
+                self.saveProject()
 
         event.accept()
         self._writeWindowAttributeSettings()
