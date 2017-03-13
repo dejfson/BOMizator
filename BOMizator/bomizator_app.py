@@ -564,18 +564,19 @@ function generating nested defaultdicts. Previously used for loading and
             self.treeView.setSortingEnabled(True)
             # get header object
             self.header = headers()
-            sorted_header = self.header.getHeaders()
-            self.model.setHorizontalHeaderLabels(sorted_header)
             # set sorting of treeview by designator
             self.treeView.sortByColumn(self.header.getColumn(
                 self.header.DESIGNATOR), QtCore.Qt.AscendingOrder)
 
             # fill the model with the data
-            self.disabledComponentsHidden = self.settings.value("hideDisabledComponents",
-                                               False,
-                                               bool)
-            self.action_Hide_disabled_components.setEnabled(not self.disabledComponentsHidden)
-            self.action_Show_disabled_components.setEnabled(self.disabledComponentsHidden)
+            self.disabledComponentsHidden = self.settings.value(
+                "hideDisabledComponents",
+                False,
+                bool)
+            self.action_Hide_disabled_components.setEnabled(
+                not self.disabledComponentsHidden)
+            self.action_Show_disabled_components.setEnabled(
+                self.disabledComponentsHidden)
 
             # load lastly used plugin
             lastPlugin = self.settings.value("lastUsedSearchPlugin",

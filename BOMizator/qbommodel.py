@@ -99,6 +99,9 @@ class QBOMModel(QtGui.QStandardItemModel):
         self.suppliers = supplier_selector()
         self.componentsCache = componentsCache
 
+        sorted_header = self.header.getHeaders()
+        self.setHorizontalHeaderLabels(sorted_header)
+
         # hook when cell data changed by some model editing. This
         # should perform SCH write
         self.itemChanged.connect(self.cellDataChanged)

@@ -41,3 +41,7 @@ class QBOMItemModel(QtGui.QStandardItemModel):
     def __init__(self, sourceData, parent=None):
         super(QBOMItemModel, self).__init__(parent)
         self.SCH = sourceData
+        # the point here: we generate a model,which has left-most set
+        # of designators, followed by multiply, add
+        sorted_header = self.header.getBOMHeaders()
+        self.setHorizontalHeaderLabels(sorted_header)
