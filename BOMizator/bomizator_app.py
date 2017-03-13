@@ -92,7 +92,10 @@ class BOMizator(QtGui.QMainWindow, form_class):
         # 'filtering' to select correcly chosen indices
         self.treeView.setContextMenuPolicy(QtCore.Qt.CustomContextMenu)
         self.treeView.customContextMenuRequested.connect(self.openMenu)
-
+        # multiplier
+        self.bomMultiplier.returnPressed.connect(self.newMultiplier)
+        self.bomMultiplier.setValidator(QtGui.QIntValidator(1, 100))
+        self.bomApply.clicked.connect(self.newMultiplier)
         # tab widget: we intercept tab change signal as everytime we
         # come to BOM, we have to re-create the data from scratch as
         # looking for changes would be complicated
@@ -109,6 +112,16 @@ class BOMizator(QtGui.QMainWindow, form_class):
         # update status for the first time
         self.treeSelection()
 
+    def newMultiplier(self):
+        """ called when global multiplier changed
+        """
+        orig = self.SCH.getGlobalMultiplier()
+        new = int(self.bomMultiplier.text())
+        if orig != new:
+            print("newone")
+            self.SCH.setGlobalMultiplier(new)
+            self.modelModified(True)
+
     def tabChanged(self, newidx):
         """ when tab changes to BOM, we need to reload the treeview
         with new model data
@@ -124,13 +137,16 @@ class BOMizator(QtGui.QMainWindow, form_class):
             self.bomView.expandAll()
             for i in range(self.bomTree.columnCount()):
                 self.bomView.resizeColumnToContents(i)
+            # setup multiplier
+            self.bomMultiplier.setText("%d" % (self.SCH.getGlobalMultiplier()))
 
     def saveProject(self):
         """ this function generates the data out of all the components
         in the current data model, and passes these components to
         schematics parser to save
         """
-        self.model.save()
+        self.SCH.save()
+        self.modelModified(False)
 
     def saveComponentCache(self):
         """ signal caught when component cache changed and save is required

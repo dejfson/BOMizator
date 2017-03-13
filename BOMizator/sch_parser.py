@@ -40,13 +40,18 @@ import shlex
 from PyQt4 import QtCore
 
 
-class schParser(object):
+class schParser(QtCore.QObject):
     """ Parses the KiCad schematics files for components
     """
 
-    def __init__(self, projectFile):
+    """ signal emitted when global multiplier changed
+    """
+    globalMultiplierModified = QtCore.pyqtSignal()
+
+    def __init__(self, projectFile, parent=None):
         """ projectFile points to a specific .pro file from KiCad
         """
+        super(schParser, self).__init__(parent)
         self.projectFile = projectFile
         # configuration filename is derived from projectname
         cfile = os.path.splitext(self.projectFile)[0]
@@ -107,6 +112,12 @@ class schParser(object):
             'globalMultiplier',
             1,
             int)
+
+    def setGlobalMultiplier(self, mlt):
+        """ sets new global multiplier for the data
+        """
+        self.globalMultiplier = mlt
+        self.globalMultiplierModified.emit()
 
     def getGlobalMultiplier(self):
         return self.globalMultiplier

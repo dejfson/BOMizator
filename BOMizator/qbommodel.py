@@ -215,13 +215,6 @@ class QBOMModel(QtGui.QStandardItemModel):
                 xi.setForeground(QtGui.QColor('gray'))
         return stidems
 
-    def save(self):
-        """ calls schematic structure to save the model. It has no
-        action linked to component cache, which is updated 'on fly'
-        """
-        self.SCH.save()
-        self.setModified(False)
-
     def setModified(self, xmodified):
         """ sets modification flag and emits modelModified when any
         change happens

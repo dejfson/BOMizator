@@ -35,6 +35,7 @@ bill of material usable to directly order the components
 from PyQt4 import QtGui, QtCore
 import pickle
 import textwrap
+from itertools import count
 from .bomheaders import bomheaders
 from .qdesignatorcomparator import QDesignatorComparator
 
@@ -44,6 +45,7 @@ class QBOMItemModel(QtGui.QStandardItemModel):
     def __init__(self, sourceData, hideComponents, parent=None):
         super(QBOMItemModel, self).__init__(parent)
         self.SCH = sourceData
+        self.SCH.globalMultiplierModified.connect(self.updateGlobalMultiplier)
         # the point here: we generate a model,which has left-most set
         # of designators, followed by multiply, add
         self.header = bomheaders()
@@ -70,9 +72,9 @@ class QBOMItemModel(QtGui.QStandardItemModel):
         """
         numDesigs = len(cdata[self.header.DESIGNATORS])
         totalSimple = numDesigs *\
-                      cdata[self.header.MULTIPLYFACTOR] *\
+                      int(cdata[self.header.MULTIPLYFACTOR]) *\
                       self.SCH.getGlobalMultiplier() +\
-                      cdata[self.header.ADDFACTOR]
+                      int(cdata[self.header.ADDFACTOR])
         # total simple is now passed through the rounding effect. This
         # depends on components 'RoundingPolicy'.
         # generally roundingpolicy = 0 -> direct number, for each 1+
@@ -80,6 +82,44 @@ class QBOMItemModel(QtGui.QStandardItemModel):
         # @TODO implement rounding policy
         rp = [0, 2, 5, 10, 20, 50, 100]
         return totalSimple
+
+    def updateGlobalMultiplier(self):
+        """
+        called whenever underlying SCH changes the multiplier. this
+        happens when GUI requires to change the multiplier. We
+        re-insert new data into total sums as this is the value which changes
+        """
+        cdata = {}
+        # this is top-level with supplier
+        for supplier in range(self.rowCount()):
+            # and sub parsing
+            index = self.index(supplier, 0)
+            try:
+                for row in range(40):
+                    for item in [self.header.DESIGNATORS,
+                                 self.header.MULTIPLYFACTOR,
+                                 self.header.ADDFACTOR]:
+                        idx = index.child(row, self.header.getColumn(item))
+                        if not idx.isValid():
+                            raise ValueError
+                        cdata[item] = idx.data()
+                    # need to convert-back the designators to
+                    # 'standard' form to be able to determine how many
+                    # we have
+                    desigs = cdata[self.header.DESIGNATORS]
+                    cdata[self.header.DESIGNATORS] = desigs.split(",")
+                    # these fake data can calculate new totals
+                    newtot = self.getTotal(cdata)
+                    # and now we have to set the data into total
+                    self.setData(
+                        index.child(row, self.header.getColumn(
+                            self.header.TOTAL)),
+                        str(newtot))
+            except ValueError:
+                pass
+
+        print(cdata)
+        print("updating global multiplier view")
 
     def fillModel(self, hideComponents):
         """ based on input data the model is filled with the
@@ -134,15 +174,12 @@ class QBOMItemModel(QtGui.QStandardItemModel):
                         data = cdata[column]
                     row.append(data)
 
-                print(allComps[supplier][ordercode])
-                print(row)
                 rowdata = list(map(QtGui.QStandardItem, row))
 
                 supprow.appendRow(rowdata)
 
         sorted_header = self.header.getHeaders()
         self.setHorizontalHeaderLabels(sorted_header)
-
 
     def flags(self, index):
         """ according to which column we have cursor on, this field

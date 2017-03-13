@@ -106,16 +106,13 @@
         </item>
         <item row="0" column="1">
          <widget class="QLineEdit" name="bomMultiplier">
-          <property name="inputMask">
-           <string>999; </string>
-          </property>
           <property name="text">
-           <string>1</string>
+           <string/>
           </property>
          </widget>
         </item>
         <item row="0" column="2">
-         <widget class="QPushButton" name="action_applyMultiplier">
+         <widget class="QPushButton" name="bomApply">
           <property name="text">
            <string>&amp;Apply</string>
           </property>
@@ -129,8 +126,11 @@
           <property name="alternatingRowColors">
            <bool>true</bool>
           </property>
+          <property name="selectionMode">
+           <enum>QAbstractItemView::SingleSelection</enum>
+          </property>
           <property name="selectionBehavior">
-           <enum>QAbstractItemView::SelectItems</enum>
+           <enum>QAbstractItemView::SelectRows</enum>
           </property>
           <property name="rootIsDecorated">
            <bool>true</bool>
@@ -167,7 +167,7 @@
      <x>0</x>
      <y>0</y>
      <width>1258</width>
-     <height>20</height>
+     <height>44</height>
     </rect>
    </property>
    <widget class="QMenu" name="menu_View">
