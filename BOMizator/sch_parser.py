@@ -108,6 +108,9 @@ class schParser(object):
             1,
             int)
 
+    def getGlobalMultiplier(self):
+        return self.globalMultiplier
+
     def loadDisabledDesignators(self):
         """ stores list of disabled operators into the local set
         """
@@ -139,6 +142,11 @@ class schParser(object):
         else:
             self.disabledDesignators.discard(desig)
 
+    def getComponents(self):
+        """ returns dictionary of all loaded components
+        """
+        return self. components
+
     def updateComponents(self, targets, newdata):
         """ Update all the componenents identified by list of
         normalised designators by new data for each key of
@@ -162,6 +170,67 @@ class schParser(object):
         """ returns component identified by normalised designator
         """
         return self.components[normDesig]
+
+    def getCollectedComponents(self):
+        """ returns dictionary of all components _collected by
+        supplier and  supplier reference
+        """
+        # we better do this one by one as we have more possibilities to get
+        # through. Collected will contain the result once all parsed. It is a
+        # simple dictionary with key of supplier
+        collected = defaultdict(dict)
+        unassigned = set([])
+
+        for component in self.components.values():
+            if component[self.header.SUPPNO] != '':
+                # copy original data from the component (!! ALL OF THEM SHOULD
+                # BE THE SAME!!)
+                for hx in [self.header.MANUFACTURER,
+                           self.header.MFRNO,
+                           self.header.DATASHEET,
+                           self.header.LIBREF,
+                           self.header.VALUE]:
+                    try:
+                        collected[component[self.header.SUPPLIER]]\
+                            [component[self.header.SUPPNO]][hx] = component[hx]
+                    except KeyError:
+                        # we need to generate new supplier number
+                        collected[component[self.header.SUPPLIER]]\
+                            [component[self.header.SUPPNO]] = {}
+                        collected[component[self.header.SUPPLIER]]\
+                            [component[self.header.SUPPNO]][hx] = component[hx]
+                # treat designators, we have to join two sets: existing +
+                # newcomers. Again, they should never be the same, but
+                try:
+                    a = collected[component[self.header.SUPPLIER]]\
+                        [component[self.header.SUPPNO]]['Designators']
+                except KeyError:
+                    a = set([])
+                a = a.union(component[self.header.DESIGNATOR])
+                collected[component[self.header.SUPPLIER]]\
+                    [component[self.header.SUPPNO]]['Designators'] = a
+                # let's read additional information from bmz, same
+                # stuff as before
+                grpName = '-'.join([component[self.header.SUPPLIER],
+                                    component[self.header.SUPPNO]])
+                self.localSettings.beginGroup(grpName)
+                for ident, defval in [('Multiplier', 1),
+                                      ('Adder', 0),
+                                      ('RoundingPolicy', 0),
+                                      ('Total', 0)]:
+                    collected[component[self.header.SUPPLIER]]\
+                        [component[self.header.SUPPNO]]\
+                        [ident] = self.localSettings.value(ident,
+                                                           defval,
+                                                           int)
+                self.localSettings.endGroup()
+
+            else:
+                unassigned = unassigned.union(
+                    component[self.header.DESIGNATOR])
+        colors().printWarn("%s: unassigned supplier,\
+ ignoring" % (', '.join(unassigned)))
+        return collected
 
     def save(self):
         """ function parses all the project schematic files,
@@ -555,12 +624,11 @@ class schParser(object):
             self.current_component['X'] = []
             self.current_component['X'].append(line)
 
-    def getDesignatorText(self, desig):
-        """ input is a set of designators, output is the _textual
-        representation_ of the designators, they are concatenated by
-        comma and sorted in ascending order
-        """
-
+    # def getDesignatorText(self, desig):
+    #     """ input is a set of designators, output is the _textual
+    #     representation_ of the designators, they are concatenated by
+    #     comma and sorted in ascending order
+    #     """
 
     def _attributeAr(self, line):
         """ AR-type attribute is used in hierarchical design. Its form

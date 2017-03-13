@@ -97,6 +97,7 @@ class BOMizator(QtGui.QMainWindow, form_class):
         # come to BOM, we have to re-create the data from scratch as
         # looking for changes would be complicated
         self.tabWidget.currentChanged.connect(self.tabChanged)
+        self.tabWidget.setCurrentIndex(0)
         # switching tab in tablebiew
         # various menu items
         self.action_Quit.triggered.connect(self.close)
@@ -116,10 +117,13 @@ class BOMizator(QtGui.QMainWindow, form_class):
         if self.tabWidget.tabText(newidx) == "BOM":
             # we have to re-create the new item model for BOM display
             # data
-            self.bomTree = QBOMItemModel(self.SCH, self)
+            self.bomTree = QBOMItemModel(self.SCH,
+                                         self.disabledComponentsHidden)
             self.bomView.setModel(self.bomTree)
-
-        print(self.tabWidget.tabText(newidx))
+            # and resize columns
+            self.bomView.expandAll()
+            for i in range(self.bomTree.columnCount()):
+                self.bomView.resizeColumnToContents(i)
 
     def saveProject(self):
         """ this function generates the data out of all the components
