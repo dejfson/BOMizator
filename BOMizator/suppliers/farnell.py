@@ -37,6 +37,7 @@ except ImportError:
 # import headers to be able to match the string names correctly
 from BOMizator.headers import headers
 from BOMizator.colors import colors
+from BOMizator.suppexceptions import NotMatchingHeader, MalformedURL
 
 # FOR THE MOMENT THE FARNELL LOOKUP IS DONE BY PARSING THEIR WEB
 # PAGES. AND IT WORKS GREAT. HOWEVER IF THAT FOR SOME CASE FAILS, IT
@@ -53,7 +54,7 @@ class farnell(object):
     """
 
     def __init__(self):
-        self.name = "FARNELL"
+        self.name = "Farnell"
         self.header = headers()
         self.debug = False
 
@@ -129,12 +130,12 @@ wcs/stores/servlet/Search?st=%s" % (searchtext,)
             # series of checks: site has to contain farnell:
             if site.upper().find("FARNELL") == -1:
                 print("\n\tNo Farnell identifier detected")
-                raise KeyError
+                raise NotMatchingHeader
 
             # deep has to contain DP:
             if deep.upper().find("DP") == -1:
                 print("\t\tMalformed URL for FARNELL plugin")
-                raise KeyError
+                raise NotMatchingHeader
             # the most problematic is to dig out the datasheet for the
             # component. This is not part of the URL and for this we need
             # to actually fetch and parse the page. For the moment
@@ -150,15 +151,17 @@ wcs/stores/servlet/Search?st=%s" % (searchtext,)
                          self.header.DATASHEET)
             # return properly formed dictionary:(Manufacturer, Mfg. reference,
             # Supplier, Supplier reference, datasheet)
-            data = (manufacturer, reference, "FARNELL", partnum)
-            # datasheet must stay as is as web pages might be case sensitive
-            dataupper = list(map(str.upper, data)) + [datasheet, ]
-            return dict(zip(datanames, dataupper))
+            data = (manufacturer.upper(),
+                    reference.upper(),
+                    self.name,
+                    partnum.upper(),
+                    datasheet)
+            return dict(zip(datanames, data))
 
         except ValueError:
             # ValueError is risen when not enouth data to split the
             # header. In this case this is probably not an URL we're
             # looking for, so skipping
-            raise KeyError
+            raise MalformedURL
 
 DEFAULT_CLASS = farnell

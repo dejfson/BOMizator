@@ -508,6 +508,7 @@ class QBOMModel(QtGui.QStandardItemModel):
                 self.addedComponentIntoCache.emit()
                 print("This component is used for first time,\
  writing into the component cache")
+            self.modelModified.emit(True)
 
         QtGui.QApplication.restoreOverrideCursor()
         return True

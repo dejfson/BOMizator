@@ -565,15 +565,6 @@ function generating nested defaultdicts. Previously used for loading and
             self.model.droppedData.connect(self.droppedData)
             self.model.modelModified.connect(self.modelModified)
             self.model.addedComponentIntoCache.connect(self.saveComponentCache)
-            # having model means that we know all the plugins
-            # available and we can fill-in the plugins for searching
-            self.menu_Suppliers.clear()
-            for shortcut, plg in self.model.getPlugins():
-                # now we add for each plugin incorporated
-                self.menu_Suppliers.addAction(plg,
-                                              partial(self.pluginChanged,
-                                                      plg),
-                                              QtGui.QKeySequence(ord("S"), ord(shortcut)))
 
             # search proxy:
             self.proxy = QDesignatorSortModel(self)
@@ -597,12 +588,6 @@ function generating nested defaultdicts. Previously used for loading and
                 not self.disabledComponentsHidden)
             self.action_Show_disabled_components.setEnabled(
                 self.disabledComponentsHidden)
-
-            # load lastly used plugin
-            lastPlugin = self.settings.value("lastUsedSearchPlugin",
-                                             "FARNELL",
-                                             str)
-            self.pluginChanged(lastPlugin)
 
             self.model.fillModel(self.SCH.getDisabledDesignators(),
                                  self.disabledComponentsHidden)
@@ -629,6 +614,7 @@ function generating nested defaultdicts. Previously used for loading and
         be textual and will be parsed by one of the suppliers strings.
         """
 
+        print(data)
         # first we find all items, which are selected. we are only
         # interested in rows, as those are determining what
         # designators are used.
@@ -645,15 +631,6 @@ function generating nested defaultdicts. Previously used for loading and
             # only single item selected
             replace_in_rows = [row, ]
         self.model.updateModelData(replace_in_rows, data)
-
-    def pluginChanged(self, newplugin):
-        """ sets new default plugin
-        """
-        self.model.setDefaultPlugin(newplugin)
-        # update supplier in status bar
-        self.supplierInfo.setText(newplugin)
-        self.settings.setValue("lastUsedSearchPlugin",
-                               newplugin)
 
     def fillFromComponentCache(self, cmpData):
         """ function called from context menu when user selects a
@@ -740,7 +717,25 @@ function generating nested defaultdicts. Previously used for loading and
         just means that a page with search resuls will open, and user
         it responsible to look for a specific component further.
         """
-        url = self.model.suppliers.searchForComponent(searchtext)
+        # we search through octopart.com, which is a perfect
+        # source. Now we only have installed plugins for specific
+        # suppliers, and this still stays, hence doubleclicking leads
+        # to octopart, user then selects the specific supplier code by
+        # clicking on it and then he can drop the webpage back to the
+        # bomizator. It will automatically recognize which plugin
+        # should be used to get the data. we restrict here the
+        # octopart search only to specific suppliers, which are
+        # currently supported. Typicall query looks as follows:
+        # https://octopart.com/search?q=bss131&offers.supplier.displayname=Farnell&offers.supplier.displayname=RS%20Components&start=0
+        # we have to fill the names
+
+        # search string limiting the suppliers displayed to only those
+        # we support by plugins
+        limits = "&".join(map(lambda su:
+                              "offers.supplier.displayname=%s" % (
+                                  su.replace(" ", "%20"), ),
+                              self.model.suppliers.plugins.keys()))
+        url = "https://octopart.com/search?q=%s&" % (searchtext)+limits
         # now fire the web browser with this page opened
         b = webbrowser.get('firefox')
         b.open(url, new=0, autoraise=True)

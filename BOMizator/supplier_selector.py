@@ -55,7 +55,7 @@ class supplier_selector(object):
             plugins_directory)
         print("Loading plugins from ", self.plugins_directory, ":")
         self.plugins = self.getPlugins()
-        self.setDefaultPlugin('FARNELL')
+        self.setDefaultPlugin('Farnell')
         # and now we're ready to accept search queries
 
     def getShortcut(self, plugin):
