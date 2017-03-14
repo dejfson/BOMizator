@@ -213,7 +213,7 @@ function generating nested defaultdicts. Previously used for loading and
     def closeEvent(self, event):
         """ reimplemented close to save window position
         """
-        if self.model.isModified():
+        if self.isModified:
             msgBox = QtGui.QMessageBox(self)
             msgBox.setText(self.tr("The document has been modified"))
             msgBox.setInformativeText(self.tr(
@@ -248,6 +248,7 @@ function generating nested defaultdicts. Previously used for loading and
         self.setWindowTitle("BOMIZATOR - %s %s" % (
             md,
             self.projectDirectory))
+        self.isModified = isModified
 
     def _readAndApplyWindowAttributeSettings(self):
         """ Read window attributes from settings, using current
