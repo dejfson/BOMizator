@@ -415,6 +415,7 @@ class QBOMModel(QtGui.QStandardItemModel):
             treeparent.row(),
             treeparent.column())
         QtGui.QApplication.restoreOverrideCursor()
+        return True
 
     def updateModelData(self, replace_in_rows, parsed_data):
         """ takes the input parsed_data and updates all the rows of

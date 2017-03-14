@@ -34,6 +34,9 @@ import os
 import imp
 import fnmatch
 from .colors import colors
+from BOMizator.suppexceptions import NotMatchingHeader
+from BOMizator.suppexceptions import MalformedURL
+from BOMizator.suppexceptions import ComponentParsingFailed
 
 
 class supplier_selector(object):
@@ -55,24 +58,7 @@ class supplier_selector(object):
             plugins_directory)
         print("Loading plugins from ", self.plugins_directory, ":")
         self.plugins = self.getPlugins()
-        self.setDefaultPlugin('Farnell')
         # and now we're ready to accept search queries
-
-    def getShortcut(self, plugin):
-        return self.plugins[plugin].getShortcut()
-
-    def getSearchString(self, plugin, tosearch):
-        """ Function uses specific plugin to form a search-string text
-        for his web site.
-        """
-        return self.plugins[plugin].getUrl(tosearch)
-
-    def setDefaultPlugin(self, plugin):
-        """ sets the default search plugin engine
-        """
-        self.default_plugin = plugin
-        # generate constructor with appropriate search plugin
-        self.engine = self.plugins[self.default_plugin]
 
     def parseURL(self, urltext):
         """ Uses all plugins installed to detect if one of the plugins
@@ -95,18 +81,12 @@ class supplier_selector(object):
                 data = plug.parseURL(urltext)
                 colors().printOK("FOUND")
                 return data
-            except KeyError:
+            except (NotMatchingHeader, MalformedURL):
                 colors().printFail("NOT FOUND")
                 pass
         # when here, no plugin matched the selection, raise KeyError
-        colors().printFail("No installed plugin matches the URL selection")
-        raise KeyError
-
-    def getUrl(self, searchtext):
-        """ Using default plugin the search text is translated into
-        URL, which can be used to open the web pages
-        """
-        return self.engine.getUrl(searchtext)
+        raise ComponentParsingFailed(
+            "No installed plugin matches the URL selection")
 
     def getPlugins(self):
         """ walks through plugins directory and returns list of plugins
@@ -130,9 +110,3 @@ class supplier_selector(object):
             print("\t", info().name)
             plugins_classes[info().name] = info()
         return plugins_classes
-
-    def searchForComponent(self, component):
-        """ returns URL to be used in the component search for
-        _active_ supplier
-        """
-        return self.getUrl(component)

@@ -33,8 +33,9 @@ try:
     from BeautifulSoup import BeautifulSoup
 except ImportError:
     from bs4 import BeautifulSoup
-from ..colors import colors
+from BOMizator.colors import colors
 from BOMizator.suppexceptions import NotMatchingHeader, MalformedURL
+from BOMizator.headers import headers
 
 
 class radiospares(object):
@@ -43,18 +44,8 @@ class radiospares(object):
 
     def __init__(self):
         self.name = "RS Components"
-        self.debug = True
-
-    def getShortcut(self):
-        """ returns shortcut
-        """
-        return "R"
-
-    def getUrl(self, searchtext):
-        """ returns URL of farnell, which triggers searching for a
-        specific component or name.
-        """
-        return "http://fr.rs-online.com/web/zr/?searchTerm=%s" % (searchtext)
+        self.debug = False
+        self.header = headers()
 
     def parseURL(self, urltext):
         """ takes the text of the radiospares URL and verifies if it
@@ -73,8 +64,7 @@ class radiospares(object):
                 print(urlparts)
             # series of checks: site has to contain farnell:
             if urlparts[1].upper().find("RS-ONLINE") == -1:
-                print("\n\tNo RS identifier detected")
-                raise KeyError
+                raise NotMatchingHeader("No RS identifier detected")
             # the last has to be number, as it is a manuf partnum
             try:
                 partnum = int(urlparts[-1])
@@ -123,7 +113,6 @@ class radiospares(object):
                     print(datasheet)
 
             except AttributeError:
-                colors().printInfo("Datasheet not found")
                 sheet = ''
 
             datanames = (self.header.MANUFACTURER,
@@ -136,7 +125,7 @@ class radiospares(object):
             data = (manufacturer.upper(),
                     mfgno.upper(),
                     self.name,
-                    partnum.upper(),
+                    str(partnum).upper(),
                     datasheet)
             if self.debug:
                 print (data)
@@ -146,7 +135,7 @@ class radiospares(object):
             # ValueError is risen when not enouth data to split the
             # header. In this case this is probably not an URL we're
             # looking for, so skipping
-            raise MalformedURL
+            raise MalformedURL("URL not understood")
 
 
 DEFAULT_CLASS = radiospares

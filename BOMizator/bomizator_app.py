@@ -52,6 +52,7 @@ from .qdesignatorsortmodel import QDesignatorSortModel
 from .qbommodel import QBOMModel
 from .sch_parser import schParser
 from .qbomitemmodel import QBOMItemModel
+from .suppexceptions import NoProjectGiven
 
 localpath = os.path.dirname(os.path.realpath(__file__))
 form_class = uic.loadUiType(os.path.join(localpath, "BOMLinker.ui"))[0]
@@ -66,14 +67,12 @@ class BOMizator(QtGui.QMainWindow, form_class):
         """
         QtGui.QMainWindow.__init__(self, parent, QtCore.Qt.WindowFlags(flags))
         self.setupUi(self)
-        self.supplierInfo = QtGui.QLabel("")
-        self.statusbar.addPermanentWidget(self.supplierInfo)
         self.isModified = False
         try:
             self.projectDirectory = self.openProject(projectDirectory)
-        except ValueError:
-            print("Cannot continue as not clear what project is to be\
- parsed")
+        except NoProjectGiven:
+            colors().printFail(self.tr(
+                "Not known what project is needed to be parsed"))
             sys.exit(-1)
 
         # show/hide disabled components
@@ -507,7 +506,7 @@ function generating nested defaultdicts. Previously used for loading and
                     matches.append(os.path.join(root, filename))
 
             if matches == []:
-                raise AttributeError('Provided directory does not contain\
+                raise NoProjectGiven('Provided directory does not contain\
  any kicad schematic files')
             projectFile = matches[0]
         projectDirectory = os.path.split(projectFile)[0]
@@ -602,7 +601,7 @@ function generating nested defaultdicts. Previously used for loading and
         # to determine exactly what .pro file user wants (otherwise we
         # have to search through default directory)
         if not canContinue:
-            raise ValueError("No project given")
+            raise NoProjectGiven("No project given")
 
         try:
             return projectFile

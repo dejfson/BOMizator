@@ -58,18 +58,6 @@ class farnell(object):
         self.header = headers()
         self.debug = False
 
-    def getUrl(self, searchtext):
-        """ returns URL of farnell, which triggers searching for a
-        specific component or name.
-        """
-        return "http://uk.farnell.com/webapp/\
-wcs/stores/servlet/Search?st=%s" % (searchtext,)
-
-    def getShortcut(self):
-        """ returns shortcut used for menu declarations
-        """
-        return "F"
-
     def harvestDatasheet(self, urltext):
         """ the urltext is used to fetch the web page content and
         harvest the datasheet link from it. it does not work all the
@@ -92,7 +80,6 @@ wcs/stores/servlet/Search?st=%s" % (searchtext,)
                                             attrs={'id': 'technicalData'})
             sheet = techdoc.find('a').attrs['href']
         except AttributeError:
-            colors().printInfo("Datasheet not found")
             sheet = ''
         return sheet
 
@@ -129,13 +116,11 @@ wcs/stores/servlet/Search?st=%s" % (searchtext,)
                       partnum)
             # series of checks: site has to contain farnell:
             if site.upper().find("FARNELL") == -1:
-                print("\n\tNo Farnell identifier detected")
-                raise NotMatchingHeader
+                raise NotMatchingHeader("No Farnell identifier detected")
 
             # deep has to contain DP:
             if deep.upper().find("DP") == -1:
-                print("\t\tMalformed URL for FARNELL plugin")
-                raise NotMatchingHeader
+                raise NotMatchingHeader("Malformed URL for FARNELL plugin")
             # the most problematic is to dig out the datasheet for the
             # component. This is not part of the URL and for this we need
             # to actually fetch and parse the page. For the moment
@@ -162,6 +147,6 @@ wcs/stores/servlet/Search?st=%s" % (searchtext,)
             # ValueError is risen when not enouth data to split the
             # header. In this case this is probably not an URL we're
             # looking for, so skipping
-            raise MalformedURL
+            raise MalformedURL("URL not understood")
 
 DEFAULT_CLASS = farnell

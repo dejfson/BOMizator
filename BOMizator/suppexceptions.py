@@ -36,3 +36,11 @@ class NotMatchingHeader(Exception):
 
 class MalformedURL(Exception):
     pass
+
+
+class NoProjectGiven(Exception):
+    pass
+
+
+class ComponentParsingFailed(Exception):
+    pass
