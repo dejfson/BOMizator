@@ -45,13 +45,6 @@ class radiospares(object):
         self.name = "RS Components"
         self.debug = True
 
-    def parseURL(self, urltext):
-        """ parses URL and extract the data from radiospares item
-        """
-
-        print(urltext)
-        raise KeyError("Function not properly implemented")
-
     def getShortcut(self):
         """ returns shortcut
         """
