@@ -91,6 +91,13 @@ class farnell(object):
         (convenience). Fortunately FARNELL is very consistent about it
         (thank you guys), hence it can be used to parse all what we need
         http://uk.farnell.com/multicomp/mj-179ph/socket-low-voltage-12vdc-4a/dp/1737246?ost=MJ-179PH&searchView=table&iscrfnonsku=false
+
+        but one can have a farnell side with resolved language as
+        follows:
+http:/ch.farnell.com/fr-CH/avx/06033d104kat2a/condensateur-mlcc-x5r-100nf-25v/dp/23325
+
+        hence there's displacement of one item and as we're parsing
+        the command line, we want to have both options given
         """
 
         try:
@@ -99,13 +106,24 @@ class farnell(object):
             # from the real part we need to abstract the parameters:
             if self.debug:
                 print(realpart)
-            header,\
-                site,\
-                manufacturer,\
-                reference,\
-                description,\
-                deep,\
-                partnum = realpart.split("/")
+            try:
+                header,\
+                    site,\
+                    manufacturer,\
+                    reference,\
+                    description,\
+                    deep,\
+                    partnum = realpart.split("/")
+            except ValueError:
+                header,\
+                    site,\
+                    language,\
+                    manufacturer,\
+                    reference,\
+                    description,\
+                    deep,\
+                    partnum = realpart.split("/")
+
             if self.debug:
                 print(header,
                       site,

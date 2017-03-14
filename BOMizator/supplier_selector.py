@@ -81,8 +81,8 @@ class supplier_selector(object):
                 data = plug.parseURL(urltext)
                 colors().printOK("FOUND")
                 return data
-            except (NotMatchingHeader, MalformedURL):
-                colors().printFail("NOT FOUND")
+            except (NotMatchingHeader, MalformedURL) as e:
+                colors().printFail("NOT FOUND (%s)" % (str(e)))
                 pass
         # when here, no plugin matched the selection, raise KeyError
         raise ComponentParsingFailed(

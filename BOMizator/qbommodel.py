@@ -35,6 +35,8 @@ import json
 from collections import defaultdict
 from .supplier_selector import supplier_selector
 from .headers import headers
+from .suppexceptions import ComponentParsingFailed
+from .colors import colors
 
 
 class QBOMModel(QtGui.QStandardItemModel):
@@ -409,13 +411,19 @@ class QBOMModel(QtGui.QStandardItemModel):
         """
 
         QtGui.QApplication.setOverrideCursor(QtCore.Qt.WaitCursor)
-        textstr = self.suppliers.parseURL(data.text())
-        self.droppedData.emit(
-            textstr,
-            treeparent.row(),
-            treeparent.column())
-        QtGui.QApplication.restoreOverrideCursor()
-        return True
+        try:
+            textstr = self.suppliers.parseURL(data.text())
+            self.droppedData.emit(
+                textstr,
+                treeparent.row(),
+                treeparent.column())
+            ret = True
+        except ComponentParsingFailed as e:
+            colors().printFail(str(e))
+            ret = False
+        finally:
+            QtGui.QApplication.restoreOverrideCursor()
+        return ret
 
     def updateModelData(self, replace_in_rows, parsed_data):
         """ takes the input parsed_data and updates all the rows of
@@ -463,7 +471,7 @@ class QBOMModel(QtGui.QStandardItemModel):
         # and if the list is _empty_, that is good as we can use
         # mapping
         if moreOne:
-            self.colors.printInfo("""Cannot store the dropped component\
+            colors().printInfo("""Cannot store the dropped component\
  into the component cache, because the selection does not resolve in\
  unique LIBREF/VALUE/FOOTPRINT.""")
         else:
