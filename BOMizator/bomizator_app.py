@@ -118,7 +118,6 @@ class BOMizator(QtGui.QMainWindow, form_class):
         orig = self.SCH.getGlobalMultiplier()
         new = int(self.bomMultiplier.text())
         if orig != new:
-            print("newone")
             self.SCH.setGlobalMultiplier(new)
             self.modelModified(True)
 

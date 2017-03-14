@@ -118,9 +118,6 @@ class QBOMItemModel(QtGui.QStandardItemModel):
             except ValueError:
                 pass
 
-        print(cdata)
-        print("updating global multiplier view")
-
     def fillModel(self, hideComponents):
         """ based on input data the model is filled with the
         data. *DISABLED ITEMS ARE IGNORED* during production if
