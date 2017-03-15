@@ -58,6 +58,14 @@ class farnell(object):
         self.header = headers()
         self.debug = False
 
+    def getUrl(self, searchtext):
+        """ returns URL of farnell, which triggers searching for a
+        specific component or name. This is used by back-searching
+        from the webpage based e.g. on farnell order code
+        """
+        return "http://uk.farnell.com/webapp/\
+wcs/stores/servlet/Search?st=%s" % (searchtext,)
+
     def harvestDatasheet(self, urltext):
         """ the urltext is used to fetch the web page content and
         harvest the datasheet link from it. it does not work all the

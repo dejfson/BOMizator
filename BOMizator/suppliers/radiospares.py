@@ -47,6 +47,12 @@ class radiospares(object):
         self.debug = False
         self.header = headers()
 
+    def getUrl(self, searchtext):
+        """ returns URL of farnell, which triggers searching for a
+        specific component or name.
+        """
+        return "http://fr.rs-online.com/web/zr/?searchTerm=%s" % (searchtext)
+
     def parseURL(self, urltext):
         """ takes the text of the radiospares URL and verifies if it
         is really radiospares. then tries to parse mfg data and

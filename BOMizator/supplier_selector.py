@@ -88,6 +88,12 @@ class supplier_selector(object):
         raise ComponentParsingFailed(
             "No installed plugin matches the URL selection")
 
+    def getSearchString(self, plugin, tosearch):
+        """ Function uses specific plugin to form a search-string text
+        for his web site.
+        """
+        return self.plugins[plugin].getUrl(tosearch)
+
     def getPlugins(self):
         """ walks through plugins directory and returns list of plugins
         """
