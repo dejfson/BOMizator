@@ -37,6 +37,8 @@ import textwrap
 from .bomheaders import bomheaders
 from .qdesignatorcomparator import QDesignatorComparator
 from .colors import colors
+from .roundingpolicy import roundingPolicy
+
 
 class QBOMItemModel(QtGui.QStandardItemModel):
     """ provides model for BOM data
@@ -102,6 +104,16 @@ class QBOMItemModel(QtGui.QStandardItemModel):
         txt = ', '.join(ls)
         return '\n'.join(x.wrap(txt))
 
+    def calculateTotal(self, numdesigs, multiply, add, policy=(1, 0)):
+        """ returns integer number corresponding to total amount of
+        components. takes into account policy
+        """
+        a = numdesigs *\
+            multiply *\
+            self.SCH.getGlobalMultiplier() +\
+            add
+        return roundingPolicy(policy)(a)
+
     def getTotal(self, cdata):
         """ given component data this function returns amount of
         elements required to give proper amount of components to
@@ -110,13 +122,12 @@ class QBOMItemModel(QtGui.QStandardItemModel):
         multiplier and adding the 'adder' part. THEN ROUNDING TO
         NEAREST x takes place depending of rounding policy
         """
-        numDesigs = len(cdata[self.header.DESIGNATORS])
-        totalSimple = numDesigs *\
-                      int(cdata[self.header.MULTIPLYFACTOR]) *\
-                      self.SCH.getGlobalMultiplier() +\
-                      int(cdata[self.header.ADDFACTOR])
 
-        return totalSimple
+        numDesigs = len(cdata[self.header.DESIGNATORS])
+        return self.calculateTotal(numDesigs,
+                                   int(cdata[self.header.MULTIPLYFACTOR]),
+                                   int(cdata[self.header.ADDFACTOR]))
+#                                   cdata[self.header.POLICY])
 
     def updateGlobalMultiplier(self):
         """
@@ -129,30 +140,29 @@ class QBOMItemModel(QtGui.QStandardItemModel):
         for supplier in range(self.rowCount()):
             # and sub parsing
             index = self.index(supplier, 0)
-            try:
-                for row in range(40):
-                    for item in [self.header.DESIGNATORS,
-                                 self.header.MULTIPLYFACTOR,
-                                 self.header.ADDFACTOR]:
-                        idx = index.child(row, self.header.getColumn(item))
-                        if not idx.isValid():
-                            raise ValueError
-                        cdata[item] = idx.data()
-                    # need to convert-back the designators to
-                    # 'standard' form to be able to determine how many
-                    # we have
-                    desigs = cdata[self.header.DESIGNATORS]
-                    cdata[self.header.DESIGNATORS] = desigs.split(",")
-                    # these fake data can calculate new totals
-                    newtot = self.getTotal(cdata)
-                    # and now we have to set the data into total
-                    self.setData(
-                        index.child(row, self.header.getColumn(
-                            self.header.TOTAL)),
-                        str(newtot))
-                    self.modelModified.emit(True)
-            except ValueError:
-                pass
+            rows = self.rowCount(index)
+            for row in range(rows):
+                # get the number
+                suppno = index.child(row, self.header.getColumn(
+                    self.header.SUPPNO)).data()
+                desigs = index.child(row, self.header.getColumn(
+                    self.header.DESIGNATORS)).data()
+                # having all the data for particular component we
+                # can recalculate the total
+                bomdata = self.SCH.getBOMData(index.data(), suppno)
+                cdata = bomdata.copy()
+                cdata[self.header.DESIGNATORS] = desigs.split(",")
+                # these fake data can calculate new totals
+                newtot = self.getTotal(cdata)
+                # and now we have to set the data into total
+                # calling set data invoke celldatachanged, hence
+                # there's a place where the value gets propagated
+                # into the data structure
+                self.setData(
+                    index.child(row, self.header.getColumn(
+                        self.header.TOTAL)),
+                    str(newtot))
+                self.modelModified.emit(True)
 
     def fillModel(self, hideComponents):
         """ based on input data the model is filled with the
@@ -190,10 +200,19 @@ class QBOMItemModel(QtGui.QStandardItemModel):
                         # total is a value recalculated on the fly
                         # from number of designators, multipliers and
                         # total multiplicator
-                        data = "%d" % (self.getTotal(cdata))
+                        print(cdata)
+                        if cdata[self.header.TOTAL] == -1:
+                            # initial state is -1, we recalculate
+                            # (until first save)
+                            colors().printInfo("Automatically\
+ calculating first total for %s" % (self.makeDesignatorsText(
+     cdata[self.header.DESIGNATORS])))
+                            data = "%d" % self.getTotal(cdata)
+                        else:
+                            data = "%d" % (cdata[self.header.TOTAL])
                     elif column == "RoundingPolicy":
                         # this one is ignored as it only concerns
-                        # calculation of total
+                        # calculation of total and it is not displayed
                         continue
                     elif column in [self.header.ADDFACTOR,
                                     self.header.MULTIPLYFACTOR]:

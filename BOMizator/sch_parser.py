@@ -159,7 +159,12 @@ class schParser(QtCore.QObject):
     def getComponents(self):
         """ returns dictionary of all loaded components
         """
-        return self. components
+        return self.components
+
+    def getBOMData(self, supplier, ocode):
+        """ returns BOM data for given supplier and ordering code
+        """
+        return self.bomdata[supplier][ocode]
 
     def updateBOMData(self, supplier, ocode, data):
         """ for given supplier and ocode we update the BOM data. data
@@ -263,11 +268,15 @@ class schParser(QtCore.QObject):
         return collected
 
     def getDefaultBOMData(self):
-        """ returns dictionary of BOMDATA
+        """ returns dictionary of BOMDATA such, that if 'no initial
+        condition' is defined, the total number of components calculus
+        returns exact value. Total is by default set to -1 to
+        indicate, that the value is invalid (and hence if model gets
+        loaded, the data are automatically pre-filled in
         """
         return {self.header.MULTIPLYFACTOR: 1,
                 self.header.ADDFACTOR: 0,
-                self.header.TOTAL: 0,
+                self.header.TOTAL: -1,
                 self.header.POLICY: 1}
 
     def saveBOMData(self):
