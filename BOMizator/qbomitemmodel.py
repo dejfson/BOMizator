@@ -200,7 +200,6 @@ class QBOMItemModel(QtGui.QStandardItemModel):
                         # total is a value recalculated on the fly
                         # from number of designators, multipliers and
                         # total multiplicator
-                        print(cdata)
                         if cdata[self.header.TOTAL] == -1:
                             # initial state is -1, we recalculate
                             # (until first save)

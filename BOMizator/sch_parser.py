@@ -244,7 +244,8 @@ class schParser(QtCore.QObject):
                 try:
                     collected[component[self.header.SUPPLIER]]\
                         [component[self.header.SUPPNO]].update(
-                            self.bomdata[self.header.SUPPLIER][self.header.SUPPNO])
+                            self.bomdata[component[self.header.SUPPLIER]]\
+                            [component[self.header.SUPPNO]])
                 except KeyError:
                     # we have to create the SAFE bom data:
                     try:
