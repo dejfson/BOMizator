@@ -231,10 +231,14 @@ class schParser(QtCore.QObject):
                 # stuff as before
                 grpName = '-'.join([component[self.header.SUPPLIER],
                                     component[self.header.SUPPNO]])
+                # the default components values are setup such, that
+                # if they do not exist, they create 1:1 mapping to
+                # totals. Hence mult=1, add=0 and rounding policy to
+                # '1' to make rounding to units (=no rounding)
                 self.localSettings.beginGroup(grpName)
                 for ident, defval in [('Multiplier', 1),
                                       ('Adder', 0),
-                                      ('RoundingPolicy', 0),
+                                      ('RoundingPolicy', 1),
                                       ('Total', 0)]:
                     collected[component[self.header.SUPPLIER]]\
                         [component[self.header.SUPPNO]]\
