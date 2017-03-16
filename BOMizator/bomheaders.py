@@ -62,7 +62,7 @@ class bomheaders(headerbase):
                        self.ADDFACTOR: {"column": 2,
                                         "flags": QtCore.Qt.ItemIsEditable},
                        self.TOTAL: {"column": 3,
-                                    "flags": QtCore.Qt.NoItemFlags},
+                                    "flags": QtCore.Qt.ItemIsEditable},
                        self.SUPPNO: {"column": 4,
                                      "flags": QtCore.Qt.NoItemFlags},
                        self.LIBREF: {"column": 5,

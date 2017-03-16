@@ -54,6 +54,9 @@ class QBOMItemModel(QtGui.QStandardItemModel):
         # of designators, followed by multiply, add
         self.header = bomheaders()
         self.fillModel(hideComponents)
+        # following variable specifies, whether when total is setup by
+        # hand, it should be treated as 'ultimate overrride' of the total
+        self.ignoreTotalWrite = False
         # hook when cell data changed by some model editing. This
         # should perform SCH write
         self.itemChanged.connect(self.cellDataChanged)
@@ -80,7 +83,7 @@ class QBOMItemModel(QtGui.QStandardItemModel):
         # the biggest problem - how to get data from given column
         self.SCH.updateBOMData(supplier,
                                ordercode,
-                               {colname: int(newdata)})
+                               {colname: newdata})
         # if our change resolves in change of multiplier or adder, we
         # have to recalculate as well the total (as there are 2
         # options: any change in mul/add will result in total update,
@@ -88,9 +91,18 @@ class QBOMItemModel(QtGui.QStandardItemModel):
         if colname in [self.header.MULTIPLYFACTOR,
                        self.header.ADDFACTOR]:
             colors().printInfo("Readjusting total for %s" % (desig, ))
-        elif colname == self.header.TOTAL:
-            colors().printInfo("Clearing out mul/add for %s" % (desig, ))
-
+        elif colname == self.header.TOTAL and not self.ignoreTotalWrite:
+            colors().printInfo("Clearing out mul/add for %s" % (desig,
+        ))
+            for colname in [self.header.MULTIPLYFACTOR,
+                            self.header.ADDFACTOR]:
+                # following line clears out mul/add factors and in
+                # addition it triggers change of the undelying model
+                loidxname = self.header.getColumn(colname)
+                loidx = item.index().sibling(item.row(), loidxname)
+                daa = self.itemFromIndex(loidx)
+                # clear the cell
+                daa.setText("")
         self.modelModified.emit(True)
 
     def makeDesignatorsText(self, desigs):
@@ -124,10 +136,20 @@ class QBOMItemModel(QtGui.QStandardItemModel):
         """
 
         numDesigs = len(cdata[self.header.DESIGNATORS])
+        # if multiply and add factors are empty, skip recalculation of
+        # this one, as it was entered manually
+        try:
+            a = int(cdata[self.header.MULTIPLYFACTOR])
+            b = int(cdata[self.header.ADDFACTOR])
+        except ValueError:
+            # this goes wrong then mult/add are empty
+            return cdata[self.header.TOTAL]
+
         return self.calculateTotal(numDesigs,
-                                   int(cdata[self.header.MULTIPLYFACTOR]),
-                                   int(cdata[self.header.ADDFACTOR]),
+                                   a,
+                                   b,
                                    (cdata[self.header.POLICY], 0))
+
 
     def updateGlobalMultiplier(self):
         """
@@ -154,6 +176,12 @@ class QBOMItemModel(QtGui.QStandardItemModel):
                 cdata[self.header.DESIGNATORS] = desigs.split(",")
                 # these fake data can calculate new totals
                 newtot = self.getTotal(cdata)
+                # problem with setting data here is, that we do not
+                # want to clearout the local mult/add because we're
+                # not entering the data manually, but we just want to
+                # update globally using _mult/add_, so we temporarily
+                # disable cell data storage
+                self.ignoreTotalWrite = True
                 # and now we have to set the data into total
                 # calling set data invoke celldatachanged, hence
                 # there's a place where the value gets propagated
@@ -162,6 +190,7 @@ class QBOMItemModel(QtGui.QStandardItemModel):
                     index.child(row, self.header.getColumn(
                         self.header.TOTAL)),
                     str(newtot))
+                self.ignoreTotalWrite = False
                 self.modelModified.emit(True)
 
     def fillModel(self, hideComponents):
@@ -216,7 +245,7 @@ class QBOMItemModel(QtGui.QStandardItemModel):
                     elif column in [self.header.ADDFACTOR,
                                     self.header.MULTIPLYFACTOR]:
                         # these are integers, convert to numeric
-                        data = "%d" % (cdata[column])
+                        data = cdata[column]
                     elif column == self.header.SUPPNO:
                         # this is different item:
                         data = ordercode

@@ -275,8 +275,8 @@ class schParser(QtCore.QObject):
         indicate, that the value is invalid (and hence if model gets
         loaded, the data are automatically pre-filled in
         """
-        return {self.header.MULTIPLYFACTOR: 1,
-                self.header.ADDFACTOR: 0,
+        return {self.header.MULTIPLYFACTOR: "1",
+                self.header.ADDFACTOR: "0",
                 self.header.TOTAL: -1,
                 self.header.POLICY: 1}
 
@@ -315,10 +315,20 @@ class schParser(QtCore.QObject):
                     # by default selects -1, but that is only the case
                     # when the file is _broken_ as we're reading
                     # existing values
-                    coll[supplier][refname][keys] = self.localSettings.value(
-                        keys,
-                        -1,
-                        int)
+                    if keys in [self.header.MULTIPLYFACTOR,
+                                self.header.ADDFACTOR]:
+                        # these two are treated as strings as when
+                        # total is enforced, these values are empty
+                        coll[supplier][refname][keys] = self.localSettings.value(
+                            keys,
+                            "",
+                            str)
+                    else:
+                        # all other are treated as integers
+                        coll[supplier][refname][keys] = self.localSettings.value(
+                            keys,
+                            -1,
+                            int)
 
                 self.localSettings.endGroup()
             self.localSettings.endGroup()
