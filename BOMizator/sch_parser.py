@@ -87,7 +87,7 @@ class schParser(QtCore.QObject):
         self.components = {}
         # bomdata collect information from supplier/ref of how many
         # mult/add/policy per each such item is needed
-        self.bomdata = {}
+        self.bomdata = self.loadBOMData()
 
         # define attributes dictionary for the component, each entry
         # has to correspond to specific attributes
@@ -288,26 +288,22 @@ class schParser(QtCore.QObject):
     def loadBOMData(self):
         """ loads the BOM data as stores in the configuration file.
         """
-        # let's read additional information from bmz, same
-        # stuff as before
-        grpName = self.getGroupName(
-            component[self.header.SUPPLIER],
-            component[self.header.SUPPNO])
-        # the default components values are setup such, that
-        # if they do not exist, they create 1:1 mapping to
-        # totals. Hence mult=1, add=0 and rounding policy to
-        # '1' to make rounding to units (=no rounding)
-        self.localSettings.beginGroup(grpName)
-        for ident, defval in [('Multiplier', 1),
-                              ('Adder', 0),
-                              ('RoundingPolicy', 1),
-                              ('Total', 0)]:
-            collected[component[self.header.SUPPLIER]]\
-                [component[self.header.SUPPNO]]\
-                [ident] = self.localSettings.value(ident,
-                                                   defval,
-                                                   int)
-        self.localSettings.endGroup()
+        coll = {}
+        for supplier in self.localSettings.childGroups():
+            self.localSettings.beginGroup(supplier)
+            coll[supplier] = {}
+            for refname in self.localSettings.childGroups():
+                self.localSettings.beginGroup(refname)
+                coll[supplier][refname] = {}
+                for keys in self.localSettings.childKeys():
+                    coll[supplier][refname][keys] = self.localSettings.value(
+                        keys,
+                        -1,
+                        int)
+
+                self.localSettings.endGroup()
+            self.localSettings.endGroup()
+        return coll
 
     def save(self):
         """ function parses all the project schematic files,
