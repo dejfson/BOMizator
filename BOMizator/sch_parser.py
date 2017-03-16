@@ -182,9 +182,11 @@ class schParser(QtCore.QObject):
         """
         return self.components[normDesig]
 
-    def getCollectedComponents(self):
+    def getCollectedComponents(self, includeDisabledComponents=False):
         """ returns dictionary of all components _collected by
-        supplier and  supplier reference
+        supplier and  supplier reference. When some components are
+        disabled, they do not appear in the list of collected
+        components unless includeDisabledComponents is set to true
         """
         # we better do this one by one as we have more possibilities to get
         # through. Collected will contain the result once all parsed. It is a
@@ -192,8 +194,13 @@ class schParser(QtCore.QObject):
         collected = defaultdict(dict)
         unassigned = set([])
 
-        for component in self.components.values():
-            if component[self.header.SUPPNO] != '':
+        print(self.disabledDesignators)
+        for dsg, component in self.components.items():
+            if dsg in self.disabledDesignators and\
+               not includeDisabledComponents:
+                colors().printWarn("%s: component disabled, will not\
+ appear in BOM list" % (dsg))
+            elif component[self.header.SUPPNO] != '':
                 # copy original data from the component (!! ALL OF THEM SHOULD
                 # BE THE SAME!!)
                 for hx in [self.header.MANUFACTURER,
@@ -239,7 +246,7 @@ class schParser(QtCore.QObject):
             else:
                 unassigned = unassigned.union(
                     component[self.header.DESIGNATOR])
-        colors().printWarn("%s: unassigned supplier,\
+        colors().printFail("%s: unassigned supplier,\
  ignoring" % (', '.join(unassigned)))
         return collected
 

@@ -80,7 +80,7 @@ class QBOMItemModel(QtGui.QStandardItemModel):
         # generally roundingpolicy = 0 -> direct number, for each 1+
         # we do like with money:
         # @TODO implement rounding policy
-        rp = [0, 2, 5, 10, 20, 50, 100]
+        rp = [1, 2, 5, 10, 20, 50, 100]
         return totalSimple
 
     def updateGlobalMultiplier(self):
