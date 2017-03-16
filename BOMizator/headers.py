@@ -49,6 +49,7 @@ class headers(headerbase):
     SUPPNO = "Supplier no"
     DATASHEET = "Datasheet"
     TOTAL = "Total"
+    POLICY = "Rounding Policy"
 
     # list defining names of all columns which uniquely identify the
     # component

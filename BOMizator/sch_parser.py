@@ -85,6 +85,9 @@ class schParser(QtCore.QObject):
         # they are created on fly by a dynamic assignment of the data.
         # this list is the one giving the BOM data
         self.components = {}
+        # bomdata collect information from supplier/ref of how many
+        # mult/add/policy per each such item is needed
+        self.bomdata = {}
 
         # define attributes dictionary for the component, each entry
         # has to correspond to specific attributes
@@ -227,32 +230,84 @@ class schParser(QtCore.QObject):
                 a = a.union(component[self.header.DESIGNATOR])
                 collected[component[self.header.SUPPLIER]]\
                     [component[self.header.SUPPNO]]['Designators'] = a
-                # let's read additional information from bmz, same
-                # stuff as before
-                grpName = '-'.join([component[self.header.SUPPLIER],
-                                    component[self.header.SUPPNO]])
-                # the default components values are setup such, that
-                # if they do not exist, they create 1:1 mapping to
-                # totals. Hence mult=1, add=0 and rounding policy to
-                # '1' to make rounding to units (=no rounding)
-                self.localSettings.beginGroup(grpName)
-                for ident, defval in [('Multiplier', 1),
-                                      ('Adder', 0),
-                                      ('RoundingPolicy', 1),
-                                      ('Total', 0)]:
+                # update new data by supplier information
+                try:
                     collected[component[self.header.SUPPLIER]]\
-                        [component[self.header.SUPPNO]]\
-                        [ident] = self.localSettings.value(ident,
-                                                           defval,
-                                                           int)
-                self.localSettings.endGroup()
-
+                        [component[self.header.SUPPNO]].update(
+                            self.bomdata[self.header.SUPPLIER][self.header.SUPPNO])
+                except KeyError:
+                    # we have to create the SAFE bom data:
+                    try:
+                        self.bomdata[component[self.header.SUPPLIER]]\
+                            [component[self.header.SUPPNO]]\
+                            = self.getDefaultBOMData()
+                    except KeyError:
+                        self.bomdata[component[self.header.SUPPLIER]] = {}
+                        self.bomdata[component[self.header.SUPPLIER]]\
+                            [component[self.header.SUPPNO]]\
+                            = self.getDefaultBOMData()
+                    collected[component[self.header.SUPPLIER]]\
+                        [component[self.header.SUPPNO]].update(
+                            self.bomdata[component[self.header.SUPPLIER]]\
+                            [component[self.header.SUPPNO]])
             else:
                 unassigned = unassigned.union(
                     component[self.header.DESIGNATOR])
         colors().printFail("%s: unassigned supplier,\
  ignoring" % (', '.join(unassigned)))
         return collected
+
+    def getDefaultBOMData(self):
+        """ returns dictionary of BOMDATA
+        """
+        return {self.header.MULTIPLYFACTOR: 1,
+                self.header.ADDFACTOR: 0,
+                self.header.TOTAL: 0,
+                self.header.POLICY: 1}
+
+    def saveBOMData(self):
+        """ currently assigned BOMdata are written into the
+        settings file
+        """
+        for supplier in self.bomdata:
+            self.localSettings.beginGroup(supplier)
+            for suppref in self.bomdata[supplier]:
+                cmpn = self.bomdata[supplier][suppref]
+                # we have to flush the data into configuration
+                self.localSettings.beginGroup(suppref)
+                for key, val in cmpn.items():
+                    self.localSettings.setValue(key, val)
+                self.localSettings.endGroup()
+            self.localSettings.endGroup()
+
+    def getGroupName(self, supp, ref):
+        """ returns settings group name for bomdata
+        """
+        return '-'.join([supp, ref])
+
+    def loadBOMData(self):
+        """ loads the BOM data as stores in the configuration file.
+        """
+        # let's read additional information from bmz, same
+        # stuff as before
+        grpName = self.getGroupName(
+            component[self.header.SUPPLIER],
+            component[self.header.SUPPNO])
+        # the default components values are setup such, that
+        # if they do not exist, they create 1:1 mapping to
+        # totals. Hence mult=1, add=0 and rounding policy to
+        # '1' to make rounding to units (=no rounding)
+        self.localSettings.beginGroup(grpName)
+        for ident, defval in [('Multiplier', 1),
+                              ('Adder', 0),
+                              ('RoundingPolicy', 1),
+                              ('Total', 0)]:
+            collected[component[self.header.SUPPLIER]]\
+                [component[self.header.SUPPNO]]\
+                [ident] = self.localSettings.value(ident,
+                                                   defval,
+                                                   int)
+        self.localSettings.endGroup()
 
     def save(self):
         """ function parses all the project schematic files,
@@ -472,6 +527,8 @@ class schParser(QtCore.QObject):
             # now we just move the newly created file to the old one
             # and ... pray
             os.rename(schfile+"tmp", schfile)
+            # and save BOM:
+            self.saveBOMData()
 
     def collectFiles(self):
         """ uses project directory to pass through the projects
