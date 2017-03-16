@@ -126,8 +126,8 @@ class QBOMItemModel(QtGui.QStandardItemModel):
         numDesigs = len(cdata[self.header.DESIGNATORS])
         return self.calculateTotal(numDesigs,
                                    int(cdata[self.header.MULTIPLYFACTOR]),
-                                   int(cdata[self.header.ADDFACTOR]))
-#                                   cdata[self.header.POLICY])
+                                   int(cdata[self.header.ADDFACTOR]),
+                                   (cdata[self.header.POLICY], 0))
 
     def updateGlobalMultiplier(self):
         """

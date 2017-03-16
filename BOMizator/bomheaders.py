@@ -47,7 +47,7 @@ class bomheaders(headerbase):
     SUPPNO = "Supplier no"
     DATASHEET = "Datasheet"
     TOTAL = "Total"
-    POLICY = "Policy"
+    POLICY = "Rounding Policy"
 
     def __init__(self):
         """ fills in the header structure and handles treatment of headers
