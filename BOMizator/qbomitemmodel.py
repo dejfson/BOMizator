@@ -57,6 +57,7 @@ class QBOMItemModel(QtGui.QStandardItemModel):
         # following variable specifies, whether when total is setup by
         # hand, it should be treated as 'ultimate overrride' of the total
         self.ignoreTotalWrite = False
+        self.ignoreCellChanges = False
         # hook when cell data changed by some model editing. This
         # should perform SCH write
         self.itemChanged.connect(self.cellDataChanged)
@@ -64,6 +65,8 @@ class QBOMItemModel(QtGui.QStandardItemModel):
     def cellDataChanged(self, item):
         """ called when user changes the data in editable rows
         """
+        if self.ignoreCellChanges:
+            return
         # we need to find for this particular item the guy who has
         # reference number and the name. Supplier is always parent (if
         # user changes in supplier, nothing will be done
@@ -91,6 +94,58 @@ class QBOMItemModel(QtGui.QStandardItemModel):
         if colname in [self.header.MULTIPLYFACTOR,
                        self.header.ADDFACTOR]:
             colors().printInfo("Readjusting total for %s" % (desig, ))
+            # so here we are if manually entered values into
+            # mult/add. In this case we recalculate total no matter if
+            # prevously entered total manually. It might be, that one
+            # of those is not properly defined, then we have to feed
+            # them by default values
+            idx = item.index().sibling(item.row(),
+                                       self.header.getColumn(
+                                           self.header.MULTIPLYFACTOR))
+            try:
+                mf = int(idx.data())
+            except ValueError:
+                # first we setup default value. This will trigger
+                # calling this cell again
+                self.itemFromIndex(idx).setText("1")
+                return
+            idx = item.index().sibling(item.row(),
+                                       self.header.getColumn(
+                                           self.header.ADDFACTOR))
+            try:
+                af = int(idx.data())
+            except ValueError:
+                # setup the other value. These two exceptions will be
+                # only done when total was prevously entered manually
+                self.itemFromIndex(idx).setText("0")
+                return
+
+            # recalculate new total according to those two
+            # values. Only if mult/add are valid numbers (and if they
+            # are not - because the total was entered manually - the
+            # two exceptions above assure their correct
+            # filling). Having those two numbers and designators we
+            # can calculate automatically the totals
+            ax = self.SCH.getBOMData(supplier, ordercode)
+            newtotal = self.calculateTotal(len(desig.split(",")),
+                                           mf,
+                                           af,
+                                           policy=(ax[self.header.POLICY],
+                                                   0))
+            # IGNORE CELL CHANGES HERE OTHERWISE WE WOULD CREATE
+            # INFINITE LOOP
+            self.ignoreCellChanges = True
+            self.SCH.updateBOMData(supplier,
+                                   ordercode,
+                                   {self.header.TOTAL: newtotal})
+            ii = item.index().sibling(item.row(),
+                                      self.header.getColumn(
+                                          self.header.TOTAL))
+            daa = self.itemFromIndex(ii)
+            daa.setText(str(newtotal))
+            self.ignoreCellChanges = False
+
+
         elif colname == self.header.TOTAL and not self.ignoreTotalWrite:
             colors().printInfo("Clearing out mul/add for %s" % (desig,
         ))
@@ -101,8 +156,17 @@ class QBOMItemModel(QtGui.QStandardItemModel):
                 loidxname = self.header.getColumn(colname)
                 loidx = item.index().sibling(item.row(), loidxname)
                 daa = self.itemFromIndex(loidx)
-                # clear the cell
+                # this we have to do manually without re-calling the
+                # cell again (otherwise we would over-write the
+                # mult/add by a new number)
+                self.ignoreCellChanges = True
+                self.SCH.updateBOMData(supplier,
+                                       ordercode,
+                                       {self.header.MULTIPLYFACTOR: "",
+                                        self.header.ADDFACTOR: ""})
                 daa.setText("")
+                self.ignoreCellChanges = False
+
         self.modelModified.emit(True)
 
     def makeDesignatorsText(self, desigs):
