@@ -161,6 +161,12 @@ class schParser(QtCore.QObject):
         """
         return self. components
 
+    def updateBOMData(self, supplier, ocode, data):
+        """ for given supplier and ocode we update the BOM data. data
+        is a dictionary stating which data have to be changed by what value
+        """
+        self.bomdata[supplier][ocode].update(data)
+
     def updateComponents(self, targets, newdata):
         """ Update all the componenents identified by list of
         normalised designators by new data for each key of
@@ -197,7 +203,6 @@ class schParser(QtCore.QObject):
         collected = defaultdict(dict)
         unassigned = set([])
 
-        print(self.disabledDesignators)
         for dsg, component in self.components.items():
             if dsg in self.disabledDesignators and\
                not includeDisabledComponents:
@@ -286,7 +291,8 @@ class schParser(QtCore.QObject):
         return '-'.join([supp, ref])
 
     def loadBOMData(self):
-        """ loads the BOM data as stores in the configuration file.
+        """ loads the BOM data as stores in the configuration file,
+        returns the dictionary of these data
         """
         coll = {}
         for supplier in self.localSettings.childGroups():
@@ -296,6 +302,9 @@ class schParser(QtCore.QObject):
                 self.localSettings.beginGroup(refname)
                 coll[supplier][refname] = {}
                 for keys in self.localSettings.childKeys():
+                    # by default selects -1, but that is only the case
+                    # when the file is _broken_ as we're reading
+                    # existing values
                     coll[supplier][refname][keys] = self.localSettings.value(
                         keys,
                         -1,

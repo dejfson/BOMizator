@@ -33,15 +33,17 @@ bill of material usable to directly order the components
 """
 
 from PyQt4 import QtGui, QtCore
-import pickle
 import textwrap
-from itertools import count
 from .bomheaders import bomheaders
 from .qdesignatorcomparator import QDesignatorComparator
+from .colors import colors
 
 class QBOMItemModel(QtGui.QStandardItemModel):
     """ provides model for BOM data
     """
+
+    modelModified = QtCore.pyqtSignal(bool)
+
     def __init__(self, sourceData, hideComponents, parent=None):
         super(QBOMItemModel, self).__init__(parent)
         self.SCH = sourceData
@@ -50,6 +52,44 @@ class QBOMItemModel(QtGui.QStandardItemModel):
         # of designators, followed by multiply, add
         self.header = bomheaders()
         self.fillModel(hideComponents)
+        # hook when cell data changed by some model editing. This
+        # should perform SCH write
+        self.itemChanged.connect(self.cellDataChanged)
+
+    def cellDataChanged(self, item):
+        """ called when user changes the data in editable rows
+        """
+        # we need to find for this particular item the guy who has
+        # reference number and the name. Supplier is always parent (if
+        # user changes in supplier, nothing will be done
+        supplier = item.parent().text()
+        # new data are clear as well
+        newdata = item.text()
+        # here's trouble: the data in the same row have to be
+        # accessed, but it cannot be done through the model, but
+        # through the sibling of our item
+        ordercode = item.index().sibling(item.row(), self.header.getColumn(
+            self.header.SUPPNO)).data()
+        desig = item.index().sibling(item.row(), self.header.getColumn(
+            self.header.DESIGNATORS)).data()
+
+        # gathered all the data, we have to write them down into sch:
+        colname = self.header.getColumnName(item.column())
+        # the biggest problem - how to get data from given column
+        self.SCH.updateBOMData(supplier,
+                               ordercode,
+                               {colname: int(newdata)})
+        # if our change resolves in change of multiplier or adder, we
+        # have to recalculate as well the total (as there are 2
+        # options: any change in mul/add will result in total update,
+        # any manual override of total erases the content of mul/add)
+        if colname in [self.header.MULTIPLYFACTOR,
+                       self.header.ADDFACTOR]:
+            colors().printInfo("Readjusting total for %s" % (desig, ))
+        elif colname == self.header.TOTAL:
+            colors().printInfo("Clearing out mul/add for %s" % (desig, ))
+
+        self.modelModified.emit(True)
 
     def makeDesignatorsText(self, desigs):
         """ from set of designators fabricates text of maximum 40
@@ -75,12 +115,7 @@ class QBOMItemModel(QtGui.QStandardItemModel):
                       int(cdata[self.header.MULTIPLYFACTOR]) *\
                       self.SCH.getGlobalMultiplier() +\
                       int(cdata[self.header.ADDFACTOR])
-        # total simple is now passed through the rounding effect. This
-        # depends on components 'RoundingPolicy'.
-        # generally roundingpolicy = 0 -> direct number, for each 1+
-        # we do like with money:
-        # @TODO implement rounding policy
-        rp = [1, 2, 5, 10, 20, 50, 100]
+
         return totalSimple
 
     def updateGlobalMultiplier(self):
@@ -115,6 +150,7 @@ class QBOMItemModel(QtGui.QStandardItemModel):
                         index.child(row, self.header.getColumn(
                             self.header.TOTAL)),
                         str(newtot))
+                    self.modelModified.emit(True)
             except ValueError:
                 pass
 

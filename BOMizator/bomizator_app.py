@@ -137,6 +137,7 @@ class BOMizator(QtGui.QMainWindow, form_class):
                 self.bomView.resizeColumnToContents(i)
             # setup multiplier
             self.bomMultiplier.setText("%d" % (self.SCH.getGlobalMultiplier()))
+            self.bomTree.modelModified.connect(self.modelModified)
 
     def saveProject(self):
         """ this function generates the data out of all the components
