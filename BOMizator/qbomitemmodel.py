@@ -213,7 +213,6 @@ class QBOMItemModel(QtGui.QStandardItemModel):
                                    b,
                                    (cdata[self.header.POLICY], 0))
 
-
     def updateGlobalMultiplier(self):
         """
         called whenever underlying SCH changes the multiplier. this
@@ -278,11 +277,20 @@ class QBOMItemModel(QtGui.QStandardItemModel):
         sorted_header = list(self.header.getHeaders())
 
         for supplier in allComps:
-            supprow = QtGui.QStandardItem(supplier)
-            # identify this row as supplier row (hence no data of
-            # mult/add and is read-only)
-            supprow.setData(True, self.header.ItemIsSupplier)
+            # this one is special, we have to pull out the entire row
+            supprow = [QtGui.QStandardItem(supplier), ]
+            for i in range(len(self.header)):
+                supprow += [QtGui.QStandardItem(), ]
+            # modify parameters:
+            for coitem in supprow:
+                # identify this row as supplier row (hence no data of
+                # mult/add and is read-only)
+                coitem.setData(True, self.header.ItemIsSupplier)
+                coitem.setForeground(QtGui.QColor('white'))
+                coitem.setBackground(QtGui.QColor('black'))
+
             self.appendRow(supprow)
+
             for ordercode in allComps[supplier]:
                 row = []
                 cdata = allComps[supplier][ordercode]
@@ -329,8 +337,8 @@ class QBOMItemModel(QtGui.QStandardItemModel):
                     row.append(data)
 
                 rowdata = list(map(QtGui.QStandardItem, row))
-
-                supprow.appendRow(rowdata)
+                # first item from the row is the parent
+                supprow[0].appendRow(rowdata)
 
         sorted_header = self.header.getHeaders()
         self.setHorizontalHeaderLabels(sorted_header)
