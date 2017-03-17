@@ -138,6 +138,7 @@ class QBOMItemModel(QtGui.QStandardItemModel):
             self.SCH.updateBOMData(supplier,
                                    ordercode,
                                    {self.header.TOTAL: newtotal})
+            print(self.SCH.bomdata)
             ii = item.index().sibling(item.row(),
                                       self.header.getColumn(
                                           self.header.TOTAL))
@@ -299,7 +300,15 @@ class QBOMItemModel(QtGui.QStandardItemModel):
                             colors().printInfo("Automatically\
  calculating first total for %s" % (self.makeDesignatorsText(
      cdata[self.header.DESIGNATORS])))
-                            data = "%d" % self.getTotal(cdata)
+                            newtotal = self.getTotal(cdata)
+                            data = "%d" % newtotal
+                            # and we need to store this value in the
+                            # sch.
+                            self.SCH.updateBOMData(supplier,
+                                                   ordercode,
+                                                   {self.header.TOTAL:
+                                                    newtotal})
+                            self.modelModified.emit(True)
                         else:
                             data = "%d" % (cdata[self.header.TOTAL])
                     elif column == "RoundingPolicy":
