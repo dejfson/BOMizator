@@ -351,13 +351,50 @@ function generating nested defaultdicts. Previously used for loading and
         # we browse here through all the indices and find the ones
         # with ordering code and parent should give us the supplier name
         indexes = self.bomView.selectedIndexes()
+        # let's first try if we have selected only rows which are
+        # headers. if so, we will apply the selection of rounding to
+        # _ALL SUBCOMPONENTS_, hence if one sets rounding on
+        # 'farnell', all components declared in farnell will be
+        # rounded this way. in case of mixed we just setup those who
+        # are not headers
+        if len(indexes) == len(
+                list(filter(lambda ind:
+                            ind.data(i.ItemIsSupplier),
+                            indexes))):
+            colors().printInfo("Adjusting rounding policy for all\
+ components of the supplier(s)")
+            # we have to filter all indices having column zero, these
+            # will identify the real parents of the components:
+            j = filter(lambda ix: ix.column() == i.getColumn(
+                i.DESIGNATORS), indexes)
+            # now we can make new index list composed of
+            # suppliernumber (because parent we get from names
+            l = []
+            for idx in j:
+                for row in range(self.bomTree.rowCount(idx)):
+                    for column in range(self.bomTree.columnCount(idx)):
+                        l.append(self.bomTree.index(row,
+                                                    column,
+                                                    idx))
+            # l now contains all indexes for suppno
+            mindexes = l
+        else:
+            # mixed selection or only ordercode lines
+            # now we have to take all _child_ indices of the given one
+            # pull out all indexes which have setup header usercode
+            mindexes = list(filter(lambda ind:
+                                   not ind.data(i.ItemIsSupplier),
+                                   indexes))
+
         names = list(map(lambda yx:
                          (yx.parent().data(), yx.data()),
-                         filter(lambda ix: ix.column() == i.getColumn(i.SUPPNO), indexes)))
+                         filter(lambda ix: ix.column() == i.getColumn(
+                             i.SUPPNO), mindexes)))
+        print(names)
         # names contains a tuple of supplier/ordercode, we can setup
         # the data
         for supp, ocode in names:
-            self.bomTree.updateBOMData(indexes, supp, ocode,
+            self.bomTree.updateBOMData(mindexes, supp, ocode,
                                        {i.POLICY: newval})
         self.modelModified(True)
 
