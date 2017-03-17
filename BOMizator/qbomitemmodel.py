@@ -138,14 +138,12 @@ class QBOMItemModel(QtGui.QStandardItemModel):
             self.SCH.updateBOMData(supplier,
                                    ordercode,
                                    {self.header.TOTAL: newtotal})
-            print(self.SCH.bomdata)
             ii = item.index().sibling(item.row(),
                                       self.header.getColumn(
                                           self.header.TOTAL))
             daa = self.itemFromIndex(ii)
             daa.setText(str(newtotal))
             self.ignoreCellChanges = False
-
 
         elif colname == self.header.TOTAL and not self.ignoreTotalWrite:
             colors().printInfo("Clearing out mul/add for %s" % (desig,
@@ -301,7 +299,7 @@ class QBOMItemModel(QtGui.QStandardItemModel):
  calculating first total for %s" % (self.makeDesignatorsText(
      cdata[self.header.DESIGNATORS])))
                             newtotal = self.getTotal(cdata)
-                            data = "%d" % newtotal
+                            data = "%s" % str(newtotal)
                             # and we need to store this value in the
                             # sch.
                             self.SCH.updateBOMData(supplier,
@@ -310,7 +308,7 @@ class QBOMItemModel(QtGui.QStandardItemModel):
                                                     newtotal})
                             self.modelModified.emit(True)
                         else:
-                            data = "%d" % (cdata[self.header.TOTAL])
+                            data = "%s" % (str(cdata[self.header.TOTAL]))
                     elif column == "RoundingPolicy":
                         # this one is ignored as it only concerns
                         # calculation of total and it is not displayed
