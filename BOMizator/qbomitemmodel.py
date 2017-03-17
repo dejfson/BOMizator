@@ -294,7 +294,7 @@ class QBOMItemModel(QtGui.QStandardItemModel):
         for supplier in allComps:
             # this one is special, we have to pull out the entire row
             supprow = [QtGui.QStandardItem(supplier), ]
-            for i in range(len(self.header)):
+            for i in range(len(sorted_header)-1):
                 supprow += [QtGui.QStandardItem(), ]
             # modify parameters:
             for coitem in supprow:
