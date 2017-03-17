@@ -75,7 +75,7 @@ class QBOMItemModel(QtGui.QStandardItemModel):
         mults = filter(lambda ix: ix.column() == self.header.getColumn(
             self.header.MULTIPLYFACTOR), indexes)
         for mul in mults:
-            self.cellDataChanged(mul)
+            self.cellDataChanged(self.itemFromIndex(mul))
 
     def cellDataChanged(self, item):
         """ called when user changes the data in editable rows
@@ -142,6 +142,7 @@ class QBOMItemModel(QtGui.QStandardItemModel):
             # filling). Having those two numbers and designators we
             # can calculate automatically the totals
             ax = self.SCH.getBOMData(supplier, ordercode)
+            print(ax)
             newtotal = self.calculateTotal(len(desig.split(",")),
                                            mf,
                                            af,
