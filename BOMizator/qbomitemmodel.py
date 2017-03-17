@@ -142,7 +142,6 @@ class QBOMItemModel(QtGui.QStandardItemModel):
             # filling). Having those two numbers and designators we
             # can calculate automatically the totals
             ax = self.SCH.getBOMData(supplier, ordercode)
-            print(ax)
             newtotal = self.calculateTotal(len(desig.split(",")),
                                            mf,
                                            af,

@@ -390,7 +390,6 @@ function generating nested defaultdicts. Previously used for loading and
                          (yx.parent().data(), yx.data()),
                          filter(lambda ix: ix.column() == i.getColumn(
                              i.SUPPNO), mindexes)))
-        print(names)
         # names contains a tuple of supplier/ordercode, we can setup
         # the data
         for supp, ocode in names:
@@ -716,7 +715,6 @@ function generating nested defaultdicts. Previously used for loading and
         be textual and will be parsed by one of the suppliers strings.
         """
 
-        print(data)
         # first we find all items, which are selected. we are only
         # interested in rows, as those are determining what
         # designators are used.
