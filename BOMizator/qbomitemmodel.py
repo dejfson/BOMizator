@@ -279,6 +279,9 @@ class QBOMItemModel(QtGui.QStandardItemModel):
 
         for supplier in allComps:
             supprow = QtGui.QStandardItem(supplier)
+            # identify this row as supplier row (hence no data of
+            # mult/add and is read-only)
+            supprow.setData(True, self.header.ItemIsSupplier)
             self.appendRow(supprow)
             for ordercode in allComps[supplier]:
                 row = []
@@ -341,5 +344,12 @@ class QBOMItemModel(QtGui.QStandardItemModel):
 
         # keep default flags
         defaultFlags = QtCore.Qt.ItemIsSelectable | QtCore.Qt.ItemIsEnabled
-        defaultFlags |= self.header.getFlags(index.column())
+
+        # now we have to find, whether the index concerns the row with
+        # manufacturer. if so, then it is not editable, in all other
+        # cases we return default flags per 'normal' item
+        if not self.itemFromIndex(
+                index.sibling(0, 0)).data(
+                    self.header.ItemIsSupplier):
+            defaultFlags |= self.header.getFlags(index.column())
         return defaultFlags
