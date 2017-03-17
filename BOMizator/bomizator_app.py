@@ -306,6 +306,11 @@ function generating nested defaultdicts. Previously used for loading and
         # MODEL. IF DATA FROM ROWS ARE TO BE LOADED, THEY NEED TO BE
         # MAPPED FIRST THROUGH THE PROXY. BOMMENU IS ROW-SELECTED
         indexes = self.bomView.selectedIndexes()
+        # find how many rows is opened. we need to keep in account
+        # that row() is local to given context, hence we need to pair
+        # them with parents to see how many rows over all suppliers is
+        # connected
+        rows = set([(idx.parent(), idx.row()) for idx in indexes])
         # some more validation: if datasheet clicked, we display 'open
         # datasheet' menu. But only single one is allowed at time
         menu = QtGui.QMenu()
@@ -317,15 +322,44 @@ function generating nested defaultdicts. Previously used for loading and
         datasheet = list(filter(lambda x:
                                 x.column() == i.getColumn(i.DATASHEET),
                                 indexes))[0].data()
-        if datasheet:
+        if datasheet and len(rows) == 1:
             open_action = menu.addAction(
                 self.tr("Open %s" % (datasheet, )))
             open_action.triggered.connect(partial(self.openBrowser,
                                                   datasheet))
-            execMenu = True
-
+        # no matter how many items is selected, we can always globally
+        # setup the rounding policy
         if execMenu:
-            menu.exec_(self.bomView.viewport().mapToGlobal(position))
+            menu.addSeparator()
+        # get list of roundings to nearest:
+        roundingTo = [x*pow(10, y)
+                      for y in range(4)
+                      for x in [1, 2, 5]]
+        smenu = menu.addMenu(self.tr("Round to nearest multiple of"))
+        for roun in roundingTo:
+            smenu.addAction(
+                "%d" % (roun),
+                partial(self.setNewRounding, roun))
+
+        menu.exec_(self.bomView.viewport().mapToGlobal(position))
+
+    def setNewRounding(self, newval):
+        """ for selected components sets new rounding policy
+        """
+        # we need info about BOM structure
+        i = bomheaders()
+        # we browse here through all the indices and find the ones
+        # with ordering code and parent should give us the supplier name
+        indexes = self.bomView.selectedIndexes()
+        names = list(map(lambda yx:
+                         (yx.parent().data(), yx.data()),
+                         filter(lambda ix: ix.column() == i.getColumn(i.SUPPNO), indexes)))
+        # names contains a tuple of supplier/ordercode, we can setup
+        # the data
+        for supp, ocode in names:
+            self.bomTree.updateBOMData(indexes, supp, ocode,
+                                       {i.POLICY: newval})
+        self.modelModified(True)
 
     def openMenu(self, position):
         """ opens context menu. Context menu is basically a

@@ -62,6 +62,14 @@ class QBOMItemModel(QtGui.QStandardItemModel):
         # should perform SCH write
         self.itemChanged.connect(self.cellDataChanged)
 
+    def updateBOMData(self, indexes, supp, ocode, data):
+        """ calls default schematic parser to update the data, in
+        addition triggers for the the specific indexes recalculation
+        of the total values if ocode means changing the rounding policy
+        """
+        self.SCH.updateBOMData(supp, ocode, data)
+        print("have to update now")
+
     def cellDataChanged(self, item):
         """ called when user changes the data in editable rows
         """
