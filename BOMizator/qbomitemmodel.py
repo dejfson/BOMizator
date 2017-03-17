@@ -68,7 +68,14 @@ class QBOMItemModel(QtGui.QStandardItemModel):
         of the total values if ocode means changing the rounding policy
         """
         self.SCH.updateBOMData(supp, ocode, data)
-        print("have to update now")
+        # the way how we update is that we trigger cell data change on
+        # e.g. multiply factor for each selected item. We read the
+        # value and return the same one by setting its value. This
+        # should trigger cellDataChanged for specific item
+        mults = filter(lambda ix: ix.column() == self.header.getColumn(
+            self.header.MULTIPLYFACTOR), indexes)
+        for mul in mults:
+            self.cellDataChanged(mul)
 
     def cellDataChanged(self, item):
         """ called when user changes the data in editable rows
