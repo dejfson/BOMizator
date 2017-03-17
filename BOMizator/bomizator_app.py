@@ -53,6 +53,7 @@ from .qbommodel import QBOMModel
 from .sch_parser import schParser
 from .qbomitemmodel import QBOMItemModel
 from .suppexceptions import NoProjectGiven
+from .bomheaders import bomheaders
 
 localpath = os.path.dirname(os.path.realpath(__file__))
 form_class = uic.loadUiType(os.path.join(localpath, "BOMLinker.ui"))[0]
@@ -100,6 +101,8 @@ class BOMizator(QtGui.QMainWindow, form_class):
         # looking for changes would be complicated
         self.tabWidget.currentChanged.connect(self.tabChanged)
         self.tabWidget.setCurrentIndex(0)
+        self.bomView.customContextMenuRequested.connect(self.openBOMMenu)
+
         # switching tab in tablebiew
         # various menu items
         self.action_Quit.triggered.connect(self.close)
@@ -295,6 +298,34 @@ function generating nested defaultdicts. Previously used for loading and
         """ instructs model to delete selected item data
         """
         self.model.clearAssignments(self.getSelectedRows())
+
+    def openBOMMenu(self, position):
+        """ in BOM view opens the context menu
+        """
+        # INDEX GOT FROM TREEVIEW IS ALWAYS LINKED TO PROXY AND NOT
+        # MODEL. IF DATA FROM ROWS ARE TO BE LOADED, THEY NEED TO BE
+        # MAPPED FIRST THROUGH THE PROXY. BOMMENU IS ROW-SELECTED
+        indexes = self.bomView.selectedIndexes()
+        # some more validation: if datasheet clicked, we display 'open
+        # datasheet' menu. But only single one is allowed at time
+        menu = QtGui.QMenu()
+        execMenu = False
+        # we need info about BOM structure
+        i = bomheaders()
+        # make datasheet menu
+        # check indice with datasheet:
+        datasheet = list(filter(lambda x:
+                                x.column() == i.getColumn(i.DATASHEET),
+                                indexes))[0].data()
+        if datasheet:
+            open_action = menu.addAction(
+                self.tr("Open %s" % (datasheet, )))
+            open_action.triggered.connect(partial(self.openBrowser,
+                                                  datasheet))
+            execMenu = True
+
+        if execMenu:
+            menu.exec_(self.bomView.viewport().mapToGlobal(position))
 
     def openMenu(self, position):
         """ opens context menu. Context menu is basically a

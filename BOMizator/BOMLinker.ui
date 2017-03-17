@@ -120,6 +120,9 @@
         </item>
         <item row="1" column="0" colspan="3">
          <widget class="QTreeView" name="bomView">
+          <property name="contextMenuPolicy">
+           <enum>Qt::CustomContextMenu</enum>
+          </property>
           <property name="tabKeyNavigation">
            <bool>true</bool>
           </property>
