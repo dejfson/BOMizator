@@ -340,8 +340,60 @@ function generating nested defaultdicts. Previously used for loading and
             smenu.addAction(
                 "%d" % (roun),
                 partial(self.setNewRounding, roun))
+        # copy just generates quick copy format for
+        # farnell/radiospares, so they can be easily copied into
+        # specific web page, but only if selection of single supplier
+        # is made (otherwise we would not know how to copy/paste
+        # formats. First let's see how many parents the selected items
+        # have. If there's only one, we can display copy menu
+        uniques = set([parents[0] for parents in rows])
+        copyDisplay = False
+        supp = ''
+        if len(uniques) < 3:
+            # if all rows parents resolve in a single item this is OK,
+            # because it either means, that we have selected single
+            # supplier header, or many items of the same supplier
+            if len(uniques) == 1:
+                copyDisplay = True
+            # if they resolve in two, it might well be, that user has
+            # chosen many lines from the same supplier _INCLUDING_ the
+            # supplier header. To find out we have to check the texts
+            # of the parents. The supplier item has to have set the
+            # user flag. Hence in case of two one has to have this
+            # flag whereas the other one has to have none:
+            numtrue = sum([
+                int(
+                    bool(
+                        ix.data(i.ItemIsSupplier))) for ix in
+                uniques])
+            # so there is one set of data, and one header. The last
+            # what we have to find is, whether the header is
+            # corresponding to correctly chosen items. This is because
+            # user might mistakenly chose all components from farnell
+            # (e.g.), but include header from radiospares. This is
+            # failure scenario. We take the one returning true. *BUT
+            # FOR THE MOMENT WE'RE NOT GOING TO COMPLICATE THIS* AND
+            # WE DO NOT CARE
+            if numtrue == 1:
+                copyDisplay = True
+                # get the supplier
+                supp = list(filter(lambda iy:
+                                   iy,
+                                   [ix.data() for ix in uniques]))[0]
+
+        if copyDisplay:
+            menu.addSeparator()
+            menu.addAction(self.tr("Copy %s fast-paste data") % (supp,),
+                           self.copyFastPaste)
 
         menu.exec_(self.bomView.viewport().mapToGlobal(position))
+
+
+    def copyFastPaste(self):
+        # looks at selected indices and formats the fast-paste
+        # formatted data. this has to be handled by module of
+        # supplier, as each supplier wants to see fast paste data
+        pass
 
     def setNewRounding(self, newval):
         """ for selected components sets new rounding policy
