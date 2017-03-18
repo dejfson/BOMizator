@@ -299,6 +299,45 @@ function generating nested defaultdicts. Previously used for loading and
         """
         self.model.clearAssignments(self.getSelectedRows())
 
+    def singleSupplierData(self, indexes):
+        """ function returns true if the indices correspond to a
+        single supplier data. If so, it returns a dictionary where the
+        key corresponds to supplier and dictionary returns list of
+        tuples: ordering code/total number. Returned parameters can be
+        then directly sent to supplier plugin to return quickpaste data
+        """
+        # select all indices with 'total' and ordering code, make
+        # tuple of them
+        i = bomheaders()
+        xa = []
+        keys = []
+        for headerColumn in [i.getColumn(i.SUPPNO),
+                             i.getColumn(i.TOTAL)]:
+            xa.append(
+                list(
+                    filter(lambda cu: cu.column() == headerColumn,
+                           indexes)))
+        # now we transform the indices into real textual data
+        for order, total in zip(xa[0], xa[1]):
+            if order.data(i.ItemIsSupplier):
+                # header, and we need to find the corresponding
+                # suppliername, which is hidden in the same row
+                # if we have more keys in the set, this is not good
+                keys.append(order.sibling(order.row(), 0).data())
+            else:
+                xa.append((order.data(), total.data()))
+                # and we add name key to the keys field
+                keys.append(order.parent().data())
+
+        ukeys = set(keys)
+        # now, ukeys have to be _unique_ indicating that user selected
+        # only components/headers from the particular
+        # supplier.
+        if len(ukeys) == 1:
+            return {list(keys)[0]: xa}
+
+        return None
+
     def openBOMMenu(self, position):
         """ in BOM view opens the context menu
         """
@@ -346,54 +385,20 @@ function generating nested defaultdicts. Previously used for loading and
         # is made (otherwise we would not know how to copy/paste
         # formats. First let's see how many parents the selected items
         # have. If there's only one, we can display copy menu
-        uniques = set([parents[0] for parents in rows])
-        copyDisplay = False
-        supp = ''
-        if len(uniques) < 3:
-            # if all rows parents resolve in a single item this is OK,
-            # because it either means, that we have selected single
-            # supplier header, or many items of the same supplier
-            if len(uniques) == 1:
-                copyDisplay = True
-            # if they resolve in two, it might well be, that user has
-            # chosen many lines from the same supplier _INCLUDING_ the
-            # supplier header. To find out we have to check the texts
-            # of the parents. The supplier item has to have set the
-            # user flag. Hence in case of two one has to have this
-            # flag whereas the other one has to have none:
-            numtrue = sum([
-                int(
-                    bool(
-                        ix.data(i.ItemIsSupplier))) for ix in
-                uniques])
-            # so there is one set of data, and one header. The last
-            # what we have to find is, whether the header is
-            # corresponding to correctly chosen items. This is because
-            # user might mistakenly chose all components from farnell
-            # (e.g.), but include header from radiospares. This is
-            # failure scenario. We take the one returning true. *BUT
-            # FOR THE MOMENT WE'RE NOT GOING TO COMPLICATE THIS* AND
-            # WE DO NOT CARE
-            if numtrue == 1:
-                copyDisplay = True
-                # get the supplier
-                supp = list(filter(lambda iy:
-                                   iy,
-                                   [ix.data() for ix in uniques]))[0]
-
-        if copyDisplay:
+        allThis = self.singleSupplierData(indexes)
+        if allThis:
             menu.addSeparator()
-            menu.addAction(self.tr("Copy %s fast-paste data") % (supp,),
-                           self.copyFastPaste)
+            menu.addAction(self.tr("Copy %s fast-paste data") % (list(allThis.keys())[0]),
+                           partial(self.copyFastPaste,
+                                   allThis))
 
         menu.exec_(self.bomView.viewport().mapToGlobal(position))
 
-
-    def copyFastPaste(self):
+    def copyFastPaste(self, data):
         # looks at selected indices and formats the fast-paste
         # formatted data. this has to be handled by module of
         # supplier, as each supplier wants to see fast paste data
-        pass
+        print(data)
 
     def setNewRounding(self, newval):
         """ for selected components sets new rounding policy
