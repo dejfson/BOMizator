@@ -65,6 +65,7 @@ and select ' Copiez et collez votre liste d'articles' to open the
         """
         return '\n'.join(["%s, %s" % (str(ix[0]),
                                       str(ix[1])) for ix in data])
+
     def parseURL(self, urltext):
         """ takes the text of the radiospares URL and verifies if it
         is really radiospares. then tries to parse mfg data and

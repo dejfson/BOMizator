@@ -127,12 +127,12 @@ class BOMizator(QtGui.QMainWindow, form_class):
         """ when tab changes to BOM, we need to reload the treeview
         with new model data
         """
-        # @TODO implement recreation of BOMview from data
         if self.tabWidget.tabText(newidx) == "BOM":
             # we have to re-create the new item model for BOM display
             # data
             self.bomTree = QBOMItemModel(self.SCH,
-                                         self.disabledComponentsHidden)
+                                         self.disabledComponentsHidden,
+                                         self)
             self.bomView.setModel(self.bomTree)
             # and resize columns
             self.bomView.expandAll()
@@ -155,16 +155,6 @@ class BOMizator(QtGui.QMainWindow, form_class):
         """
         with open(self.componentsCacheFile, 'wt') as outfile:
             json.dump(self.componentsCache, outfile)
-
-    def rec_dd(self):
-        """
-        http://stackoverflow.com/questions/19189274/defaultdict-of-defaultdict-nested
-
-function generating nested defaultdicts. Previously used for loading and
-        operating the components cache, but as it turned out to be
-        very dangerous to use, I'm reverting back to ordinary dictionary
-        """
-        return defaultdict(self.rec_dd)
 
     def hideShowDisabledComponents(self, hideComponents):
         """ if hideComponents is true, then the model to display all
@@ -371,7 +361,7 @@ function generating nested defaultdicts. Previously used for loading and
         rows = set([(idx.parent(), idx.row()) for idx in indexes])
         # some more validation: if datasheet clicked, we display 'open
         # datasheet' menu. But only single one is allowed at time
-        menu = QtGui.QMenu()
+        menu = QtGui.QMenu(self)
         execMenu = False
         # we need info about BOM structure
         i = bomheaders()
@@ -500,7 +490,7 @@ function generating nested defaultdicts. Previously used for loading and
 
         # some more validation: if datasheet clicked, we display 'open
         # datasheet' menu. But only single one is allowed at time
-        menu = QtGui.QMenu()
+        menu = QtGui.QMenu(self)
         execMenu = False
 
         # ###############################################################################
@@ -706,7 +696,7 @@ function generating nested defaultdicts. Previously used for loading and
            (not os.path.isfile(projectDirectory) and
             not os.path.isdir(projectDirectory)):
             # if not given directory from the command line, ask for it
-            dlg = QtGui.QFileDialog()
+            dlg = QtGui.QFileDialog(self)
             dlg.setFilter("Kicad project file (*.pro)")
             if dlg.exec_():
                 canContinue = True
@@ -722,7 +712,7 @@ function generating nested defaultdicts. Previously used for loading and
             self.SCH = schParser(projectFile)
             self.SCH.parseComponents()
 
-            self.settings = QtCore.QSettings()
+            self.settings = QtCore.QSettings(self)
             # get from the options the path to the component cache - a
             # filename, which is used to store the data
             self.componentsCacheFile = self.settings.value(
