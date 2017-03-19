@@ -60,6 +60,18 @@ class supplier_selector(object):
         self.plugins = self.getPlugins()
         # and now we're ready to accept search queries
 
+    def getFastPasteText(self, data):
+        """ dictionary having a unique single key of supplier and
+        under that key a list of (ordercode, total) tuples will be
+        converted into a string which for particular web page can be
+        pasted to a quick-buy stuff
+        """
+        # note: it only returns the last supplier code, hence it is
+        # expected that the dictionary has _single supplier key_
+        for supplier, data in data.items():
+            return self.plugins[supplier].getFastPasteText(data)
+
+
     def parseURL(self, urltext):
         """ Uses all plugins installed to detect if one of the plugins
         can accept the web page URL and parse its content to get the

@@ -66,6 +66,15 @@ class farnell(object):
         return "http://uk.farnell.com/webapp/\
 wcs/stores/servlet/Search?st=%s" % (searchtext,)
 
+    def getFastPasteText(self, data):
+        """ converts tuple (ordercode, number) into a farnell
+        fast-paste order text, which is a format of
+ordercode, number, comment (empty)
+per each ordering code. See e.g. 'quick paste' at uk.farnell.com
+        """
+        return '\n'.join(["%s, %s" % (str(ix[0]),
+                                      str(ix[1])) for ix in data])
+
     def harvestDatasheet(self, urltext):
         """ the urltext is used to fetch the web page content and
         harvest the datasheet link from it. it does not work all the

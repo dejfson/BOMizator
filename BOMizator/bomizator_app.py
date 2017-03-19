@@ -311,6 +311,7 @@ function generating nested defaultdicts. Previously used for loading and
         i = bomheaders()
         xa = []
         keys = []
+        orders = []
         for headerColumn in [i.getColumn(i.SUPPNO),
                              i.getColumn(i.TOTAL)]:
             xa.append(
@@ -325,16 +326,34 @@ function generating nested defaultdicts. Previously used for loading and
                 # if we have more keys in the set, this is not good
                 keys.append(order.sibling(order.row(), 0).data())
             else:
-                xa.append((order.data(), total.data()))
+                orders.append((order.data(), total.data()))
                 # and we add name key to the keys field
                 keys.append(order.parent().data())
 
         ukeys = set(keys)
+        # now the point: if only single row selected, and that
+        # particular row is the header of the supplier, return _all_
+        # suppliers data. we look on rows
+        allRows = set(map(lambda ix: ix.row(), indexes))
+        if len(allRows) == 1 and indexes[0].data(i.ItemIsSupplier):
+            # this is supplier row, we need to count all orders in
+            # now find the index which has children (only one must
+            # exist)
+            root = list(filter(lambda ix:
+                               self.bomTree.hasChildren(ix),
+                               indexes))[0]
+            orders = []
+            # now we get all totals
+            for row in range(self.bomTree.rowCount(root)):
+                orders.append((root.child(row,
+                                          i.getColumn(i.SUPPNO)).data(),
+                               root.child(row,
+                                          i.getColumn(i.TOTAL)).data()))
         # now, ukeys have to be _unique_ indicating that user selected
         # only components/headers from the particular
         # supplier.
         if len(ukeys) == 1:
-            return {list(keys)[0]: xa}
+            return {list(keys)[0]: orders}
 
         return None
 
@@ -398,7 +417,10 @@ function generating nested defaultdicts. Previously used for loading and
         # looks at selected indices and formats the fast-paste
         # formatted data. this has to be handled by module of
         # supplier, as each supplier wants to see fast paste data
-        print(data)
+        pasteData = self.model.suppliers.getFastPasteText(data)
+        cb = QtGui.QApplication.clipboard()
+        cb.clear(mode=cb.Clipboard)
+        cb.setText(pasteData, mode=cb.Clipboard)
 
     def setNewRounding(self, newval):
         """ for selected components sets new rounding policy

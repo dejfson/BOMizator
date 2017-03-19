@@ -53,6 +53,18 @@ class radiospares(object):
         """
         return "http://fr.rs-online.com/web/zr/?searchTerm=%s" % (searchtext)
 
+    def getFastPasteText(self, data):
+        """ converts tuple (ordercode, number) into a radiospares
+        fast-paste order text, which is a format of
+ordercode, number, price center, internal product code
+per each ordering code. See
+        e.g. http://fr.rs-online.com/web/ca/recapitulatifpanier/
+and select ' Copiez et collez votre liste d'articles' to open the
+        dialog box with fast entry. We only fill here ordercode and
+        number of pieces, all the rest is empty
+        """
+        return '\n'.join(["%s, %s" % (str(ix[0]),
+                                      str(ix[1])) for ix in data])
     def parseURL(self, urltext):
         """ takes the text of the radiospares URL and verifies if it
         is really radiospares. then tries to parse mfg data and
