@@ -14,6 +14,6 @@ setup(name='BOMizator',
       install_requires=['bs4', 'urllib3', 'html5lib', 'PyQt5'],
       include_package_data=True,
       data_files=[('BOMizator', ['BOMizator/BOMLinker.ui', ]),
-                  ('BOMizator/plugins', ['BOMizator/plugins/radiospares.py',
-                                         'BOMizator/plugins/farnell.py'])],
+                  ('BOMizator/suppliers', ['BOMizator/suppliers/radiospares.py',
+                                         'BOMizator/suppliers/farnell.py'])],
       scripts=['bin/bomizator', ])
