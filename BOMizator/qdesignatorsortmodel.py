@@ -29,11 +29,11 @@
 Implements custom sorting to take into account designators
 """
 
-from PyQt5 import QtGui
+from PyQt5 import QtCore
 from .qdesignatorcomparator import QDesignatorComparator
 
 
-class QDesignatorSortModel(QtGui.QSortFilterProxyModel):
+class QDesignatorSortModel(QtCore.QSortFilterProxyModel):
     """ Reimplements sorting of the treeview such, that designator and
     values numbers are properly sorted according to 'normal'
     perception. Hence U1, U2, U3 and not U1, U10, U11 as by default.

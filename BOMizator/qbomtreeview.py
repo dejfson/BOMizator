@@ -30,16 +30,16 @@ overloaded QTreeView to provide functionality of moving cursors
 horizontally than vertically
 """
 
-from PyQt5 import QtGui, QtCore
+from PyQt5 import QtGui, QtCore, QtWidgets
 
 
-class QBOMTreeView(QtGui.QTreeView):
+class QBOMTreeView(QtWidgets.QTreeView):
     """ implements movecursor to keep editting of rows as pleasant as
     it can be
     """
 
     def moveCursor(self, cursorAction, modifiers):
-        if cursorAction == QtGui.QAbstractItemView.MoveNext:
+        if cursorAction == QtWidgets.QAbstractItemView.MoveNext:
             index = self.currentIndex()
             if index.isValid():
                 if index.column()+1 < self.model().columnCount():
@@ -48,7 +48,7 @@ class QBOMTreeView(QtGui.QTreeView):
                     return index.sibling(index.row()+1, 0)
                 else:
                     return QtCore.QModelIndex()
-        elif cursorAction == QtGui.QAbstractItemView.MovePrevious:
+        elif cursorAction == QtWidgets.QAbstractItemView.MovePrevious:
             index = self.currentIndex()
             if index.isValid():
                 if index.column() >= 1:

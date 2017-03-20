@@ -45,7 +45,7 @@ import fnmatch
 import json
 from collections import defaultdict
 from functools import partial
-from PyQt5 import QtGui, uic, QtCore
+from PyQt5 import QtGui, uic, QtCore, QtWidgets
 from .headers import headers
 from .colors import colors
 from .qdesignatorsortmodel import QDesignatorSortModel
@@ -59,14 +59,16 @@ localpath = os.path.dirname(os.path.realpath(__file__))
 form_class = uic.loadUiType(os.path.join(localpath, "BOMLinker.ui"))[0]
 
 
-class BOMizator(QtGui.QMainWindow, form_class):
+class BOMizator(QtWidgets.QMainWindow, form_class):
 
     def __init__(self, projectDirectory='', parent=None, flags=0):
         """ Constructing small window with tree view of all components
     present in the schematics. Directory points to the KiCad project
     directory containing .sch (they can be in sub-directories as well)
         """
-        QtGui.QMainWindow.__init__(self, parent, QtCore.Qt.WindowFlags(flags))
+        QtWidgets.QMainWindow.__init__(self,
+                                       parent,
+                                       QtCore.Qt.WindowFlags(flags))
         self.setupUi(self)
         self.isModified = False
         try:
@@ -361,7 +363,7 @@ class BOMizator(QtGui.QMainWindow, form_class):
         rows = set([(idx.parent(), idx.row()) for idx in indexes])
         # some more validation: if datasheet clicked, we display 'open
         # datasheet' menu. But only single one is allowed at time
-        menu = QtGui.QMenu(self)
+        menu = QtWidgets.QMenu(self)
         execMenu = False
         # we need info about BOM structure
         i = bomheaders()
@@ -408,7 +410,7 @@ class BOMizator(QtGui.QMainWindow, form_class):
         # formatted data. this has to be handled by module of
         # supplier, as each supplier wants to see fast paste data
         pasteData = self.model.suppliers.getFastPasteText(data)
-        cb = QtGui.QApplication.clipboard()
+        cb = QtWidgets.QApplication.clipboard()
         cb.clear(mode=cb.Clipboard)
         cb.setText(pasteData, mode=cb.Clipboard)
 
@@ -490,7 +492,7 @@ class BOMizator(QtGui.QMainWindow, form_class):
 
         # some more validation: if datasheet clicked, we display 'open
         # datasheet' menu. But only single one is allowed at time
-        menu = QtGui.QMenu(self)
+        menu = QtWidgets.QMenu(self)
         execMenu = False
 
         # ###############################################################################
@@ -929,7 +931,7 @@ def main():
     Main application body
     """
 
-    app = QtGui.QApplication(sys.argv)
+    app = QtWidgets.QApplication(sys.argv)
     # general settings file as follows
     QtCore.QCoreApplication.setOrganizationName("dejfson")
     QtCore.QCoreApplication.setOrganizationDomain("github.com/dejfson")
