@@ -912,8 +912,19 @@ class BOMizator(QtWidgets.QMainWindow, form_class):
                               self.model.suppliers.plugins.keys()))
         url = "https://octopart.com/search?q=%s&" % (searchtext)+limits
         # now fire the web browser with this page opened
-        b = webbrowser.get('firefox')
-        b.open(url, new=0, autoraise=True)
+        # this is list of browsers in the list of
+        # 'preferences'. Konqueror has troubles to display octopart
+        browsers = ['firefox', 'google-chrome', 'windows-default']
+        while True:
+            brw = browsers.pop(0)
+            if not brw:
+                raise webbrowser.Error("Cound not locate runnable browser")
+            try:
+                b = webbrowser.get(brw)
+                b.open(url, new=0, autoraise=True)
+                return
+            except webbrowser.Error:
+                pass
 
     def treeDoubleclick(self, index):
         """ when user doubleclicks item, we search for it in farnel
