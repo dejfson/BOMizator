@@ -410,7 +410,7 @@ class QBOMModel(QtGui.QStandardItemModel):
         with first argument being dictionary of values dropped into a cell
         """
 
-        QtGui.QApplication.setOverrideCursor(QtCore.Qt.WaitCursor)
+        QtWidgets.QApplication.setOverrideCursor(QtCore.Qt.WaitCursor)
         try:
             textstr = self.suppliers.parseURL(data.text())
             self.droppedData.emit(
@@ -422,7 +422,7 @@ class QBOMModel(QtGui.QStandardItemModel):
             colors().printFail(str(e))
             ret = False
         finally:
-            QtGui.QApplication.restoreOverrideCursor()
+            QtWidgets.QApplication.restoreOverrideCursor()
         return ret
 
     def updateModelData(self, replace_in_rows, parsed_data):
@@ -432,7 +432,7 @@ class QBOMModel(QtGui.QStandardItemModel):
         affected rows IN MODEL VIEW (ours)
         """
 
-        QtGui.QApplication.setOverrideCursor(QtCore.Qt.WaitCursor)
+        QtWidgets.QApplication.setOverrideCursor(QtCore.Qt.WaitCursor)
 
         # get the data out of those indices
         collector = defaultdict(list)
@@ -519,5 +519,5 @@ class QBOMModel(QtGui.QStandardItemModel):
  writing into the component cache")
             self.modelModified.emit(True)
 
-        QtGui.QApplication.restoreOverrideCursor()
+        QtWidgets.QApplication.restoreOverrideCursor()
         return True
