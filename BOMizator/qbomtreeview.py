@@ -30,7 +30,7 @@ overloaded QTreeView to provide functionality of moving cursors
 horizontally than vertically
 """
 
-from PyQt5 import QtGui, QtCore, QtWidgets
+from PyQt5 import QtCore, QtWidgets
 
 
 class QBOMTreeView(QtWidgets.QTreeView):
