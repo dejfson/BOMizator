@@ -875,7 +875,7 @@ class BOMizator(QtWidgets.QMainWindow, form_class):
         for idx in to_enable:
             self.treeView.selectionModel().select(
                 idx,
-                QtGui.QItemSelectionModel.Select)
+                QtCore.QItemSelectionModel.Select)
 
     def openBrowser(self, page):
         """ opens the browser with datasheet
