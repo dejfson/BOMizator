@@ -71,6 +71,7 @@ class BOMizator(QtWidgets.QMainWindow, form_class):
                                        QtCore.Qt.WindowFlags(flags))
         self.setupUi(self)
         self.isModified = False
+        self.settings = QtCore.QSettings(self)
         try:
             self.projectDirectory = self.openProject(projectDirectory)
         except NoProjectGiven:
@@ -718,7 +719,6 @@ class BOMizator(QtWidgets.QMainWindow, form_class):
             self.SCH = schParser(projectFile)
             self.SCH.parseComponents()
 
-            self.settings = QtCore.QSettings(self)
             # get from the options the path to the component cache - a
             # filename, which is used to store the data
             self.componentsCacheFile = self.settings.value(
