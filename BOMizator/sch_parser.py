@@ -37,7 +37,7 @@ from .colors import colors
 from .headers import headers
 from .qdesignatorcomparator import QDesignatorComparator
 import shlex
-from PyQt4 import QtCore
+from PyQt5 import QtCore
 
 
 class schParser(QtCore.QObject):

@@ -45,7 +45,7 @@ import fnmatch
 import json
 from collections import defaultdict
 from functools import partial
-from PyQt4 import QtGui, uic, QtCore
+from PyQt5 import QtGui, uic, QtCore
 from .headers import headers
 from .colors import colors
 from .qdesignatorsortmodel import QDesignatorSortModel

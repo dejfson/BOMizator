@@ -29,7 +29,7 @@
 Implements custom sorting to take into account designators
 """
 
-from PyQt4 import QtGui
+from PyQt5 import QtGui
 from .qdesignatorcomparator import QDesignatorComparator
 
 

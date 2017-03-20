@@ -32,7 +32,7 @@ designators. This is the view, which allows to easily come out with
 bill of material usable to directly order the components
 """
 
-from PyQt4 import QtGui, QtCore
+from PyQt5 import QtGui, QtCore
 import textwrap
 from .bomheaders import bomheaders
 from .qdesignatorcomparator import QDesignatorComparator
