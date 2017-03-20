@@ -266,7 +266,7 @@ class schParser(QtCore.QObject):
             else:
                 unassigned = unassigned.union(
                     component[self.header.DESIGNATOR])
-        self.logger.info("%s: unassigned supplier,\
+        self.logger.error("%s: unassigned supplier,\
  ignoring" % (', '.join(unassigned)))
         return collected
 
