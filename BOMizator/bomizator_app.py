@@ -698,18 +698,22 @@ class BOMizator(QtWidgets.QMainWindow, form_class):
            (not os.path.isfile(projectDirectory) and
             not os.path.isdir(projectDirectory)):
             # if not given directory from the command line, ask for it
-            dlg = QtWidgets.QFileDialog(self)
-            dlg.setFilter("Kicad project file (*.pro)")
-            if dlg.exec_():
+            projdir, _ = QtWidgets.QFileDialog.getOpenFileName(self,
+                                                               "Open KiCad project",
+                                                               '',
+                                                               "Kicad\
+ project file (*.pro)")
+            if projdir:
                 canContinue = True
-                projdir = dlg.selectedFiles()
                 # we get directly the file
-                projectDirectory = projdir[0]
+                projectDirectory = projdir
         else:
             canContinue = True
 
         if canContinue:
-            projectFile, projectDirectory = self.getProjectPaths(projectDirectory)
+            projectFile, projectDirectory = self.getProjectPaths(
+                projectDirectory)
+
             # we have to find a single project file
             self.SCH = schParser(projectFile)
             self.SCH.parseComponents()
