@@ -12,5 +12,6 @@ setup(name='BOMizator',
       author='David Belohrad',
       author_email='david.belohrad@cern.ch',
       install_requires=['bs4', 'urllib3', 'html5lib', 'PyQt5'],
-      data_files=[('', ['BOMizator/BOMLinker.ui', ])],
+      include_package_data=True,
+      data_files=[('BOMizator', ['BOMizator/BOMLinker.ui', ])],
       scripts=['bin/bomizator', ])
