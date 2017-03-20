@@ -29,7 +29,7 @@
 Implements bill-of-material model
 """
 
-from PyQt5 import QtGui, QtCore
+from PyQt5 import QtGui, QtCore, QtWidgets
 import hashlib
 import json
 from collections import defaultdict
