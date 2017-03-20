@@ -36,7 +36,6 @@ from PyQt5 import QtGui, QtCore
 import textwrap
 from .bomheaders import bomheaders
 from .qdesignatorcomparator import QDesignatorComparator
-from .colors import colors
 from .roundingpolicy import roundingPolicy
 
 
@@ -108,7 +107,7 @@ class QBOMItemModel(QtGui.QStandardItemModel):
         # any manual override of total erases the content of mul/add)
         if colname in [self.header.MULTIPLYFACTOR,
                        self.header.ADDFACTOR]:
-            colors().printInfo("Readjusting total for %s" % (desig, ))
+            self.logger.info("Readjusting total for %s" % (desig, ))
             # so here we are if manually entered values into
             # mult/add. In this case we recalculate total no matter if
             # prevously entered total manually. It might be, that one
@@ -161,8 +160,7 @@ class QBOMItemModel(QtGui.QStandardItemModel):
             self.ignoreCellChanges = False
 
         elif colname == self.header.TOTAL and not self.ignoreTotalWrite:
-            colors().printInfo("Clearing out mul/add for %s" % (desig,
-        ))
+            self.logger.info("Clearing out mul/add for %s" % (desig, ))
             for colname in [self.header.MULTIPLYFACTOR,
                             self.header.ADDFACTOR]:
                 # following line clears out mul/add factors and in
@@ -321,7 +319,7 @@ class QBOMItemModel(QtGui.QStandardItemModel):
                         if cdata[self.header.TOTAL] == -1:
                             # initial state is -1, we recalculate
                             # (until first save)
-                            colors().printInfo("Automatically\
+                            self.logger.info("Automatically\
  calculating first total for %s" % (self.makeDesignatorsText(
      cdata[self.header.DESIGNATORS])))
                             newtotal = self.getTotal(cdata)

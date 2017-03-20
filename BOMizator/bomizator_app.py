@@ -47,16 +47,18 @@ from collections import defaultdict
 from functools import partial
 from PyQt5 import QtGui, uic, QtCore, QtWidgets
 from .headers import headers
-from .colors import colors
 from .qdesignatorsortmodel import QDesignatorSortModel
 from .qbommodel import QBOMModel
 from .sch_parser import schParser
 from .qbomitemmodel import QBOMItemModel
 from .suppexceptions import NoProjectGiven
 from .bomheaders import bomheaders
+from .listviewhandler import ListViewHandler
+import logging
 
 localpath = os.path.dirname(os.path.realpath(__file__))
-form_class = uic.loadUiType(os.path.join(localpath, "BOMLinker.ui"))[0]
+form_class = uic.loadUiType(os.path.join(localpath,
+                                         "BOMLinker.ui"))[0]
 
 
 class BOMizator(QtWidgets.QMainWindow, form_class):
@@ -66,16 +68,32 @@ class BOMizator(QtWidgets.QMainWindow, form_class):
     present in the schematics. Directory points to the KiCad project
     directory containing .sch (they can be in sub-directories as well)
         """
+        global log
+
         QtWidgets.QMainWindow.__init__(self,
                                        parent,
                                        QtCore.Qt.WindowFlags(flags))
         self.setupUi(self)
+        self.logger = logging.getLogger('bomizator')
+        self.logger.setLevel(logging.DEBUG)
+        fh = logging.FileHandler('bomizator.log')
+        fh.setLevel(logging.DEBUG)
+        formatter = logging.Formatter('%(asctime)s - %(name)s -\
+ %(levelname)s - %(message)s')
+        fh.setFormatter(formatter)
+        self.logger.addHandler(fh)
+        mw = ListViewHandler(self.messagesWidget)
+        mw.setLevel(logging.DEBUG)
+        mwformatter = logging.Formatter('%(levelname)s - %(message)s')
+        mw.setFormatter(mwformatter)
+        self.logger.addHandler(mw)
+
         self.isModified = False
         self.settings = QtCore.QSettings(self)
         try:
             self.projectDirectory = self.openProject(projectDirectory)
         except NoProjectGiven:
-            colors().printFail(self.tr(
+            self.logger.critical(self.tr(
                 "Not known what project is needed to be parsed"))
             sys.exit(-1)
 
@@ -116,6 +134,9 @@ class BOMizator(QtWidgets.QMainWindow, form_class):
         self._readAndApplyWindowAttributeSettings()
         # update status for the first time
         self.treeSelection()
+
+    def logConsole(self):
+        print("console")
 
     def newMultiplier(self):
         """ called when global multiplier changed
@@ -433,7 +454,7 @@ class BOMizator(QtWidgets.QMainWindow, form_class):
                 list(filter(lambda ind:
                             ind.data(i.ItemIsSupplier),
                             indexes))):
-            colors().printInfo("Adjusting rounding policy for all\
+            self.logger.info("Adjusting rounding policy for all\
  components of the supplier(s)")
             # we have to filter all indices having column zero, these
             # will identify the real parents of the components:
@@ -637,7 +658,7 @@ class BOMizator(QtWidgets.QMainWindow, form_class):
                                                    cmpData))
                         execMenu = True
         except TypeError:
-            colors().printWarn("Selection is not unique, cannot\
+            self.logger.warning("Selection is not unique, cannot\
  propose cached component")
             pass
 
@@ -725,7 +746,7 @@ class BOMizator(QtWidgets.QMainWindow, form_class):
                 "componentsCacheFile",
                 os.path.join(projectDirectory, "componentsCache.json"),
                 str)
-            print("Using component cache from %s" %
+            self.logger.info("Using component cache from %s" %
                   (self.componentsCacheFile))
             # load the complete dictionary if exists. (either in
             # project directory, or if generally specified)

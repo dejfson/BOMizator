@@ -33,11 +33,11 @@ all the embedded components
 
 import os
 from collections import defaultdict
-from .colors import colors
 from .headers import headers
 from .qdesignatorcomparator import QDesignatorComparator
 import shlex
 from PyQt5 import QtCore
+import logging
 
 
 class schParser(QtCore.QObject):
@@ -52,6 +52,8 @@ class schParser(QtCore.QObject):
         """ projectFile points to a specific .pro file from KiCad
         """
         super(schParser, self).__init__(parent)
+        self.logger = logging.getLogger('bomizator')
+
         self.projectFile = projectFile
         # configuration filename is derived from projectname
         cfile = os.path.splitext(self.projectFile)[0]
@@ -211,7 +213,7 @@ class schParser(QtCore.QObject):
         for dsg, component in self.components.items():
             if dsg in self.disabledDesignators and\
                not includeDisabledComponents:
-                colors().printWarn("%s: component disabled, will not\
+                self.logger.warning("%s: component disabled, will not\
  appear in BOM list" % (dsg))
             elif component[self.header.SUPPNO] != '':
                 # copy original data from the component (!! ALL OF THEM SHOULD
@@ -264,7 +266,7 @@ class schParser(QtCore.QObject):
             else:
                 unassigned = unassigned.union(
                     component[self.header.DESIGNATOR])
-        colors().printFail("%s: unassigned supplier,\
+        self.logger.info("%s: unassigned supplier,\
  ignoring" % (', '.join(unassigned)))
         return collected
 
@@ -576,7 +578,7 @@ class schParser(QtCore.QObject):
         """ opens the sheet fname, parses it for sub-sheets and
         returns their list.
         """
-        colors().printInfo("Parsing " + fname)
+        self.logger.info("Parsing " + fname)
         subsheet = []
         with open(fname, "rt") as f:
             insheet = False
@@ -691,8 +693,11 @@ class schParser(QtCore.QObject):
                     dsg = self.getNormalisedDesignators(xm[self.header.DESIGNATOR])
                     self.components[dsg] = xm
                 else:
-                    print("Component(s) ", xm[self.header.DESIGNATOR],
-                          " already defined. Multipart component?")
+                    dgs = ', '.join(map(str,
+                                        xm[self.header.DESIGNATOR]))
+                    txt = "Component(s) " + dgs +\
+                          " already defined. Multipart component?"
+                    self.logger.warning(txt)
 
             self.current_state = self._smCatchHeader
 
@@ -773,9 +778,9 @@ AR Path="/55092EEE/56C1F5DB/56BE9140" Ref="C219"  Part="1"
         # in. If so, WE SHOW IT AS WARNING
         try:
             if args['Ref'] in self.current_component['AR'].keys():
-                colors().printFail("Designator " +
-                                   args['Ref'] +
-                                   """ defined multiple times in the\
+                self.logger.fail("Designator " +
+                                 args['Ref'] +
+                                 """ defined multiple times in the\
  project. CHECK YOUR ANNOTATIONS AS THEY MIGHT BE INCORRECT. KEEPING
 THE FIRST DESIGNATOR FOUND""")
             else:
@@ -836,8 +841,8 @@ THE FIRST DESIGNATOR FOUND""")
         appropriate attributes.
         """
         for fname in self.matches:
-            colors().printInfo("Parsing " +
-                               fname)
+            self.logger.info("Parsing " +
+                             fname)
             with open(fname, "rt") as f:
                 # parsing the file for specific tokens of component
                 # start/stop is a simple state machine

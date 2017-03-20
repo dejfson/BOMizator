@@ -36,7 +36,6 @@ from collections import defaultdict
 from .supplier_selector import supplier_selector
 from .headers import headers
 from .suppexceptions import ComponentParsingFailed
-from .colors import colors
 
 
 class QBOMModel(QtGui.QStandardItemModel):
@@ -419,7 +418,7 @@ class QBOMModel(QtGui.QStandardItemModel):
                 treeparent.column())
             ret = True
         except ComponentParsingFailed as e:
-            colors().printFail(str(e))
+            self.logger.critical(str(e))
             ret = False
         finally:
             QtWidgets.QApplication.restoreOverrideCursor()
@@ -471,7 +470,7 @@ class QBOMModel(QtGui.QStandardItemModel):
         # and if the list is _empty_, that is good as we can use
         # mapping
         if moreOne:
-            colors().printInfo("""Cannot store the dropped component\
+            self.logger.info("""Cannot store the dropped component\
  into the component cache, because the selection does not resolve in\
  unique LIBREF/VALUE/FOOTPRINT.""")
         else:

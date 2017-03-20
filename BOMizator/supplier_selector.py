@@ -33,10 +33,10 @@ and their web search iterfaces
 import os
 import imp
 import fnmatch
-from .colors import colors
 from BOMizator.suppexceptions import NotMatchingHeader
 from BOMizator.suppexceptions import MalformedURL
 from BOMizator.suppexceptions import ComponentParsingFailed
+import logging
 
 
 class supplier_selector(object):
@@ -51,12 +51,14 @@ class supplier_selector(object):
         """ looks through plugins directory and loads all the plugins
         """
 
+        self.logger = logging.getLogger('bomizator')
         # this is usually overwritten by upper class to give a seller name
         localpath = os.path.dirname(os.path.realpath(__file__))
         self.plugins_directory = os.path.join(
             localpath,
             plugins_directory)
-        print("Loading plugins from ", self.plugins_directory, ":")
+        self.logger.info("Loading plugins from " +
+                         self.plugins_directory + ":")
         self.plugins = self.getPlugins()
         # and now we're ready to accept search queries
 
@@ -71,7 +73,6 @@ class supplier_selector(object):
         for supplier, data in data.items():
             return self.plugins[supplier].getFastPasteText(data)
 
-
     def parseURL(self, urltext):
         """ Uses all plugins installed to detect if one of the plugins
         can accept the web page URL and parse its content to get the
@@ -83,18 +84,17 @@ class supplier_selector(object):
         clumsy. Digikey seems to be as good as farnell in parsing from
         URL. First one which matches is the valid one.
         """
-        colors().printInfo("Searching in plugins:")
+        self.logger.info("Parsing webpage by following plugins:")
         for name, plug in self.plugins.items():
+            txt = "\tChecking " + name + " ... "
             try:
-                print(colors().COLORNUL +
-                      "\tChecking " +
-                      name +
-                      " ... ", end='')
                 data = plug.parseURL(urltext)
-                colors().printOK("FOUND")
+                txt += "FOUND"
+                self.logger.info(txt)
                 return data
             except (NotMatchingHeader, MalformedURL) as e:
-                colors().printFail("NOT FOUND (%s)" % (str(e)))
+                txt += "NOT FOUND (%s)" % (str(e))
+                self.logger.error(txt)
                 pass
         # when here, no plugin matched the selection, raise KeyError
         raise ComponentParsingFailed(
@@ -125,6 +125,6 @@ class supplier_selector(object):
             # which sets up the class name to be. Plugin filename must
             # correspond to class defined inside
             info = imp.load_source('', plugin).DEFAULT_CLASS
-            print("\t", info().name)
+            self.logger.info("\t" + info().name)
             plugins_classes[info().name] = info()
         return plugins_classes

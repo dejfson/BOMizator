@@ -36,7 +36,6 @@ except ImportError:
     from bs4 import BeautifulSoup
 # import headers to be able to match the string names correctly
 from BOMizator.headers import headers
-from BOMizator.colors import colors
 from BOMizator.suppexceptions import NotMatchingHeader, MalformedURL
 
 # FOR THE MOMENT THE FARNELL LOOKUP IS DONE BY PARSING THEIR WEB

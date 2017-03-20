@@ -33,7 +33,6 @@ try:
     from BeautifulSoup import BeautifulSoup
 except ImportError:
     from bs4 import BeautifulSoup
-from BOMizator.colors import colors
 from BOMizator.suppexceptions import NotMatchingHeader, MalformedURL
 from BOMizator.headers import headers
 
