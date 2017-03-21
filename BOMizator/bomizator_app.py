@@ -960,22 +960,3 @@ class BOMizator(QtWidgets.QMainWindow, form_class):
         if idx.column() in self.header.getColumns([self.header.LIBREF,
                                                    self.header.VALUE]):
             self.openSearchBrowser(index.data())
-
-
-def main():
-    """
-    Main application body
-    """
-
-    app = QtWidgets.QApplication(sys.argv)
-    # general settings file as follows
-    QtCore.QCoreApplication.setOrganizationName("dejfson")
-    QtCore.QCoreApplication.setOrganizationDomain("github.com/dejfson")
-    QtCore.QCoreApplication.setApplicationName("bomizator")
-    try:
-        project = sys.argv[1]
-    except IndexError:
-        project = ''
-    myWindow = BOMizator(project)
-    myWindow.show()
-    app.exec_()

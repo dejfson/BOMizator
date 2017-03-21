@@ -16,4 +16,8 @@ setup(name='BOMizator',
       data_files=[('BOMizator', ['BOMizator/BOMLinker.ui', ]),
                   ('BOMizator/suppliers', ['BOMizator/suppliers/radiospares.py',
                                          'BOMizator/suppliers/farnell.py'])],
-      scripts=['bin/bomizator', ])
+      entry_points={
+          'gui_scripts': [
+              'bomizator = BOMizator.__main__:main'
+              ]
+      })
