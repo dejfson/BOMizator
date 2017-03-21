@@ -231,23 +231,23 @@ class BOMizator(QtWidgets.QMainWindow, form_class):
         """ reimplemented close to save window position
         """
         if self.isModified:
-            msgBox = QtGui.QMessageBox(self)
+            msgBox = QtWidgets.QMessageBox(self)
             msgBox.setText(self.tr("The document has been modified"))
             msgBox.setInformativeText(self.tr(
                 "Do you want to save your changes?"))
             msgBox.setStandardButtons(
-                QtGui.QMessageBox.Save |
-                QtGui.QMessageBox.Discard |
-                QtGui.QMessageBox.Cancel)
-            msgBox.setDefaultButton(QtGui.QMessageBox.Save);
+                QtWidgets.QMessageBox.Save |
+                QtWidgets.QMessageBox.Discard |
+                QtWidgets.QMessageBox.Cancel)
+            msgBox.setDefaultButton(QtWidgets.QMessageBox.Save)
 
-            reply = msgBox.exec_();
+            reply = msgBox.exec_()
 
-            if reply == QtGui.QMessageBox.Cancel:
+            if reply == QtWidgets.QMessageBox.Cancel:
                 event.ignore()
                 return
 
-            if reply == QtGui.QMessageBox.Save:
+            if reply == QtWidgets.QMessageBox.Save:
                 # save data first
                 self.saveProject()
 
@@ -572,6 +572,11 @@ class BOMizator(QtWidgets.QMainWindow, form_class):
         # and their existence is depending of whether clipboard
         # contains actually bomizator formatted mime data. if so, we
         # reload it and then reload data into specific rows
+        cb = QtWidgets.QApplication.clipboard()
+        if cb.mimeData(mode=cb.Clipboard).hasFormat("bomizator"):
+            # there's some data in clipboard for us
+            menu.addAction(self.tr("Paste component data"),
+                           self.pasteComponentData)
 
 
         # ###############################################################################
@@ -693,6 +698,17 @@ class BOMizator(QtWidgets.QMainWindow, form_class):
         if execMenu:
             menu.exec_(self.treeView.viewport().mapToGlobal(position))
 
+    def pasteComponentData(self):
+        """ gets the mime data from the clipboard and restores into
+        original list
+        """
+        cb = QtWidgets.QApplication.clipboard()
+        clip = dict(pickle.loads(
+            cb.mimeData().data("bomizator").data()))
+        rows = self.getSelectedRows()
+        for row in rows:
+            self.droppedData(clip, row, 0)
+
     def copyComponentData(self, comp):
         """ called when single component is selected (or bunch of the
         same components identified by designator), and the data are
@@ -716,12 +732,12 @@ class BOMizator(QtWidgets.QMainWindow, form_class):
         if self.model.isModified():
             msg = self.tr("""Reloading project will discard all unsaved
  changes. Do you want to continue?""")
-            reply = QtGui.QMessageBox.question(self, self.tr('Message'),
-                                               msg,
-                                               QtGui.QMessageBox.Yes,
-                                               QtGui.QMessageBox.No)
+            reply = QtWidgets.QMessageBox.question(self, self.tr('Message'),
+                                                   msg,
+                                                   QtWidgets.QMessageBox.Yes,
+                                                   QtWidgets.QMessageBox.No)
 
-            if reply == QtGui.QMessageBox.Yes:
+            if reply == QtWidgets.QMessageBox.Yes:
                 # reopens the same project
                 self.openProject(self.projectDirectory)
         else:
