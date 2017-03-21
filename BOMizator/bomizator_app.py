@@ -42,6 +42,7 @@ import sys
 import os
 import webbrowser
 import fnmatch
+import pickle
 import json
 from collections import defaultdict
 from functools import partial
@@ -544,7 +545,34 @@ class BOMizator(QtWidgets.QMainWindow, form_class):
         # first we have to make a 'histogram', i.e. counting
         # occurences of columns.
         if component:
-            menu.addAction(self.tr("Select same"), self.selectSameFilter)
+            menu.addAction(self.tr("Select same"),
+                           self.selectSameFilter)
+            # selection is unique, but we need exactly one item to
+            # copy the data from as it might be that there are
+            # multiple components of the same kind, but they have
+            # different ordered
+            if len(self.getSelectedRows()) == 1:
+                dindex = self.model.index(
+                    indexes[0].row(),
+                    self.header.getColumn(
+                        self.header.DESIGNATOR))
+                cmpn = self.model.getComponent(
+                    self.model.itemFromIndex(dindex).text())
+                # having complete component data we can see if they
+                # are 'copyable', i.e. if there are _any_ data
+                # entered:
+                tu = all(map(lambda idx: not cmpn[idx],
+                              self.header.USERITEMS))
+                if not tu:
+                    menu.addAction(self.tr("Copy component data"),
+                                   partial(self.copyComponentData,
+                                           cmpn))
+        # ################################################################################
+        # PASTING COMPONENT DATA - IF THEY EXIST
+        # and their existence is depending of whether clipboard
+        # contains actually bomizator formatted mime data. if so, we
+        # reload it and then reload data into specific rows
+
 
         # ###############################################################################
         # WHEN RIGHT CLICK ON ANY ITEM(s) PROPOSE ENABLE/DISABLE
@@ -664,6 +692,22 @@ class BOMizator(QtWidgets.QMainWindow, form_class):
 
         if execMenu:
             menu.exec_(self.treeView.viewport().mapToGlobal(position))
+
+    def copyComponentData(self, comp):
+        """ called when single component is selected (or bunch of the
+        same components identified by designator), and the data are
+        supposed to be copied into the clipboard. Used to copy data
+        between cells
+        """
+        clipdata = list(filter(lambda it: it[0] in self.header.USERITEMS,
+                               comp.items()))
+        data = QtCore.QByteArray(pickle.dumps(clipdata))
+        mime = QtCore.QMimeData()
+        mime.setData("bomizator",
+                     data)
+        cb = QtWidgets.QApplication.clipboard()
+        cb.clear(mode=cb.Clipboard)
+        cb.setMimeData(mime, mode=cb.Clipboard)
 
     def reloadProject(self):
         """ reloads the project. asks for being sure as it rewrites
