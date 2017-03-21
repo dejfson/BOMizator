@@ -35,6 +35,8 @@ from PyQt5.Qt import PYQT_VERSION_STR
 from PyQt5 import QtWidgets, QtCore
 from sip import SIP_VERSION_STR
 from BOMizator.bomizator_app import BOMizator
+from BOMizator.suppexceptions import NoProjectGiven
+
 
 def main(args=None):
     """The main routine."""
@@ -60,6 +62,7 @@ def main(args=None):
     myWindow = BOMizator(project)
     myWindow.show()
     app.exec_()
+
 
 if __name__ == '__main__':
     main()
