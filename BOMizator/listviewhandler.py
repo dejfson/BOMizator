@@ -54,7 +54,9 @@ class ListViewHandler(logging.StreamHandler):
     def emit(self, record):
         try:
             msg = str(self.format(record))
-            severity, message = msg.split("-")
+            kk = msg.split(" ")
+            severity = kk[0]
+            message = ' '.join(kk[1:])
             # having message we can push it to the listwidget
             ni = QtWidgets.QListWidgetItem(message)
             ni.setForeground(self.COLORS[severity.strip().upper()])
