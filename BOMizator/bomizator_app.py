@@ -42,6 +42,7 @@ import sys
 import os
 import webbrowser
 import fnmatch
+import pickle
 import json
 from collections import defaultdict
 from functools import partial
@@ -230,23 +231,23 @@ class BOMizator(QtWidgets.QMainWindow, form_class):
         """ reimplemented close to save window position
         """
         if self.isModified:
-            msgBox = QtGui.QMessageBox(self)
+            msgBox = QtWidgets.QMessageBox(self)
             msgBox.setText(self.tr("The document has been modified"))
             msgBox.setInformativeText(self.tr(
                 "Do you want to save your changes?"))
             msgBox.setStandardButtons(
-                QtGui.QMessageBox.Save |
-                QtGui.QMessageBox.Discard |
-                QtGui.QMessageBox.Cancel)
-            msgBox.setDefaultButton(QtGui.QMessageBox.Save);
+                QtWidgets.QMessageBox.Save |
+                QtWidgets.QMessageBox.Discard |
+                QtWidgets.QMessageBox.Cancel)
+            msgBox.setDefaultButton(QtWidgets.QMessageBox.Save)
 
-            reply = msgBox.exec_();
+            reply = msgBox.exec_()
 
-            if reply == QtGui.QMessageBox.Cancel:
+            if reply == QtWidgets.QMessageBox.Cancel:
                 event.ignore()
                 return
 
-            if reply == QtGui.QMessageBox.Save:
+            if reply == QtWidgets.QMessageBox.Save:
                 # save data first
                 self.saveProject()
 
@@ -544,7 +545,39 @@ class BOMizator(QtWidgets.QMainWindow, form_class):
         # first we have to make a 'histogram', i.e. counting
         # occurences of columns.
         if component:
-            menu.addAction(self.tr("Select same"), self.selectSameFilter)
+            menu.addAction(self.tr("Select same"),
+                           self.selectSameFilter)
+            # selection is unique, but we need exactly one item to
+            # copy the data from as it might be that there are
+            # multiple components of the same kind, but they have
+            # different ordered
+            if len(self.getSelectedRows()) == 1:
+                dindex = self.model.index(
+                    indexes[0].row(),
+                    self.header.getColumn(
+                        self.header.DESIGNATOR))
+                cmpn = self.model.getComponent(
+                    self.model.itemFromIndex(dindex).text())
+                # having complete component data we can see if they
+                # are 'copyable', i.e. if there are _any_ data
+                # entered:
+                tu = all(map(lambda idx: not cmpn[idx],
+                              self.header.USERITEMS))
+                if not tu:
+                    menu.addAction(self.tr("Copy component data"),
+                                   partial(self.copyComponentData,
+                                           cmpn))
+        # ################################################################################
+        # PASTING COMPONENT DATA - IF THEY EXIST
+        # and their existence is depending of whether clipboard
+        # contains actually bomizator formatted mime data. if so, we
+        # reload it and then reload data into specific rows
+        cb = QtWidgets.QApplication.clipboard()
+        if cb.mimeData(mode=cb.Clipboard).hasFormat("bomizator"):
+            # there's some data in clipboard for us
+            menu.addAction(self.tr("Paste component data"),
+                           self.pasteComponentData)
+
 
         # ###############################################################################
         # WHEN RIGHT CLICK ON ANY ITEM(s) PROPOSE ENABLE/DISABLE
@@ -665,6 +698,33 @@ class BOMizator(QtWidgets.QMainWindow, form_class):
         if execMenu:
             menu.exec_(self.treeView.viewport().mapToGlobal(position))
 
+    def pasteComponentData(self):
+        """ gets the mime data from the clipboard and restores into
+        original list
+        """
+        cb = QtWidgets.QApplication.clipboard()
+        clip = dict(pickle.loads(
+            cb.mimeData().data("bomizator").data()))
+        rows = self.getSelectedRows()
+        for row in rows:
+            self.droppedData(clip, row, 0)
+
+    def copyComponentData(self, comp):
+        """ called when single component is selected (or bunch of the
+        same components identified by designator), and the data are
+        supposed to be copied into the clipboard. Used to copy data
+        between cells
+        """
+        clipdata = list(filter(lambda it: it[0] in self.header.USERITEMS,
+                               comp.items()))
+        data = QtCore.QByteArray(pickle.dumps(clipdata))
+        mime = QtCore.QMimeData()
+        mime.setData("bomizator",
+                     data)
+        cb = QtWidgets.QApplication.clipboard()
+        cb.clear(mode=cb.Clipboard)
+        cb.setMimeData(mime, mode=cb.Clipboard)
+
     def reloadProject(self):
         """ reloads the project. asks for being sure as it rewrites
         all the changes already performed
@@ -672,12 +732,12 @@ class BOMizator(QtWidgets.QMainWindow, form_class):
         if self.model.isModified():
             msg = self.tr("""Reloading project will discard all unsaved
  changes. Do you want to continue?""")
-            reply = QtGui.QMessageBox.question(self, self.tr('Message'),
-                                               msg,
-                                               QtGui.QMessageBox.Yes,
-                                               QtGui.QMessageBox.No)
+            reply = QtWidgets.QMessageBox.question(self, self.tr('Message'),
+                                                   msg,
+                                                   QtWidgets.QMessageBox.Yes,
+                                                   QtWidgets.QMessageBox.No)
 
-            if reply == QtGui.QMessageBox.Yes:
+            if reply == QtWidgets.QMessageBox.Yes:
                 # reopens the same project
                 self.openProject(self.projectDirectory)
         else:
@@ -960,22 +1020,3 @@ class BOMizator(QtWidgets.QMainWindow, form_class):
         if idx.column() in self.header.getColumns([self.header.LIBREF,
                                                    self.header.VALUE]):
             self.openSearchBrowser(index.data())
-
-
-def main():
-    """
-    Main application body
-    """
-
-    app = QtWidgets.QApplication(sys.argv)
-    # general settings file as follows
-    QtCore.QCoreApplication.setOrganizationName("dejfson")
-    QtCore.QCoreApplication.setOrganizationDomain("github.com/dejfson")
-    QtCore.QCoreApplication.setApplicationName("bomizator")
-    try:
-        project = sys.argv[1]
-    except IndexError:
-        project = ''
-    myWindow = BOMizator(project)
-    myWindow.show()
-    app.exec_()

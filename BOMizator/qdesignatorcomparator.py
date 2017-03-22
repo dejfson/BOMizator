@@ -58,7 +58,7 @@ class QDesignatorComparator(object):
         if dig1 > 9999:
             print("Error")
             raise InvalidDesignator("Designator numeric value cannot\
- exceed 9999")
+ exceed 9999 for designators: %s" % (desig,))
         # now the easy method how to accomplish this is just to round
         # the digit correctly to 5 digits and add to string and return
         # it

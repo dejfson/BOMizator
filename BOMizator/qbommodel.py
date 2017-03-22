@@ -313,6 +313,9 @@ class QBOMModel(QtGui.QStandardItemModel):
             collector.append(allItem)
         return collector
 
+    def getComponent(self, desig):
+        return self.SCH.getComponent(desig)
+
     def selectionUnique(self, rows):
         """ returns unique component libref/value/footprint if the
         current selection (i.e. libref/value/footprint) resolves in

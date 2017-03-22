@@ -41,7 +41,8 @@ class ListViewHandler(logging.StreamHandler):
     COLORS = {
         'INFO': QtGui.QColor("black"),
         'WARNING': QtGui.QColor("blue"),
-        'ERROR': QtGui.QColor("red")
+        'ERROR': QtGui.QColor("red"),
+        'CRITICAL': QtGui.QColor("red")
         }
 
     def __init__(self, listWidget=None):
