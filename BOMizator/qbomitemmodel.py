@@ -37,6 +37,7 @@ import textwrap
 from .bomheaders import bomheaders
 from .qdesignatorcomparator import QDesignatorComparator
 from .roundingpolicy import roundingPolicy
+import logging
 
 
 class QBOMItemModel(QtGui.QStandardItemModel):
@@ -47,6 +48,7 @@ class QBOMItemModel(QtGui.QStandardItemModel):
 
     def __init__(self, sourceData, hideComponents, parent=None):
         super(QBOMItemModel, self).__init__(parent)
+        self.logger = logging.getLogger('bomizator')
         self.SCH = sourceData
         self.SCH.globalMultiplierModified.connect(self.updateGlobalMultiplier)
         # the point here: we generate a model,which has left-most set
