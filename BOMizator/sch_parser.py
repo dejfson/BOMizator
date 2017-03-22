@@ -174,6 +174,16 @@ class schParser(QtCore.QObject):
         """
         self.bomdata[supplier][ocode].update(data)
 
+    def getDoNotOrder(self, components):
+        """ give list of (supplier, orderno) it returns a vector of
+        true/false if the components are disabled/enabled for
+        ordering.
+        """
+        iss = map(lambda ix:
+                  self.bomdata[ix[0]][ix[1]][self.header.DONOTORDER],
+                  components)
+        return list(map(bool, iss))
+
     def updateComponents(self, targets, newdata):
         """ Update all the componenents identified by list of
         normalised designators by new data for each key of
@@ -279,6 +289,7 @@ class schParser(QtCore.QObject):
         """
         return {self.header.MULTIPLYFACTOR: "1",
                 self.header.ADDFACTOR: "0",
+                self.header.DONOTORDER: 0,
                 self.header.TOTAL: -1,
                 self.header.POLICY: 1}
 
@@ -326,7 +337,8 @@ class schParser(QtCore.QObject):
                             "",
                             str)
                     else:
-                        # all other are treated as integers
+                        # all other are treated as integers, even
+                        # 'donotorder', which when -1, then it is not defined
                         coll[supplier][refname][keys] = self.localSettings.value(
                             keys,
                             -1,

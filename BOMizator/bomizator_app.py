@@ -372,6 +372,44 @@ class BOMizator(QtWidgets.QMainWindow, form_class):
 
         return None
 
+    def getSelectedComponents(self):
+        """ Looks for TREEVIEW selected indexes and returns dictionary
+        of key=supplier, values = ordering codes
+        """
+        i = bomheaders()
+        indexes = self.bomView.selectedIndexes()
+        rows = set([(idx.parent(), idx.row()) for idx in indexes])
+        rdata = []
+        if len(rows) == 1 and\
+           indexes[0].data(i.ItemIsSupplier):
+            # the selected row is unique and corresponds to the
+            # header. we will choose _all the component of given
+            # supplier_. we walk through all the children getting the
+            # supplier and making the dictionary
+            suppindex = self.bomTree.index(indexes[0].row(),
+                                           i.getColumn(
+                                               i.DESIGNATORS))
+            key = self.bomTree.itemFromIndex(suppindex).text()
+            # having key we browse all sub-items and make the array
+            for row in range(self.bomTree.rowCount(suppindex)):
+                val = self.bomTree.itemFromIndex(
+                    self.bomTree.index(row,
+                                       i.getColumn(
+                                           i.SUPPNO),
+                                       suppindex)).text()
+                rdata.append((key, val))
+            return(rdata)
+
+        for parent, row in rows:
+            key = self.bomTree.itemFromIndex(parent).text()
+            rdata.append((key,
+                          self.bomTree.itemFromIndex(
+                              parent.child(row,
+                                           i.getColumn(
+                                               i.SUPPNO))).text()))
+
+        return(rdata)
+
     def openBOMMenu(self, position):
         """ in BOM view opens the context menu
         """
@@ -387,7 +425,6 @@ class BOMizator(QtWidgets.QMainWindow, form_class):
         # some more validation: if datasheet clicked, we display 'open
         # datasheet' menu. But only single one is allowed at time
         menu = QtWidgets.QMenu(self)
-        execMenu = False
         # we need info about BOM structure
         i = bomheaders()
         # make datasheet menu
@@ -400,10 +437,46 @@ class BOMizator(QtWidgets.QMainWindow, form_class):
                 self.tr("Open %s" % (datasheet, )))
             open_action.triggered.connect(partial(self.openBrowser,
                                                   datasheet))
-        # no matter how many items is selected, we can always globally
-        # setup the rounding policy
-        if execMenu:
-            menu.addSeparator()
+
+        # ################################################################################
+        # disable/enable for ordering. If disabled/enabled, they
+        # change the color and as well the item is marked in BOM file
+        # as well as 'do not order'. Now, we have to get all the
+        # designators and find how many of them is order/do not order,
+        # depending of that we will pull out correct menus
+        cmpns = self.getSelectedComponents()
+        gogo = self.model.SCH.getDoNotOrder(cmpns)
+        # and now - if all of them are false, we open menu for true
+        if len(cmpns) == 1:
+            ss = ''
+        else:
+            ss = 's'
+
+        orderback = False
+        disabledorder = False
+
+        if all(gogo):
+            # all of them disabled
+            orderback = True
+        elif not any(gogo):
+            # none of them disabled
+            disabledorder = True
+        elif any(gogo):
+            # mixed, display both menus
+            orderback = True
+            disabledorder = True
+
+        if orderback:
+            # all of them are true = disabled:
+            menu.addAction(self.tr("Order the component%s" % (ss, )),
+                           partial(self.doNotOrder, cmpns, False))
+        if disabledorder:
+            # all of them false = enabled
+            menu.addAction(self.tr("Do not order the component%s" %
+                                   (ss, )),
+                           partial(self.doNotOrder, cmpns, True))
+
+        menu.addSeparator()
         # get list of roundings to nearest:
         roundingTo = [x*pow(10, y)
                       for y in range(4)
@@ -427,6 +500,11 @@ class BOMizator(QtWidgets.QMainWindow, form_class):
                                    allThis))
 
         menu.exec_(self.bomView.viewport().mapToGlobal(position))
+
+    def doNotOrder(self, items, order):
+        """ modifies order/do not order of the items
+        """
+        print(items, order)
 
     def copyFastPaste(self, data):
         # looks at selected indices and formats the fast-paste

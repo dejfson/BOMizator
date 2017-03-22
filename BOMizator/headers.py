@@ -50,6 +50,7 @@ class headers(headerbase):
     DATASHEET = "Datasheet"
     TOTAL = "Total"
     POLICY = "Rounding Policy"
+    DONOTORDER = "Do not order"
 
     # list defining names of all columns which uniquely identify the
     # component

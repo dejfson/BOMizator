@@ -48,6 +48,7 @@ class bomheaders(headerbase):
     DATASHEET = "Datasheet"
     TOTAL = "Total"
     POLICY = "Rounding Policy"
+    DONOTORDER = "Do not order"
 
     # itemenabled is the enable/disable flag associated with a
     # particular modelindex. We can get the info about it just by
