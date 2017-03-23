@@ -115,6 +115,7 @@ class QBOMItemModel(QtGui.QStandardItemModel):
         self.logger.info("Changing components doNotOrder flag to %s\
  for following designators: %s" % (tx, ','.join(dsgns)))
         self.ignoreCellChanges = False
+        self.modelModified.emit(True)
 
     def cellDataChanged(self, item):
         """ called when user changes the data in editable rows
