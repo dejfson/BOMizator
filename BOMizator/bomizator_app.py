@@ -501,10 +501,43 @@ class BOMizator(QtWidgets.QMainWindow, form_class):
 
         menu.exec_(self.bomView.viewport().mapToGlobal(position))
 
-    def doNotOrder(self, items, order):
-        """ modifies order/do not order of the items
+    def doNotOrder(self, items, notorder):
+        """ modifies order/do not order of the items. items is a list
+        of tuples (supplier, supplierno), notorder=True if user wants
+        to not order the components.
         """
-        print(items, order)
+        # currently selected indices we cannot use as if the user
+        # clicked on header of supplier, all the items under the
+        # supplier are taken into account.
+        i = bomheaders()
+        supno = i.getColumn(i.SUPPNO)
+        # here we store list of all indices to change
+        indices = []
+        # traverse the list of suppliers:
+        for row in range(self.bomTree.rowCount()):
+            # supplier is always in column 0
+            ix = self.bomTree.index(row, 0)
+            supplier = ix.data()
+            mitems = filter(lambda key: key[0] == supplier, items)
+            ordercodes = [it[1] for it in mitems]
+            # now we have to traverse children of the supplier and
+            # compare against the choice
+            for subrow in range(self.bomTree.rowCount(ix)):
+                subix = self.bomTree.index(subrow,
+                                           supno,
+                                           ix).data()
+                if subix in ordercodes:
+                    # one code found, list of row indices has to be
+                    # appended to the taget array
+                    indices += [self.bomTree.index(subrow,
+                                                   cx,
+                                                   ix)
+                                for cx in
+                                range(self.bomTree.columnCount(ix))]
+        # we have colleced all the indices, now we can fire data set
+        # on them to 'make the change happen'. for this we use
+        # userrole of the data
+        self.bomTree.setDoNotOrderFlag(items, indices, notorder)
 
     def copyFastPaste(self, data):
         # looks at selected indices and formats the fast-paste

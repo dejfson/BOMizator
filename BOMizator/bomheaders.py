@@ -37,6 +37,7 @@ class bomheaders(headerbase):
     # references to assure that all parties are talking the same
     # dictionary keys
     DESIGNATORS = "Designators"
+    DESIGNATOR = "Designator"
     MULTIPLYFACTOR = "Multiplier"
     ADDFACTOR = "Adder"
     LIBREF = "LibRef"
@@ -54,6 +55,9 @@ class bomheaders(headerbase):
     # particular modelindex. We can get the info about it just by
     # calling data
     ItemIsSupplier = QtCore.Qt.UserRole + 2
+
+    # when component is not supposed to be ordered:
+    DoNotOrderThis = QtCore.Qt.UserRole + 3
 
     def __init__(self):
         """ fills in the header structure and handles treatment of headers

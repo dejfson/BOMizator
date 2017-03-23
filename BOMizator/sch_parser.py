@@ -208,6 +208,14 @@ class schParser(QtCore.QObject):
         """
         return self.components[normDesig]
 
+    def getComponentsByOrderCode(self, ordercode):
+        """ returns component definition from its ordering code
+        """
+        cmps = list(filter(lambda cd:
+                           cd[self.header.SUPPNO] == ordercode,
+                           self.components.values()))
+        return cmps
+
     def getCollectedComponents(self, includeDisabledComponents=False):
         """ returns dictionary of all components _collected by
         supplier and  supplier reference. When some components are

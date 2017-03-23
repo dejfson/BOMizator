@@ -78,11 +78,50 @@ class QBOMItemModel(QtGui.QStandardItemModel):
         for mul in mults:
             self.cellDataChanged(self.itemFromIndex(mul))
 
+    def setDoNotOrderFlag(self, items, indices, notorder):
+        """ sets up the flag donotorder on each index in indices
+        array, changes as well the color of the rows
+        """
+        self.ignoreCellChanges = True
+        for item in indices:
+            self.setData(item,
+                         notorder,
+                         self.header.DoNotOrderThis)
+            if notorder:
+                self.itemFromIndex(item).setForeground(
+                    QtGui.QColor('gray'))
+            else:
+                self.itemFromIndex(item).setForeground(
+                    QtGui.QColor('black'))
+
+        # we need to update bomdata to reflect the change
+        desigs = []
+        for supplier, suppno in items:
+            self.SCH.updateBOMData(supplier,
+                                   suppno,
+                                   {self.header.DONOTORDER:
+                                    notorder})
+            cm = self.SCH.getComponentsByOrderCode(suppno)
+            desset = list(map(lambda cmpn:
+                              cmpn[self.header.DESIGNATOR],
+                              cm))
+            desigs += desset
+
+        tx = 'False'
+        if notorder:
+            tx = 'True'
+
+        dsgns = [xi[0] for xi in map(list, desigs)]
+        self.logger.info("Changing components doNotOrder flag to %s\
+ for following designators: %s" % (tx, ','.join(dsgns)))
+        self.ignoreCellChanges = False
+
     def cellDataChanged(self, item):
         """ called when user changes the data in editable rows
         """
         if self.ignoreCellChanges:
             return
+
         # we need to find for this particular item the guy who has
         # reference number and the name. Supplier is always parent (if
         # user changes in supplier, nothing will be done
