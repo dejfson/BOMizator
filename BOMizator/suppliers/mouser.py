@@ -58,22 +58,12 @@ class mouser(object):
         self.debug = False
 
     def getUrl(self, searchtext):
-        """ returns URL of farnell, which triggers searching for a
+        """ returns URL of mouser, which triggers searching for a
         specific component or name. This is used by back-searching
         from the webpage based e.g. on farnell order code
         """
-        raise ValueError("NOT IMPLEMENTED")
-#         return "http://uk.farnell.com/webapp/\
-# wcs/stores/servlet/Search?st=%s" % (searchtext,)
-
-#     def getFastPasteText(self, data):
-#         """ converts tuple (ordercode, number) into a farnell
-#         fast-paste order text, which is a format of
-# ordercode, number, comment (empty)
-# per each ordering code. See e.g. 'quick paste' at uk.farnell.com
-#         """
-#         return '\n'.join(["%s, %s" % (str(ix[0]),
-#                                       str(ix[1])) for ix in data])
+        return "http://eu.mouser.com/Search/\
+Refine.aspx?Keyword=%s" % (searchtext,)
 
     def parseURL(self, urltext):
         """ the urltext is used to fetch the web page content and
@@ -129,11 +119,14 @@ rv:36.0) Gecko/20100101 Firefox/36.0'}
                 datasheet)
         return dict(zip(datanames, data))
 
-        # except ValueError:
-        #     # ValueError is risen when not enouth data to split the
-        #     # header. In this case this is probably not an URL we're
-        #     # looking for, so skipping
-        #     raise MalformedURL("URL not understood")
+    def getFastPasteText(self, data):
+        """ returns string formatted for mouser fast paste. This can
+        be found on mouser web pages (after a registration) under
+        copy/paste feature:
+        https://eu.mouser.com/bom/copypaste
+        """
+        return '|'.join(["%s, %s" % (str(ix[0]),
+                                     str(ix[1])) for ix in data])
 
 DEFAULT_CLASS = mouser
 
