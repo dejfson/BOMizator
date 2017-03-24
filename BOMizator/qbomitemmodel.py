@@ -100,7 +100,7 @@ class QBOMItemModel(QtGui.QStandardItemModel):
             self.SCH.updateBOMData(supplier,
                                    suppno,
                                    {self.header.DONOTORDER:
-                                    notorder})
+                                    int(notorder)})
             cm = self.SCH.getComponentsByOrderCode(suppno)
             desset = list(map(lambda cmpn:
                               cmpn[self.header.DESIGNATOR],
@@ -349,6 +349,12 @@ class QBOMItemModel(QtGui.QStandardItemModel):
             for ordercode in allComps[supplier]:
                 row = []
                 cdata = allComps[supplier][ordercode]
+                # we set on-fly to color of the text depending of
+                # whether the item is to be ordered or not
+                color = QtGui.QColor('black')
+                if cdata[self.header.DONOTORDER]:
+                    color = QtGui.QColor('gray')
+
                 for column in sorted_header:
                     # designator column is a concatenated list of
                     # designators
@@ -392,6 +398,11 @@ class QBOMItemModel(QtGui.QStandardItemModel):
                     row.append(data)
 
                 rowdata = list(map(QtGui.QStandardItem, row))
+                # set the items' row color to comply with status of
+                # order/do not order
+                for i in rowdata:
+                    i.setForeground(QtGui.QColor(color))
+
                 # first item from the row is the parent
                 supprow[0].appendRow(rowdata)
 
