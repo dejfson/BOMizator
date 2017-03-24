@@ -152,7 +152,8 @@ class BOMizator(QtWidgets.QMainWindow, form_class):
         """ when tab changes to BOM, we need to reload the treeview
         with new model data
         """
-        if self.tabWidget.tabText(newidx) == "BOM":
+        if self.tabWidget.tabText(newidx).upper().find("BOM") != -1:
+            print("oi")
             # we have to re-create the new item model for BOM display
             # data
             self.bomTree = QBOMItemModel(self.SCH,
