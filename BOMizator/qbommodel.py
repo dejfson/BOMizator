@@ -517,7 +517,7 @@ class QBOMModel(QtGui.QStandardItemModel):
                     [cmphash] = parsed_data
                 # and inform upper
                 self.addedComponentIntoCache.emit()
-                print("This component is used for first time,\
+                self.logger.info("This component is used for first time,\
  writing into the component cache")
             self.modelModified.emit(True)
 

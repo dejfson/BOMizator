@@ -402,6 +402,10 @@ class QBOMItemModel(QtGui.QStandardItemModel):
                 # order/do not order
                 for i in rowdata:
                     i.setForeground(QtGui.QColor(color))
+                    # each item individually has to have the flag
+                    # setup
+                    i.setData(bool(cdata[self.header.DONOTORDER]),
+                              self.header.DoNotOrderThis)
 
                 # first item from the row is the parent
                 supprow[0].appendRow(rowdata)
