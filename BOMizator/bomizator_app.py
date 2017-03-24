@@ -564,8 +564,8 @@ class BOMizator(QtWidgets.QMainWindow, form_class):
         # entire supplier header.
         # let's first compact the data for some action:
         items = map(lambda key: ','.join([fe[0] for fe in data[key]]),
-                         data.keys())
-        ports = list(zip(data.keys(),items))
+                    data.keys())
+        ports = list(zip(data.keys(), items))
         text = map(lambda supcode: ':'.join(supcode), ports)
         # and finally map all of them to a single string
         self.logger.info("Following items were copied into clipboard:")
