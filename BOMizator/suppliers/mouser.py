@@ -125,7 +125,7 @@ rv:36.0) Gecko/20100101 Firefox/36.0'}
         copy/paste feature:
         https://eu.mouser.com/bom/copypaste
         """
-        return '|'.join(["%s, %s" % (str(ix[0]),
+        return '\n'.join(["%s|%s" % (str(ix[0]),
                                      str(ix[1])) for ix in data])
 
 DEFAULT_CLASS = mouser
