@@ -36,6 +36,7 @@ from collections import defaultdict
 from .supplier_selector import supplier_selector
 from .headers import headers
 from .suppexceptions import ComponentParsingFailed
+import logging
 
 
 class QBOMModel(QtGui.QStandardItemModel):
@@ -92,6 +93,7 @@ class QBOMModel(QtGui.QStandardItemModel):
         engineer :) (at least me as the author)
         """
         super(QBOMModel, self).__init__(parent)
+        self.logger = logging.getLogger('bomizator')
         self.componentsCache = componentsCache
         self.SCH = projectData
         self.setModified(False)
