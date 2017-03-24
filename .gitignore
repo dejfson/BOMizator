@@ -1,3 +1,4 @@
 *.pyc
 *.egg-info
 /bomizator.log
+*flymake.py
