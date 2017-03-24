@@ -1,0 +1,2 @@
+include BOMizator/*.ui
+include BOMizator/suppliers/*.py

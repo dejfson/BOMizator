@@ -41,10 +41,6 @@ setup(name='BOMizator',
       author='David Belohrad',
       author_email='david.belohrad@cern.ch',
       install_requires=['bs4', 'urllib3', 'html5lib', 'PyQt5'],
-      include_package_data=True,
-      data_files=[('BOMizator', ['BOMizator/BOMLinker.ui', ]),
-                  ('BOMizator/suppliers', ['BOMizator/suppliers/radiospares.py',
-                                         'BOMizator/suppliers/farnell.py'])],
       entry_points={
           'gui_scripts': [
               'bomizator = BOMizator.__main__:main'
