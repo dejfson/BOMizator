@@ -86,27 +86,29 @@ rv:36.0) Gecko/20100101 Firefox/36.0'}
         response = http.request('GET', urltext)
         html = response.data.decode("utf-8")
         parsed_html = BeautifulSoup(html)
-        l1 = parsed_html.body.find('div',
-                                   attrs={'class':
-                                          'product-info'})
-        suppno = l1.find('div',
-                         attrs={'id':
-                                'divMouserPartNum'}).contents[0].strip()
-        manufnoitem = l1.find('div',
-                              attrs={'id':
-                                     'divManufacturerPartNum'}).find('h1')
-        manufno = manufnoitem.contents[0].strip()
-        manufacturer = l1.find('span',
-                               attrs={'itemprop':
-                                      'name'}).contents[0].strip()
+        try:
+            l1 = parsed_html.body.find('div',
+                                       attrs={'class':
+                                              'product-info'})
+            suppno = l1.find('div',
+                             attrs={'id':
+                                    'divMouserPartNum'}).contents[0].strip()
+            manufnoitem = l1.find('div',
+                                  attrs={'id':
+                                         'divManufacturerPartNum'}).find('h1')
+            manufno = manufnoitem.contents[0].strip()
+            manufacturer = l1.find('span',
+                                   attrs={'itemprop':
+                                          'name'}).contents[0].strip()
 
-        # datasheet is clumsy
-        datasheet = l1.find('a',
-                            attrs={'id':
-                                   "ctl00_ContentMain_rptrCatalogDataSheet_ctl00_lnkCatalogDataSheet",
-                                   'target':
-                                   "_blank"}).attrs['href'].strip()
-
+            # datasheet is clumsy
+            datasheet = l1.find('a',
+                                attrs={'id':
+                                       "ctl00_ContentMain_rptrCatalogDataSheet_ctl00_lnkCatalogDataSheet",
+                                       'target':
+                                       "_blank"}).attrs['href'].strip()
+        except AttributeError:
+            raise MalformedURL("Malformed URL for MOUSER plugin")
         datanames = (self.header.MANUFACTURER,
                      self.header.MFRNO,
                      self.header.SUPPLIER,
