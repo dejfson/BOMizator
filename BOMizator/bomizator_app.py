@@ -99,10 +99,10 @@ class BOMizator(QtWidgets.QMainWindow, form_class):
             sys.exit(-1)
 
         # show/hide disabled components
-        self.action_Hide_disabled_components.triggered.connect(
-            lambda: self.hideShowDisabledComponents(True))
-        self.action_Show_disabled_components.triggered.connect(
-            lambda: self.hideShowDisabledComponents(False))
+        self.action_Show_disabled_components.toggled.connect(
+            self.hideShowDisabledComponents)
+        self.action_Show_console_log.toggled.connect(
+            self.hideShowConsoleLog)
         # connect signals to treeView so we can invoke search engines
         self.treeView.doubleClicked.connect(self.treeDoubleclick)
         self.treeView.selectionModel().selectionChanged.connect(
@@ -181,15 +181,26 @@ class BOMizator(QtWidgets.QMainWindow, form_class):
         with open(self.componentsCacheFile, 'wt') as outfile:
             json.dump(self.componentsCache, outfile)
 
-    def hideShowDisabledComponents(self, hideComponents):
+    def hideShowConsoleLog(self):
+        """ enables/disables consolelog window
+        """
+        hide = self.action_Show_console_log.isChecked()
+        # save the state into configfile
+        self.settings.setValue("hideLogConsole",
+                               hide)
+        if hide:
+            self.dockWidget.hide()
+        else:
+            self.dockWidget.show()
+
+    def hideShowDisabledComponents(self):
         """ if hideComponents is true, then the model to display all
         the components is restored from scratch and will not contain
         the hidden components.
         """
 
+        hideComponents = self.action_Show_disabled_components.isChecked()
         self.disabledComponentsHidden = hideComponents
-        self.action_Hide_disabled_components.setEnabled(not hideComponents)
-        self.action_Show_disabled_components.setEnabled(hideComponents)
         # save the state into configfile
         self.settings.setValue("hideDisabledComponents",
                                hideComponents)
@@ -981,10 +992,15 @@ class BOMizator(QtWidgets.QMainWindow, form_class):
                 "hideDisabledComponents",
                 False,
                 bool)
-            self.action_Hide_disabled_components.setEnabled(
-                not self.disabledComponentsHidden)
-            self.action_Show_disabled_components.setEnabled(
+            self.action_Show_disabled_components.setChecked(
                 self.disabledComponentsHidden)
+
+            # fill console:
+            cVisible = self.settings.value(
+                "hideLogConsole",
+                True,
+                bool)
+            self.action_Show_console_log.setChecked(cVisible)
 
             self.model.fillModel(self.SCH.getDisabledDesignators(),
                                  self.disabledComponentsHidden)

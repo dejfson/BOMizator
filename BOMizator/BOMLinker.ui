@@ -178,7 +178,7 @@
      <string>&amp;View</string>
     </property>
     <addaction name="action_Show_disabled_components"/>
-    <addaction name="action_Hide_disabled_components"/>
+    <addaction name="action_Show_console_log"/>
    </widget>
    <widget class="QMenu" name="menu_File">
     <property name="title">
@@ -225,8 +225,14 @@
    </widget>
   </widget>
   <action name="action_Show_disabled_components">
+   <property name="checkable">
+    <bool>true</bool>
+   </property>
+   <property name="checked">
+    <bool>true</bool>
+   </property>
    <property name="text">
-    <string>&amp;Show disabled components</string>
+    <string>&amp;Hide disabled components</string>
    </property>
    <property name="shortcut">
     <string>F2</string>
@@ -285,6 +291,20 @@
    </property>
    <property name="shortcut">
     <string>F5</string>
+   </property>
+  </action>
+  <action name="action_Show_console_log">
+   <property name="checkable">
+    <bool>true</bool>
+   </property>
+   <property name="checked">
+    <bool>true</bool>
+   </property>
+   <property name="text">
+    <string>Show &amp;console log</string>
+   </property>
+   <property name="shortcut">
+    <string>F3</string>
    </property>
   </action>
  </widget>
