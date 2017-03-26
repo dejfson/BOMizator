@@ -43,6 +43,7 @@ import os
 import webbrowser
 import fnmatch
 import pickle
+import hashlib
 import json
 from collections import defaultdict
 from functools import partial
@@ -60,6 +61,111 @@ import logging
 localpath = os.path.dirname(os.path.realpath(__file__))
 form_class = uic.loadUiType(os.path.join(localpath,
                                          "BOMLinker.ui"))[0]
+
+
+class QBOMComponentCache(QtCore.QObject):
+    """ takes care about the component cache handling
+    """
+
+    def __init__(self, cacheFile):
+        """ initializes component cache based on application settings
+        and the project directory.
+        """
+        self.componentsCacheFile = cacheFile
+        self.header = headers()
+        # load the complete dictionary if exists. (either in
+        # project directory, or if generally specified)
+        try:
+            with open(self.componentsCacheFile) as data_file:
+                self.componentsCache = json.load(data_file)
+        except FileNotFoundError:
+            self.componentsCache = {}
+
+    def findComponent(self, itms):
+        """ given dictionary of (libref, value, footprint) this function
+        returns dictionary items of the component. None is returned if
+        no component with these three items exists
+        """
+        print(itms)
+        try:
+            refdata = self.componentsCache[itms[self.header.LIBREF]]\
+                      [itms[self.header.VALUE]]\
+                      [itms[self.header.FOOTPRINT]].items()
+        except KeyError:
+            refdata = None
+        return refdata
+
+    def createKey(self, keydata):
+        """ in the cache creates libref/value/footprint key
+        """
+        try:
+            a = self.componentsCache[keydata[self.header.LIBREF]]
+        except KeyError:
+            self.componentsCache[keydata[self.header.LIBREF]] = {}
+
+        try:
+            b = self.componentsCache[keydata[self.header.LIBREF]]\
+                [keydata[self.header.VALUE]]
+        except KeyError:
+            self.componentsCache[keydata[self.header.LIBREF]]\
+                [keydata[self.header.VALUE]] = {}
+
+        try:
+            c = self.componentsCache[keydata[self.header.LIBREF]]\
+                    [keydata[self.header.VALUE]]\
+                    [keydata[self.header.FOOTPRINT]]
+        except KeyError:
+            self.componentsCache[keydata[self.header.LIBREF]]\
+                [keydata[self.header.VALUE]]\
+                [keydata[self.header.FOOTPRINT]] = {}
+
+        return self.componentsCache[keydata[self.header.LIBREF]]\
+                [keydata[self.header.VALUE]]\
+                [keydata[self.header.FOOTPRINT]]
+
+    def storeComponents(self, complist, data):
+        """ complist is a list of dictionary of libref/value/footprint
+        for each component to store the data. data is the dictionary
+        of manufacturing/supplier/datasheet etc stuff which should
+        be used for particular components
+        """
+        # generate data hash, this is unique identifier of data
+        # (manuf+supp+...)
+        cmphash = hashlib.md5(
+            json.dumps(data,
+                       sort_keys=True).encode("utf-8")).hexdigest()
+
+        for component in complist:
+            # we have to find if the component is already used or not
+            # we make a hash of all values of each component. these
+            # should be only libref, value, footprint
+            try:
+                cmpdict = self.componentsCache[component[self.header.LIBREF]]\
+                          [component[self.header.VALUE]]\
+                          [component[self.header.FOOTPRINT]]
+            except KeyError:
+                # the key does not exist at all, let's create it
+                cmpdict = self.createKey(component)
+
+            if cmphash in cmpdict.keys():
+                # component already defined in cache by some previous
+                # operations, no need to do anything here
+                continue
+            self.componentsCache\
+                [component[self.header.LIBREF]]\
+                [component[self.header.VALUE]]\
+                [component[self.header.FOOTPRINT]]\
+                [cmphash] = data
+            print("Adding ", data, " as ", component, " into component cache")
+
+
+        print(complist, data)
+
+    def save(self):
+        """ signal caught when component cache changed and save is required
+        """
+        with open(self.componentsCacheFile, 'wt') as outfile:
+            json.dump(self.componentsCache, outfile)
 
 
 class BOMizator(QtWidgets.QMainWindow, form_class):
@@ -173,13 +279,8 @@ class BOMizator(QtWidgets.QMainWindow, form_class):
         schematics parser to save
         """
         self.SCH.save()
+        self.cCache.save()
         self.modelModified(False)
-
-    def saveComponentCache(self):
-        """ signal caught when component cache changed and save is required
-        """
-        with open(self.componentsCacheFile, 'wt') as outfile:
-            json.dump(self.componentsCache, outfile)
 
     def hideShowConsoleLog(self):
         """ enables/disables consolelog window
@@ -817,30 +918,27 @@ class BOMizator(QtWidgets.QMainWindow, form_class):
             itms = list(map(lambda cx: component[cx], idxs))
             # this is not so nicely implemented, is there any other way
             # how to check in nested defaultdicts if the key exists?
-            if itms[0] in self.componentsCache:
-                if itms[1] in self.componentsCache[itms[0]]:
-                    if itms[2] in self.componentsCache[itms[0]][itms[1]]:
-                        # get all the reference data
-                        refdata = self.componentsCache[itms[0]]\
-                                  [itms[1]]\
-                                  [itms[2]].items()
-                        # we have specific components, we can add them
-                        # into the menu such, that it will trigger
-                        # automatic refill
-                        menu.addSeparator()
-                        # for hashed, data in refdata:
-                        for hashed, cmpData in refdata:
-                            # we have to construct the string to be
-                            # displayed.
-                            txt = cmpData[self.header.MANUFACTURER] +\
-                                " " +\
-                                cmpData[self.header.MFRNO] +\
-                                " from " +\
-                                cmpData[self.header.SUPPLIER]
-                            menu.addAction(txt,
-                                           partial(self.fillFromComponentCache,
-                                                   cmpData))
-                        execMenu = True
+            refdata = self.cCache.findComponent(
+                dict(zip(self.header.UNIQUEITEM,
+                    itms)))
+            if refdata:
+                # we have specific components, we can add them
+                # into the menu such, that it will trigger
+                # automatic refill
+                menu.addSeparator()
+                # for hashed, data in refdata:
+                for hashed, cmpData in refdata:
+                    # we have to construct the string to be
+                    # displayed.
+                    txt = cmpData[self.header.MANUFACTURER] +\
+                          " " +\
+                          cmpData[self.header.MFRNO] +\
+                          " from " +\
+                          cmpData[self.header.SUPPLIER]
+                    menu.addAction(txt,
+                                   partial(self.fillFromComponentCache,
+                                           cmpData))
+                    execMenu = True
         except TypeError:
             self.logger.warning("Selection is not unique, cannot\
  propose cached component")
@@ -950,29 +1048,21 @@ class BOMizator(QtWidgets.QMainWindow, form_class):
             # we have to find a single project file
             self.SCH = schParser(projectFile)
             self.SCH.parseComponents()
-
             # get from the options the path to the component cache - a
             # filename, which is used to store the data
-            self.componentsCacheFile = self.settings.value(
+            componentsCacheFile = self.settings.value(
                 "componentsCacheFile",
                 os.path.join(projectDirectory, "componentsCache.json"),
                 str)
             self.logger.info("Using component cache from %s" %
-                  (self.componentsCacheFile))
-            # load the complete dictionary if exists. (either in
-            # project directory, or if generally specified)
-            try:
-                with open(self.componentsCacheFile) as data_file:
-                    self.componentsCache = json.load(data_file)
-            except FileNotFoundError:
-                self.componentsCache = {}
+                             (componentsCacheFile))
+            self.cCache = QBOMComponentCache(componentsCacheFile)
+
             # generate new schematic parser
             self.model = QBOMModel(self.SCH,
-                                   self.componentsCache,
                                    self)
             self.model.droppedData.connect(self.droppedData)
             self.model.modelModified.connect(self.modelModified)
-            self.model.addedComponentIntoCache.connect(self.saveComponentCache)
 
             # search proxy:
             self.proxy = QDesignatorSortModel(self)
@@ -1042,7 +1132,10 @@ class BOMizator(QtWidgets.QMainWindow, form_class):
         else:
             # only single item selected
             replace_in_rows = [row, ]
-        self.model.updateModelData(replace_in_rows, data)
+        rowsData = self.model.updateModelData(replace_in_rows, data)
+        # having the unique data from rows we can ask component cache
+        # to store them
+        self.cCache.storeComponents(rowsData, data)
 
     def fillFromComponentCache(self, cmpData):
         """ function called from context menu when user selects a

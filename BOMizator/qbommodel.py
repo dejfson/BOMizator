@@ -59,10 +59,6 @@ class QBOMModel(QtGui.QStandardItemModel):
     """
     droppedData = QtCore.pyqtSignal(dict, int, int)
 
-    """ signal informing that a component was added into the cache. To
-    be cached in app to store the cache appropriately """
-    addedComponentIntoCache = QtCore.pyqtSignal()
-
     """ modelModified is emitted whenever model data change (=True) or
     when the model gets saved (=False)
     """
@@ -73,34 +69,17 @@ class QBOMModel(QtGui.QStandardItemModel):
     enabledComponents = QtCore.pyqtSignal(int)
 
     def __init__(self, projectData=None,
-                 componentsCache={},
                  parent=None):
         """ creates headers object used for comparison. The parent
-        identifies the treeView. componentsCache is a dictionary (it
-        is defaultdict of defaultdicts), which identifies each dropped
-        component out of libref/value/footprint such, that it can be
-        reusable. Point of all this is, that when user drops in place
-        a component from a supplier, he might use this component for
-        any other _same_ component in the future. Hence if dropped,
-        the component cache is storing libref/value/footprint wrt
-        (mfg, mfgno, supplier, supplierno, datasheet) such, that next
-        time user requests the context menu, this component is offered
-        from cache if exists. When the component cache is taken care
-        of by user (git repo e.g.), then during the time a component
-        library is made. It is however up to user to keep the
-        components database correct as no further formal verification
-        can be done. This is a desirable feature of a hardware
-        engineer :) (at least me as the author)
+        identifies the treeView.
         """
         super(QBOMModel, self).__init__(parent)
         self.logger = logging.getLogger('bomizator')
-        self.componentsCache = componentsCache
         self.SCH = projectData
         self.setModified(False)
         self.header = headers()
         # get all sellers filters
         self.suppliers = supplier_selector()
-        self.componentsCache = componentsCache
 
         sorted_header = self.header.getHeaders()
         self.setHorizontalHeaderLabels(sorted_header)
@@ -433,14 +412,15 @@ class QBOMModel(QtGui.QStandardItemModel):
         """ takes the input parsed_data and updates all the rows of
         the model to contain data from parsed_data. Parsed_data is
         dictionary of header:value to be updated. Rows is a list of
-        affected rows IN MODEL VIEW (ours)
+        affected rows IN MODEL VIEW (ours). Function returns list of
+        components unique selection.
         """
 
         QtWidgets.QApplication.setOverrideCursor(QtCore.Qt.WaitCursor)
 
         # get the data out of those indices
-        collector = defaultdict(list)
-        colidx = self.header.getColumns(self.header.UNIQUEITEM)
+        collector = []
+        colidx = list(self.header.getColumns(self.header.UNIQUEITEM))
         # now the data replacement. EACH ITEM HAS ITS OWN MODELINDEX
         # and we get the modelindices from parent. Do for each of them
         for row in replace_in_rows:
@@ -459,69 +439,13 @@ class QBOMModel(QtGui.QStandardItemModel):
             # time. This can be done only if the selection of the
             # component is unique otherwise we would make a mess
             # in the database
+            compindex = {}
             for icol in colidx:
                 txt = self.data(self.index(row, icol))
-                collector[icol].append(txt)
-        # collected data get converted into sets, hence it will
-        # erase all common parts
-        # this will make (column, set) assignment such, that if
-        # all the components selected are the same, it will result
-        # in exactly 1 element in the list for each column
-        c = list(map(lambda itext: (itext[0], set(itext[1])),
-                 collector.items()))
-        # so we filter the columns which have more than one
-        # element
-        moreOne = list(filter(lambda item: len(item[1]) != 1, c))
-        # and if the list is _empty_, that is good as we can use
-        # mapping
-        if moreOne:
-            self.logger.info("""Cannot store the dropped component\
- into the component cache, because the selection does not resolve in\
- unique LIBREF/VALUE/FOOTPRINT.""")
-        else:
-            # this is defaultdict of defaultdict, we can add
-            # components into such dictionary even if they are not
-            # created
-            cmpn = dict(c)
-            cls = list(self.header.getColumns(self.header.UNIQUEITEM))
-            # we need to convert set back to list
-            cnm = list(map(lambda idx: list(cmpn[idx])[0], cls))
-            # Particular problem here
-            # is that we need to detect duplicates in the
-            # component mfg/no/ref/supplier. this is best done by
-            # introducing unique key from parsed data, hash seems
-            # to be OK. We add this hash as a separate dictionary
-            # key (additional layer) so we're sure that if the
-            # hash exists, the component of the same properties is
-            # already entered and we ignore it
-            cmphash = hashlib.md5(
-                json.dumps(parsed_data,
-                           sort_keys=True).encode("utf-8")).hexdigest()
-            # now we need to generate all the sub-keys if they do not
-            # exist. Before a defautdict generating defaultdict was
-            # used, but this got hell to debug as anytime one tried to
-            # read a key, it was created. this is not really what we
-            # want, hence following generates the dictionary structure:
-            if not cnm[0] in self.componentsCache:
-                self.componentsCache[cnm[0]] = {}
-            if not cnm[1] in self.componentsCache[cnm[0]]:
-                self.componentsCache[cnm[0]][cnm[1]] = {}
-            if not cnm[2] in self.componentsCache[cnm[0]][cnm[1]]:
-                self.componentsCache[cnm[0]][cnm[1]][cnm[2]] = {}
-            # and now if the component is unique and used for the
-            # first time the hash is not found, however no keyerror is risen
-            hashes = self.componentsCache[cnm[0]][cnm[1]][cnm[2]]
-            if cmphash not in hashes.keys():
-                # store in the component database
-                self.componentsCache[cnm[0]]\
-                    [cnm[1]]\
-                    [cnm[2]]\
-                    [cmphash] = parsed_data
-                # and inform upper
-                self.addedComponentIntoCache.emit()
-                self.logger.info("This component is used for first time,\
- writing into the component cache")
-            self.modelModified.emit(True)
+                compindex[self.header.getColumnName(icol)] = txt
+            collector.append(compindex)
 
+        self.modelModified.emit(True)
         QtWidgets.QApplication.restoreOverrideCursor()
-        return True
+        # we return list of unique compoents
+        return collector
