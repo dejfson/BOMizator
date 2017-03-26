@@ -43,8 +43,6 @@ import os
 import webbrowser
 import fnmatch
 import pickle
-import hashlib
-import json
 from collections import defaultdict
 from functools import partial
 from PyQt5 import QtGui, uic, QtCore, QtWidgets
@@ -52,6 +50,7 @@ from .headers import headers
 from .qdesignatorsortmodel import QDesignatorSortModel
 from .qbommodel import QBOMModel
 from .sch_parser import schParser
+from .qbomcomponentscache import QBOMComponentCache
 from .qbomitemmodel import QBOMItemModel
 from .suppexceptions import NoProjectGiven
 from .bomheaders import bomheaders
@@ -63,111 +62,7 @@ form_class = uic.loadUiType(os.path.join(localpath,
                                          "BOMLinker.ui"))[0]
 
 
-class QBOMComponentCache(QtCore.QObject):
-    """ takes care about the component cache handling
-    """
 
-    """ emitted when cache stores another component
-    """
-    addedComponentIntoCache = QtCore.pyqtSignal(dict, dict)
-
-    def __init__(self, cacheFile):
-        """ initializes component cache based on application settings
-        and the project directory.
-        """
-        super(QBOMComponentCache, self).__init__()
-        self.componentsCacheFile = cacheFile
-        self.header = headers()
-        # load the complete dictionary if exists. (either in
-        # project directory, or if generally specified)
-        try:
-            with open(self.componentsCacheFile) as data_file:
-                self.componentsCache = json.load(data_file)
-        except FileNotFoundError:
-            self.componentsCache = {}
-
-    def findComponent(self, itms):
-        """ given dictionary of (libref, value, footprint) this function
-        returns dictionary items of the component. None is returned if
-        no component with these three items exists
-        """
-        print(itms)
-        try:
-            refdata = self.componentsCache[itms[self.header.LIBREF]]\
-                      [itms[self.header.VALUE]]\
-                      [itms[self.header.FOOTPRINT]].items()
-        except KeyError:
-            refdata = None
-        return refdata
-
-    def createKey(self, keydata):
-        """ in the cache creates libref/value/footprint key
-        """
-        try:
-            a = self.componentsCache[keydata[self.header.LIBREF]]
-        except KeyError:
-            self.componentsCache[keydata[self.header.LIBREF]] = {}
-
-        try:
-            b = self.componentsCache[keydata[self.header.LIBREF]]\
-                [keydata[self.header.VALUE]]
-        except KeyError:
-            self.componentsCache[keydata[self.header.LIBREF]]\
-                [keydata[self.header.VALUE]] = {}
-
-        try:
-            c = self.componentsCache[keydata[self.header.LIBREF]]\
-                    [keydata[self.header.VALUE]]\
-                    [keydata[self.header.FOOTPRINT]]
-        except KeyError:
-            self.componentsCache[keydata[self.header.LIBREF]]\
-                [keydata[self.header.VALUE]]\
-                [keydata[self.header.FOOTPRINT]] = {}
-
-        return self.componentsCache[keydata[self.header.LIBREF]]\
-                [keydata[self.header.VALUE]]\
-                [keydata[self.header.FOOTPRINT]]
-
-    def storeComponents(self, complist, data):
-        """ complist is a list of dictionary of libref/value/footprint
-        for each component to store the data. data is the dictionary
-        of manufacturing/supplier/datasheet etc stuff which should
-        be used for particular components
-        """
-        # generate data hash, this is unique identifier of data
-        # (manuf+supp+...)
-        cmphash = hashlib.md5(
-            json.dumps(data,
-                       sort_keys=True).encode("utf-8")).hexdigest()
-
-        for component in complist:
-            # we have to find if the component is already used or not
-            # we make a hash of all values of each component. these
-            # should be only libref, value, footprint
-            try:
-                cmpdict = self.componentsCache[component[self.header.LIBREF]]\
-                          [component[self.header.VALUE]]\
-                          [component[self.header.FOOTPRINT]]
-            except KeyError:
-                # the key does not exist at all, let's create it
-                cmpdict = self.createKey(component)
-
-            if cmphash in cmpdict.keys():
-                # component already defined in cache by some previous
-                # operations, no need to do anything here
-                continue
-            self.componentsCache\
-                [component[self.header.LIBREF]]\
-                [component[self.header.VALUE]]\
-                [component[self.header.FOOTPRINT]]\
-                [cmphash] = data
-            self.addedComponentIntoCache.emit(data, component)
-
-    def save(self):
-        """ signal caught when component cache changed and save is required
-        """
-        with open(self.componentsCacheFile, 'wt') as outfile:
-            json.dump(self.componentsCache, outfile)
 
 
 class BOMizator(QtWidgets.QMainWindow, form_class):
@@ -243,9 +138,6 @@ class BOMizator(QtWidgets.QMainWindow, form_class):
         self._readAndApplyWindowAttributeSettings()
         # update status for the first time
         self.treeSelection()
-
-    def logConsole(self):
-        print("console")
 
     def newMultiplier(self):
         """ called when global multiplier changed
@@ -1031,11 +923,10 @@ class BOMizator(QtWidgets.QMainWindow, form_class):
         self.logger.info("Added following relation into components\
  cache:")
         self.logger.info("\n".join(
-            map(lambda ix: "\t" + ix, self.dictToStr(manuf))))
-        self.logger.info("AS")
+            map(lambda ix: "\t\t" + ix, self.dictToStr(manuf))))
+        self.logger.info("\tAS")
         self.logger.info("\n".join(
-            map(lambda ix: "\t" + ix, self.dictToStr(decl))))
-
+            map(lambda ix: "\t\t" + ix, self.dictToStr(decl))))
 
     def openProject(self, projectDirectory=''):
         """ Opens directory search dialog, which asks for .pro file to
