@@ -55,14 +55,12 @@ from .qbomitemmodel import QBOMItemModel
 from .suppexceptions import NoProjectGiven
 from .bomheaders import bomheaders
 from .listviewhandler import ListViewHandler
+from .qsettingsdialog import QSettingsDialog
 import logging
 
 localpath = os.path.dirname(os.path.realpath(__file__))
 form_class = uic.loadUiType(os.path.join(localpath,
                                          "BOMLinker.ui"))[0]
-
-
-
 
 
 class BOMizator(QtWidgets.QMainWindow, form_class):
@@ -134,6 +132,7 @@ class BOMizator(QtWidgets.QMainWindow, form_class):
         self.action_Open.triggered.connect(self.openProject)
         self.action_Save.triggered.connect(self.saveProject)
         self.action_Reload.triggered.connect(self.reloadProject)
+        self.action_Preferences.triggered.connect(self.preferencesDialog)
         # restore windows parameters
         self._readAndApplyWindowAttributeSettings()
         # update status for the first time
@@ -147,6 +146,13 @@ class BOMizator(QtWidgets.QMainWindow, form_class):
         if orig != new:
             self.SCH.setGlobalMultiplier(new)
             self.modelModified(True)
+
+    def preferencesDialog(self):
+        """ displays preferences dialog box
+        """
+        mysettings = QSettingsDialog(self.settings, self)
+        if mysettings.exec_() == QtWidgets.QDialog.Accepted:
+            print("Accept")
 
     def tabChanged(self, newidx):
         """ when tab changes to BOM, we need to reload the treeview
