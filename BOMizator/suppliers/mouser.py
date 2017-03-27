@@ -72,7 +72,8 @@ Refine.aspx?Keyword=%s" % (searchtext,)
         by parsing simple textual data.
         """
 
-        if urltext.upper().find("MOUSER.COM") == -1:
+        if urltext.upper().find("MOUSER.COM") == -1 and\
+           urltext.upper().find("MOUSER.CH") == -1:
             raise NotMatchingHeader("No Mouse identifier detected")
         # manufacturer and manunumber if free of charge as it is in
         # the header, we use bs to parse the web pages
