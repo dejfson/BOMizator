@@ -49,18 +49,13 @@ class QBOMComponentCache(QtCore.QObject):
 
     def __init__(self, cacheFile):
         """ initializes component cache based on application settings
-        and the project directory.
+        and the project directory. cacheFile is CLASS HANDLER, which
+        takes care about loading/saving
         """
         super(QBOMComponentCache, self).__init__()
         self.componentsCacheFile = cacheFile
         self.header = headers()
-        # load the complete dictionary if exists. (either in
-        # project directory, or if generally specified)
-        try:
-            with open(self.componentsCacheFile) as data_file:
-                self.componentsCache = json.load(data_file)
-        except FileNotFoundError:
-            self.componentsCache = {}
+        self.componentsCache = cacheFile.load()
 
     def findComponent(self, itms):
         """ given dictionary of (libref, value, footprint) this function
@@ -141,5 +136,4 @@ class QBOMComponentCache(QtCore.QObject):
     def save(self):
         """ signal caught when component cache changed and save is required
         """
-        with open(self.componentsCacheFile, 'wt') as outfile:
-            json.dump(self.componentsCache, outfile)
+        self.componentsCacheFile.save(self.componentsCache)

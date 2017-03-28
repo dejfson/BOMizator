@@ -31,41 +31,12 @@ Implements settings dialog box
 
 from PyQt5 import QtWidgets, uic, QtCore
 import os
+from .cachefileaccess import cacheFileAccess
+from .cachegitaccess import cacheGitAccess
 
 localpath = os.path.dirname(os.path.realpath(__file__))
 loaded_dialog = uic.loadUiType(os.path.join(localpath,
-                                         "settingsDialog.ui"))[0]
-
-
-class cacheExceptionImplement(Exception):
-    pass
-
-
-class cacheIOAccess(object):
-    """ defines base class for cache access. Does nothing except of
-    implementation of basic methods
-    """
-
-    def init(self, fname):
-        self.filename = fname
-
-    def load(self):
-        """ generic load function
-        """
-        raise cacheExceptionImplement("Not implemented")
-
-    def save(self):
-        """ generic save function
-        """
-        raise cacheExceptionImplement("Not implemented")
-
-
-class cacheFileAccess(cacheIOAccess):
-    pass
-
-
-class cacheGitAccess(cacheIOAccess):
-    pass
+                                            "settingsDialog.ui"))[0]
 
 
 class QSettingsDialog(QtWidgets.QDialog, loaded_dialog):
@@ -80,6 +51,9 @@ class QSettingsDialog(QtWidgets.QDialog, loaded_dialog):
         self.settingsChooseComponentCache.clicked.connect(self.getCacheFile)
         self.settingsCacheAccessType.addItem("File", cacheFileAccess)
         self.settingsCacheAccessType.addItem("Git", cacheGitAccess)
+
+        # preload the stuff from the settings file
+
 
     def getCacheFile(self):
         """ opens file dialog box asking user to get the cache file.

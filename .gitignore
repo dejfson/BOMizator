@@ -2,3 +2,4 @@
 *.egg-info
 /bomizator.log
 *flymake.py
+/BOMizator/bomizator.log

@@ -42,6 +42,7 @@ import sys
 import os
 import webbrowser
 import fnmatch
+import imp
 import pickle
 from collections import defaultdict
 from functools import partial
@@ -917,6 +918,40 @@ class BOMizator(QtWidgets.QMainWindow, form_class):
 
         return projectFile, projectDirectory
 
+    def generateCacheAccess(self, projectDirectory):
+        """ loads the settings and generates appropriate access class
+        for the components cache. Returns created components
+        cache. Project directory is needed in case the settings are
+        invalid and we need to generate new file
+        """
+        # get from the options the path to the component cache - a
+        # filename, which is used to store the data
+        # when creating eventually for the first time, we 'make' it
+        invalidCacheFile = os.path.join(projectDirectory,
+                                        "componentsCache.bmc")
+        componentsCacheFile = self.settings.value(
+            "componentsCacheFile",
+            invalidCacheFile,
+            str)
+        # load the access type. !CASE SENSITIVE!
+        componentsAccessType = self.settings.value(
+            "componentsAccessType",
+            "cachefileaccess.py",
+            str)
+        # load the cache access class name
+        info = imp.load_source('',
+                               componentsAccessType).DEFAULT_CLASS
+        # we can create the class and validate the filename against
+        aclass = info(componentsCacheFile)
+        if not aclass.validate():
+            # this is not valid entry for this specific one, but we
+            # might be able to create one
+            aclass.create(componentsCacheFile)
+
+        self.logger.info("Using component cache from %s" %
+                         (aclass))
+        return aclass
+
     def dictToStr(self, dic):
         """ returns dictionary keys/values as a list of strings
         """
@@ -965,15 +1000,8 @@ class BOMizator(QtWidgets.QMainWindow, form_class):
             # we have to find a single project file
             self.SCH = schParser(projectFile)
             self.SCH.parseComponents()
-            # get from the options the path to the component cache - a
-            # filename, which is used to store the data
-            componentsCacheFile = self.settings.value(
-                "componentsCacheFile",
-                os.path.join(projectDirectory, "componentsCache.bmc"),
-                str)
-            self.logger.info("Using component cache from %s" %
-                             (componentsCacheFile))
-            self.cCache = QBOMComponentCache(componentsCacheFile)
+            self.cCache = QBOMComponentCache(
+                self.generateCacheAccess(projectDirectory))
             self.cCache.addedComponentIntoCache.connect(self.logCache)
             # generate new schematic parser
             self.model = QBOMModel(self.SCH,
