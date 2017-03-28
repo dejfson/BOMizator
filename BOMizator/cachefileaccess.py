@@ -36,7 +36,7 @@ import json
 
 class cacheFileAccess(cacheIOAccess):
 
-    def __init__(self, fname):
+    def __init__(self, fname=None):
         super(cacheFileAccess, self).__init__(fname)
 
     def __str__(self):
@@ -64,6 +64,9 @@ class cacheFileAccess(cacheIOAccess):
         """
         with open(self.filename, 'wt') as outfile:
             json.dump(data, outfile)
+
+    def name(self):
+        return "File"
 
 
 DEFAULT_CLASS = cacheFileAccess

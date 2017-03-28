@@ -31,8 +31,8 @@ Implements settings dialog box
 
 from PyQt5 import QtWidgets, uic, QtCore
 import os
-from .cachefileaccess import cacheFileAccess
-from .cachegitaccess import cacheGitAccess
+import imp
+import fnmatch
 
 localpath = os.path.dirname(os.path.realpath(__file__))
 loaded_dialog = uic.loadUiType(os.path.join(localpath,
@@ -49,11 +49,44 @@ class QSettingsDialog(QtWidgets.QDialog, loaded_dialog):
         self.setupUi(self)
 
         self.settingsChooseComponentCache.clicked.connect(self.getCacheFile)
-        self.settingsCacheAccessType.addItem("File", cacheFileAccess)
-        self.settingsCacheAccessType.addItem("Git", cacheGitAccess)
 
         # preload the stuff from the settings file
+        componentsCacheFile = self.settings.value(
+            "componentsCacheFile",
+            '',
+            str)
+        self.settingsComponentCache.setText(componentsCacheFile)
 
+        matches = []
+        for root, dirnames, filenames in os.walk(localpath):
+            for filename in fnmatch.filter(filenames, 'cache*access.py'):
+                matches.append(os.path.join(root, filename))
+        print("Following accesses found ", matches)
+
+        inserted = []
+        # fill in combo box, taking possible sources. use their
+        # filenames as identifiers
+        for plugin in matches:
+            info = imp.load_source('', plugin).DEFAULT_CLASS
+            if info:
+                data = os.path.split(plugin)[-1]
+                inserted.append(data)
+                self.settingsCacheAccessType.addItem(
+                    info().name(),
+                    data)
+
+        # load all of them and their default names. If do not exist,
+        # do not take them into consideration
+        # load the access type. !CASE SENSITIVE!
+        componentsAccessType = self.settings.value(
+            "componentsAccessType",
+            "cachefileaccess.py",
+            str)
+        # find which index it is
+        ci = list(filter(lambda plg:
+                         plg[1].find(componentsAccessType) != -1,
+                         enumerate(inserted)))
+        self.settingsCacheAccessType.setCurrentIndex(ci[0][0])
 
     def getCacheFile(self):
         """ opens file dialog box asking user to get the cache file.

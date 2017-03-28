@@ -39,7 +39,7 @@ class cacheIOAccess(object):
     implementation of basic methods
     """
 
-    def __init__(self, fname):
+    def __init__(self, fname=None):
         self.filename = fname
 
     def load(self):
@@ -62,3 +62,11 @@ class cacheIOAccess(object):
         """ generic save function
         """
         raise cacheExceptionImplement("Not implemented")
+
+    def name(self):
+        raise cacheExceptionImplement("Not implemented")
+
+
+# do not declare the default class name, as this is purely virtual
+# implementation
+DEFAULT_CLASS = None

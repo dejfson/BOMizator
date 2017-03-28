@@ -30,11 +30,13 @@ implements GIT access to the cache file. Hence even if the cache is
 about to be loaded/saved, git operation takes place first to fetch the
 newest or commit the oldest
 """
-from .cachefileaccess import cacheFileAccess
+from BOMizator.cachefileaccess import cacheFileAccess
 
 
 class cacheGitAccess(cacheFileAccess):
-    pass
+
+    def name(self):
+        return "Git"
 
 
 DEFAULT_CLASS = cacheGitAccess

@@ -940,7 +940,9 @@ class BOMizator(QtWidgets.QMainWindow, form_class):
             str)
         # load the cache access class name
         info = imp.load_source('',
-                               componentsAccessType).DEFAULT_CLASS
+                               os.path.join(
+                                   localpath,
+                                   componentsAccessType)).DEFAULT_CLASS
         # we can create the class and validate the filename against
         aclass = info(componentsCacheFile)
         if not aclass.validate():
