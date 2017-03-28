@@ -89,13 +89,16 @@ class QSettingsDialog(QtWidgets.QDialog, loaded_dialog):
         self.settingsCacheAccessType.setCurrentIndex(ci[0][0])
 
     def getCacheFile(self):
-        """ opens file dialog box asking user to get the cache file.
+        """ opens file dialog box asking user to get the cache
+        file. We're using savefilename as this one permits to create
+        new file, whereas openfile only requests files existing (and
+        the cache might not exist
         """
-        cacheFile, _ = QtWidgets.QFileDialog.getOpenFileName(self,
+        cacheFile, _ = QtWidgets.QFileDialog.getSaveFileUrl(self,
                                                              "Select\
  the components cache file",
                                                              '',
                                                              "Generic\
  component cache (*.bmc)")
         if cacheFile:
-            self.settingsComponentCache.setText(cacheFile)
+            self.settingsComponentCache.setText(cacheFile.toString())
