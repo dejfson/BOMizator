@@ -94,11 +94,11 @@ class QSettingsDialog(QtWidgets.QDialog, loaded_dialog):
         new file, whereas openfile only requests files existing (and
         the cache might not exist
         """
-        cacheFile, _ = QtWidgets.QFileDialog.getSaveFileUrl(self,
+        cacheFile, _ = QtWidgets.QFileDialog.getSaveFileName(self,
                                                              "Select\
  the components cache file",
                                                              '',
                                                              "Generic\
  component cache (*.bmc)")
         if cacheFile:
-            self.settingsComponentCache.setText(cacheFile.toString())
+            self.settingsComponentCache.setText(cacheFile)
