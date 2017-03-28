@@ -61,7 +61,6 @@ class QSettingsDialog(QtWidgets.QDialog, loaded_dialog):
         for root, dirnames, filenames in os.walk(localpath):
             for filename in fnmatch.filter(filenames, 'cache*access.py'):
                 matches.append(os.path.join(root, filename))
-        print("Following accesses found ", matches)
 
         inserted = []
         # fill in combo box, taking possible sources. use their
@@ -94,11 +93,16 @@ class QSettingsDialog(QtWidgets.QDialog, loaded_dialog):
         new file, whereas openfile only requests files existing (and
         the cache might not exist
         """
-        cacheFile, _ = QtWidgets.QFileDialog.getSaveFileName(self,
-                                                             "Select\
- the components cache file",
-                                                             '',
-                                                             "Generic\
- component cache (*.bmc)")
+        name = "Select the components cache file"
+        options = QtWidgets.QFileDialog.DontUseNativeDialog |\
+                  QtWidgets.QFileDialog.DontConfirmOverwrite
+        xfilt = "Generic component cache (*.bmc)"
+        cacheFile, _ = QtWidgets.\
+                       QFileDialog.getSaveFileName(self,
+                                                   name,
+                                                   '',
+                                                   xfilt,
+                                                   '',
+                                                   options)
         if cacheFile:
             self.settingsComponentCache.setText(cacheFile)

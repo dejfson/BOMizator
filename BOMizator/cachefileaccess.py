@@ -59,6 +59,10 @@ class cacheFileAccess(cacheIOAccess):
             componentsCache = {}
         return componentsCache
 
+    def create(self, fname):
+        self.filename = fname
+        # this is a file access, nothing else is needed
+
     def save(self, data):
         """ saves the cache to the disk
         """

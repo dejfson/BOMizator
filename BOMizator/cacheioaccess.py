@@ -45,26 +45,26 @@ class cacheIOAccess(object):
     def load(self):
         """ generic load function
         """
-        raise cacheExceptionImplement("Not implemented")
+        raise cacheExceptionImplement("Load Not implemented")
 
     def validate(self):
         """ not implemented, but should return True if fname is valid
         to perform load/save operations on it
         """
-        raise cacheExceptionImplement("Not implemented")
+        raise cacheExceptionImplement("Validate Not implemented")
 
     def create(self, fname):
         """ responsible for creation of a completely new IO
         """
-        raise cacheExceptionImplement("Not implemented")
+        raise cacheExceptionImplement("Create Not implemented")
 
     def save(self):
         """ generic save function
         """
-        raise cacheExceptionImplement("Not implemented")
+        raise cacheExceptionImplement("Save Not implemented")
 
     def name(self):
-        raise cacheExceptionImplement("Not implemented")
+        raise cacheExceptionImplement("Name Not implemented")
 
 
 # do not declare the default class name, as this is purely virtual

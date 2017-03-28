@@ -153,7 +153,19 @@ class BOMizator(QtWidgets.QMainWindow, form_class):
         """
         mysettings = QSettingsDialog(self.settings, self)
         if mysettings.exec_() == QtWidgets.QDialog.Accepted:
-            print("Accept")
+            # and now we have to save the data into the settings
+            fname = os.path.splitext(
+                mysettings.settingsComponentCache.text())[0]
+
+            self.settings.setValue("componentsCacheFile",
+                                   fname+".bmc")
+            # we store content of combo data
+            self.settings.setValue("componentsAccessType",
+                                   mysettings.
+                                   settingsCacheAccessType.itemData(
+                                       mysettings.
+                                       settingsCacheAccessType.currentIndex()))
+            self.reloadProject()
 
     def tabChanged(self, newidx):
         """ when tab changes to BOM, we need to reload the treeview
