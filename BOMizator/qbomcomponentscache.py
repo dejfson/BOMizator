@@ -50,7 +50,8 @@ class QBOMComponentCache(QtCore.QObject):
     def __init__(self, cacheFile):
         """ initializes component cache based on application settings
         and the project directory. cacheFile is CLASS HANDLER, which
-        takes care about loading/saving
+        takes care about loading/saving. Typically cacheFileAccess or
+        cacheGitAccess when GIT handling is involved
         """
         super(QBOMComponentCache, self).__init__()
         self.componentsCacheFile = cacheFile
