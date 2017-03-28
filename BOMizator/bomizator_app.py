@@ -969,7 +969,7 @@ class BOMizator(QtWidgets.QMainWindow, form_class):
             # filename, which is used to store the data
             componentsCacheFile = self.settings.value(
                 "componentsCacheFile",
-                os.path.join(projectDirectory, "componentsCache.json"),
+                os.path.join(projectDirectory, "componentsCache.bmc"),
                 str)
             self.logger.info("Using component cache from %s" %
                              (componentsCacheFile))

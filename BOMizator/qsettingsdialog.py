@@ -37,11 +37,58 @@ loaded_dialog = uic.loadUiType(os.path.join(localpath,
                                          "settingsDialog.ui"))[0]
 
 
+class cacheExceptionImplement(Exception):
+    pass
+
+
+class cacheIOAccess(object):
+    """ defines base class for cache access. Does nothing except of
+    implementation of basic methods
+    """
+
+    def init(self, fname):
+        self.filename = fname
+
+    def load(self):
+        """ generic load function
+        """
+        raise cacheExceptionImplement("Not implemented")
+
+    def save(self):
+        """ generic save function
+        """
+        raise cacheExceptionImplement("Not implemented")
+
+
+class cacheFileAccess(cacheIOAccess):
+    pass
+
+
+class cacheGitAccess(cacheIOAccess):
+    pass
+
+
 class QSettingsDialog(QtWidgets.QDialog, loaded_dialog):
-    """ settings dialog box
+    """ settings dialog box, takes care about selection of the cache
     """
 
     def __init__(self, settings, parent=None, flags=QtCore.Qt.WindowFlags()):
         super(QSettingsDialog, self).__init__(parent, flags)
         self.settings = settings
         self.setupUi(self)
+
+        self.settingsChooseComponentCache.clicked.connect(self.getCacheFile)
+        self.settingsCacheAccessType.addItem("File", cacheFileAccess)
+        self.settingsCacheAccessType.addItem("Git", cacheGitAccess)
+
+    def getCacheFile(self):
+        """ opens file dialog box asking user to get the cache file.
+        """
+        cacheFile, _ = QtWidgets.QFileDialog.getOpenFileName(self,
+                                                             "Select\
+ the components cache file",
+                                                             '',
+                                                             "Generic\
+ component cache (*.bmc)")
+        if cacheFile:
+            self.settingsComponentCache.setText(cacheFile)
