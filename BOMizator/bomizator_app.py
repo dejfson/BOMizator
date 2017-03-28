@@ -57,6 +57,7 @@ from .suppexceptions import NoProjectGiven
 from .bomheaders import bomheaders
 from .listviewhandler import ListViewHandler
 from .qsettingsdialog import QSettingsDialog
+from .qcomponentscachedialog import QComponentsCacheDialog
 import logging
 
 localpath = os.path.dirname(os.path.realpath(__file__))
@@ -134,10 +135,21 @@ class BOMizator(QtWidgets.QMainWindow, form_class):
         self.action_Save.triggered.connect(self.saveProject)
         self.action_Reload.triggered.connect(self.reloadProject)
         self.action_Preferences.triggered.connect(self.preferencesDialog)
+        self.action_Components_Cache.triggered.connect(self.componentsCacheDialog)
         # restore windows parameters
         self._readAndApplyWindowAttributeSettings()
         # update status for the first time
         self.treeSelection()
+
+    def componentsCacheDialog(self):
+        """ opens components cache dialog box, wchi takes care about
+        the contents of the dialog
+        """
+        mysettings = QComponentsCacheDialog(self.cCache, self)
+        if mysettings.exec_() == QtWidgets.QDialog.Accepted:
+            # save cache
+            self.cCache.save()
+
 
     def newMultiplier(self):
         """ called when global multiplier changed

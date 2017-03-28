@@ -58,6 +58,16 @@ class QBOMComponentCache(QtCore.QObject):
         self.header = headers()
         self.componentsCache = cacheFile.load()
 
+    def getCache(self):
+        """ returns cache dictionary
+        """
+        return self.componentsCache
+
+    def setCache(self, cache):
+        """ sets up a new cache
+        """
+        self.componentsCache = cache
+
     def findComponent(self, itms):
         """ given dictionary of (libref, value, footprint) this function
         returns dictionary items of the component. None is returned if
