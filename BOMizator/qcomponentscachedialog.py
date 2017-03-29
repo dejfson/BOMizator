@@ -30,7 +30,9 @@ implements functionality of components cache dialog
 """
 import os
 from PyQt5 import uic, QtWidgets, QtCore, QtGui
-from .headers import headers
+from BOMizator.headers import headers
+from BOMizator.qbomcomponentscache import QBOMComponentCache
+from BOMizator.cachefileaccess import cacheFileAccess
 
 
 localpath = os.path.dirname(os.path.realpath(__file__))
@@ -52,7 +54,18 @@ class QComponentsCacheDialog(QtWidgets.QDialog, loaded_dialog):
         self.model = QtGui.QStandardItemModel(self)
 
         # fill in the treewidget with appropriate data
-        cc = cache.getCache()
+        self.fillModel(cache.getCache())
+
+        self.importButton.clicked.connect(self.importAnother)
+
+    def fillModel(self, cc):
+        """ given cache dictionary cc this function fills in the treeView
+        """
+        self.model.clear()
+        hx = [self.header.LIBREF,
+              self.header.VALUE,
+              self.header.FOOTPRINT] + self.header.USERITEMS
+        self.model.setHorizontalHeaderLabels(hx)
         # now we run through the cache and generate all the indices:
         for libref in cc.keys():
             for value in cc[libref].keys():
@@ -68,12 +81,58 @@ class QComponentsCacheDialog(QtWidgets.QDialog, loaded_dialog):
 
                         row = list(map(QtGui.QStandardItem, txt+rest))
                         self.model.appendRow(row)
-
-        # and let's setup headers names
-
-        self.model.setHorizontalHeaderLabels([
-            self.header.LIBREF,
-            self.header.VALUE,
-            self.header.FOOTPRINT] + self.header.USERITEMS)
-
+        self.components = cc
         self.treeView.setModel(self.model)
+        self.treeView.setSortingEnabled(True)
+        self.treeView.sortByColumn(2, QtCore.Qt.AscendingOrder)
+        for i in range(len(hx)):
+            self.treeView.resizeColumnToContents(i)
+
+    def makeKey(self, cm, nk):
+        """ makes in cm dictionary a new key identified by tuple
+        (libref, value, footprint). If that key already exists,
+        nothing happens. In any case this function assures, that
+        dict-of-dict-of... key exists into depth given by length of nk
+        """
+        cdir = cm
+        for subitem in nk:
+            if subitem not in cdir.keys():
+                cdir[subitem] = {}
+            cdir = cdir[subitem]
+
+    def importAnother(self):
+        """ asks for filename of other cache and merges the caches together
+        """
+        name = "Open BOMizator components cache"
+        fil = "BOMizator components cache (*.bmc)"
+        cc, _ = QtWidgets.QFileDialog.\
+            getOpenFileName(self,
+                            name,
+                            '',
+                            fil)
+        if not cc:
+            return
+
+        # load the new cache,
+        nc = QBOMComponentCache(cacheFileAccess(cc))
+        nd = nc.getCache()
+        # now let's browse through the new dictionary and add the keys
+        # providing that they are unique. No component must be
+        # inserted twice under the same
+        for libref in nd.keys():
+            for value in nd[libref].keys():
+                for footprint in nd[libref][value].keys():
+                    for ckey, cval in nd[libref][value][footprint].items():
+                        # each component is identified as this:
+                        self.makeKey(self.components, [libref,
+                                                       value,
+                                                       footprint])
+
+                        if ckey not in self.components[libref]\
+                           [value][footprint].keys():
+                            # we append that key
+                            self.components[libref]\
+                                [value][footprint][ckey] = cval
+        # having all the values merged we need to re-fill again the
+        # entire data
+        self.fillModel(self.components)

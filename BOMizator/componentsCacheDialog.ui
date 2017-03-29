@@ -51,13 +51,6 @@
       </widget>
      </item>
      <item>
-      <widget class="QPushButton" name="insertButton">
-       <property name="text">
-        <string>&amp;Insert ...</string>
-       </property>
-      </widget>
-     </item>
-     <item>
       <widget class="QPushButton" name="deleteButton">
        <property name="text">
         <string>&amp;Delete</string>
