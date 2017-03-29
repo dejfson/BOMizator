@@ -50,7 +50,7 @@ class QComponentsCacheDialog(QtWidgets.QDialog, loaded_dialog):
         self.showMaximized()
         self.cCache = cache
         self.header = headers()
-
+        self.isModified = False
         self.model = QtGui.QStandardItemModel(self)
 
         # fill in the treewidget with appropriate data
@@ -81,7 +81,10 @@ class QComponentsCacheDialog(QtWidgets.QDialog, loaded_dialog):
 
                         row = list(map(QtGui.QStandardItem, txt+rest))
                         self.model.appendRow(row)
-        self.components = cc
+        # WE HAVE TO WORK OVER DICTIONARY COPY TO AVOID MODIFICATION
+        # OF ORIGINAL DICTIONARY - JUST IN CASE SOMEONE PRESSES CANCEL
+        # BUTTON ON THIS DIALOG BOX
+        self.components = cc.copy()
         self.treeView.setModel(self.model)
         self.treeView.setSortingEnabled(True)
         self.treeView.sortByColumn(2, QtCore.Qt.AscendingOrder)
@@ -133,6 +136,7 @@ class QComponentsCacheDialog(QtWidgets.QDialog, loaded_dialog):
                             # we append that key
                             self.components[libref]\
                                 [value][footprint][ckey] = cval
+                            self.isModified = True
         # having all the values merged we need to re-fill again the
         # entire data
         self.fillModel(self.components)

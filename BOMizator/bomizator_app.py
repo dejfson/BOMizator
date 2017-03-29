@@ -147,9 +147,10 @@ class BOMizator(QtWidgets.QMainWindow, form_class):
         """
         mysettings = QComponentsCacheDialog(self.cCache, self)
         if mysettings.exec_() == QtWidgets.QDialog.Accepted:
-            # save cache
-            self.cCache.save()
-
+            # save cache, inherit settings:
+            if mysettings.isModified:
+                self.modelModified(True)
+            self.cCache.setCache(mysettings.components)
 
     def newMultiplier(self):
         """ called when global multiplier changed
