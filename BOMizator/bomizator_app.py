@@ -135,7 +135,8 @@ class BOMizator(QtWidgets.QMainWindow, form_class):
         self.action_Save.triggered.connect(self.saveProject)
         self.action_Reload.triggered.connect(self.reloadProject)
         self.action_Preferences.triggered.connect(self.preferencesDialog)
-        self.action_Components_Cache.triggered.connect(self.componentsCacheDialog)
+        self.action_Components_Cache.triggered.connect(
+            self.componentsCacheDialog)
         # restore windows parameters
         self._readAndApplyWindowAttributeSettings()
         # update status for the first time
