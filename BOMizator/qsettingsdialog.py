@@ -49,6 +49,7 @@ class QSettingsDialog(QtWidgets.QDialog, loaded_dialog):
         self.setupUi(self)
 
         self.settingsChooseComponentCache.clicked.connect(self.getCacheFile)
+        self.deleteButton.clicked.connect(self.deleteItems)
 
         # preload the stuff from the settings file
         componentsCacheFile = self.settings.value(
@@ -56,6 +57,7 @@ class QSettingsDialog(QtWidgets.QDialog, loaded_dialog):
             '',
             str)
         self.settingsComponentCache.setText(componentsCacheFile)
+
 
         matches = []
         for root, dirnames, filenames in os.walk(localpath):
@@ -86,6 +88,13 @@ class QSettingsDialog(QtWidgets.QDialog, loaded_dialog):
                          plg[1].find(componentsAccessType) != -1,
                          enumerate(inserted)))
         self.settingsCacheAccessType.setCurrentIndex(ci[0][0])
+
+    def deleteItems(self):
+        """ deletes selected items from the copy of the components
+        cache.
+        """
+        sels = self.treeView.selectedIndexes()
+        print(sels)
 
     def getCacheFile(self):
         """ opens file dialog box asking user to get the cache
