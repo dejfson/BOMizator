@@ -55,8 +55,37 @@ class QComponentsCacheDialog(QtWidgets.QDialog, loaded_dialog):
 
         # fill in the treewidget with appropriate data
         self.fillModel(cache.getCache())
-
         self.importButton.clicked.connect(self.importAnother)
+        self.deleteButton.clicked.connect(self.deleteItems)
+        # we keep through the list of detected components
+        # so cache can know what to delete
+        self.deletedComponents = []
+
+    def deleteItems(self):
+        """ deletes selected items from the copy of the components
+        cache.
+        """
+        sels = self.treeView.selectedIndexes()
+        for i in filter(lambda ix: ix.column() == 0, sels):
+            libref, value, footprint, key = self.model.data(i,
+                                                            QtCore.Qt.UserRole)
+            self.deletedComponents.append([libref,
+                                           value,
+                                           footprint,
+                                           key])
+            # deleting key including non-empty items:
+            self.components[libref][value][footprint].pop(key)
+            # now pop all empty branches of this
+            if not self.components[libref][value][footprint]:
+                self.components[libref][value].pop(footprint)
+            if not self.components[libref][value]:
+                self.components[libref].pop(value)
+            if not self.components[libref]:
+                self.components.pop(libref)
+            self.isModified = True
+
+        if self.isModified:
+            self.fillModel(self.components)
 
     def fillModel(self, cc):
         """ given cache dictionary cc this function fills in the treeView
@@ -78,8 +107,15 @@ class QComponentsCacheDialog(QtWidgets.QDialog, loaded_dialog):
                         rest = list(map(lambda it:
                                         imt[it],
                                         self.header.USERITEMS))
-
+                        # for each item we add the dictionary keys
+                        # such, that it permits easy deletion
                         row = list(map(QtGui.QStandardItem, txt+rest))
+                        for it in row:
+                            it.setData([libref,
+                                        value,
+                                        footprint,
+                                        key],
+                                       QtCore.Qt.UserRole)
                         self.model.appendRow(row)
         # WE HAVE TO WORK OVER DICTIONARY COPY TO AVOID MODIFICATION
         # OF ORIGINAL DICTIONARY - JUST IN CASE SOMEONE PRESSES CANCEL
