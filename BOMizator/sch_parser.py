@@ -572,7 +572,17 @@ class schParser(QtCore.QObject):
 
                         wrline.write(lineOut)
             # now we just move the newly created file to the old one
-            # and ... pray
+            # and ... pray. WINDOWS COMPATIBILITY: one cannot rename
+            # the tmp file directly to target if target exists (under
+            # linux this works), hence we need first to delete the
+            # original
+            exfile = os.path.splitext(schfile)[0]
+            try:
+                # yeah, windows style :(
+                os.remove(exfile+".bak")
+            except FileNotFoundError:
+                pass
+            os.rename(schfile, exfile+".bak")
             os.rename(schfile+"tmp", schfile)
             # and save BOM:
             self.saveBOMData()
