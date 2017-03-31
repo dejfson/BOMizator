@@ -43,7 +43,6 @@ setup(name='BOMizator',
       install_requires=['bs4', 'urllib3', 'html5lib', 'PyQt5'],
       include_package_data=True,
       data_files=[('BOMizator', ['BOMizator/BOMLinker.ui', ])],
-      scripts=['bin/bomizator', ])
       entry_points={
           'gui_scripts': [
               'bomizator = BOMizator.__main__:main'
