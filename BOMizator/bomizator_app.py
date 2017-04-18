@@ -40,7 +40,6 @@ manufacturer part independently of the values of the libraries.
 
 import sys
 import os
-import webbrowser
 import fnmatch
 import imp
 import pickle
@@ -58,6 +57,7 @@ from .bomheaders import bomheaders
 from .listviewhandler import ListViewHandler
 from .qsettingsdialog import QSettingsDialog
 from .qcomponentscachedialog import QComponentsCacheDialog
+from .browser_interface import browser_interface
 import logging
 
 localpath = os.path.dirname(os.path.realpath(__file__))
@@ -1180,24 +1180,6 @@ class BOMizator(QtWidgets.QMainWindow, form_class):
                 idx,
                 QtCore.QItemSelectionModel.Select)
 
-    def openBrowser(self, page):
-        """ opens the browser with datasheet
-        """
-        # now fire the web browser with this page opened
-        # this is list of browsers in the list of
-        # 'preferences'. Konqueror has troubles to display octopart
-        browsers = ['firefox', 'google-chrome', 'windows-default']
-        while True:
-            brw = browsers.pop(0)
-            if not brw:
-                raise webbrowser.Error("Cound not locate runnable browser")
-            try:
-                b = webbrowser.get(brw)
-                b.open(page, new=0, autoraise=True)
-                return
-            except webbrowser.Error:
-                pass
-
     def openSearchBrowser(self, searchtext):
         """ This function calls default plugin to supply the web
         search string for a given text. This one is then used to open
@@ -1226,6 +1208,11 @@ class BOMizator(QtWidgets.QMainWindow, form_class):
                               self.model.suppliers.plugins.keys()))
         url = "https://octopart.com/search?q=%s&" % (searchtext)+limits
         self.openBrowser(url)
+
+    def openBrowser(self, url):
+        """ opens browser interface
+        """
+        browser_interface().openBrowser(url)
 
     def treeDoubleclick(self, index):
         """ when user doubleclicks item, we search for it in farnel

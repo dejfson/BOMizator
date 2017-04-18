@@ -29,10 +29,12 @@
 implements functionality of components cache dialog
 """
 import os
+from functools import partial
 from PyQt5 import uic, QtWidgets, QtCore, QtGui
 from BOMizator.headers import headers
 from BOMizator.qbomcomponentscache import QBOMComponentCache
 from BOMizator.cachefileaccess import cacheFileAccess
+from BOMizator.browser_interface import browser_interface
 
 
 localpath = os.path.dirname(os.path.realpath(__file__))
@@ -57,9 +59,48 @@ class QComponentsCacheDialog(QtWidgets.QDialog, loaded_dialog):
         self.fillModel(cache.getCache())
         self.importButton.clicked.connect(self.importAnother)
         self.deleteButton.clicked.connect(self.deleteItems)
+        self.treeView.setContextMenuPolicy(QtCore.Qt.CustomContextMenu)
+        self.treeView.customContextMenuRequested.connect(self.openContextMenu)
+
         # we keep through the list of detected components
         # so cache can know what to delete
         self.deletedComponents = []
+
+    def getSelectedRows(self):
+        """ returns list of selected rows
+        """
+        rows = []
+        for row in self.treeView.selectedIndexes():
+            rows.append(row.row())
+        unique = set(rows)
+        return list(unique)
+
+    def openContextMenu(self, position):
+        """ opens context menu when right clicked
+        """
+        rows = self.getSelectedRows()
+        if len(rows) == 1:
+            # exactly one item selected, we can display datasheet if
+            # required
+            i = self.model.index(rows[0], 0)
+            libref, value, footprint, key = self.model.data(i,
+                                                            QtCore.Qt.UserRole)
+            comp = list(self.components[libref][value][footprint].values())[0]
+            print(comp)
+
+            if comp[self.header.DATASHEET]:
+                menu = QtWidgets.QMenu(self)
+                datasheet = comp[self.header.DATASHEET]
+                open_action = menu.addAction(
+                    self.tr("Open %s" % (datasheet, )))
+                open_action.triggered.connect(partial(self.openBrowser,
+                                                      datasheet))
+                menu.exec_(self.treeView.viewport().mapToGlobal(position))
+
+    def openBrowser(self, url):
+        """ opens browser interface
+        """
+        browser_interface().openBrowser(url)
 
     def deleteItems(self):
         """ deletes selected items from the copy of the components
