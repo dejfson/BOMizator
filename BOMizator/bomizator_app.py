@@ -216,7 +216,7 @@ class BOMizator(QtWidgets.QMainWindow, form_class):
         # save the state into configfile
         self.settings.setValue("hideLogConsole",
                                hide)
-        if hide:
+        if not hide:
             self.dockWidget.hide()
         else:
             self.dockWidget.show()
