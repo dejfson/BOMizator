@@ -40,7 +40,8 @@ setup(name='BOMizator',
       description="KiCad BOM to suppliers linker",
       author='David Belohrad',
       author_email='david.belohrad@cern.ch',
-      install_requires=['bs4', 'urllib3', 'html5lib', 'PyQt5'],
+      # note: PyQt5 had to be removed as it only works under windows?
+      install_requires=['bs4', 'urllib3', 'html5lib'],
       include_package_data=True,
       data_files=[('BOMizator', ['BOMizator/BOMLinker.ui', ])],
       entry_points={
