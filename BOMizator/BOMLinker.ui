@@ -97,28 +97,21 @@
           </property>
          </widget>
         </item>
-        <item row="2" column="0">
-         <widget class="QPushButton" name="bomExport">
-          <property name="text">
-           <string>&amp;Export BOM</string>
-          </property>
-         </widget>
-        </item>
-        <item row="0" column="1">
+        <item row="0" column="2">
          <widget class="QLineEdit" name="bomMultiplier">
           <property name="text">
            <string/>
           </property>
          </widget>
         </item>
-        <item row="0" column="2">
+        <item row="0" column="3">
          <widget class="QPushButton" name="bomApply">
           <property name="text">
            <string>&amp;Apply</string>
           </property>
          </widget>
         </item>
-        <item row="1" column="0" colspan="3">
+        <item row="1" column="0" colspan="4">
          <widget class="QTreeView" name="bomView">
           <property name="contextMenuPolicy">
            <enum>Qt::CustomContextMenu</enum>
@@ -158,6 +151,16 @@
           </attribute>
          </widget>
         </item>
+        <item row="2" column="0">
+         <widget class="QComboBox" name="bomExport">
+          <property name="currentText">
+           <string/>
+          </property>
+          <property name="currentIndex">
+           <number>-1</number>
+          </property>
+         </widget>
+        </item>
        </layout>
       </widget>
      </widget>
@@ -170,7 +173,7 @@
      <x>0</x>
      <y>0</y>
      <width>1258</width>
-     <height>44</height>
+     <height>19</height>
     </rect>
    </property>
    <widget class="QMenu" name="menu_View">

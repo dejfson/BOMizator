@@ -58,6 +58,7 @@ from .listviewhandler import ListViewHandler
 from .qsettingsdialog import QSettingsDialog
 from .qcomponentscachedialog import QComponentsCacheDialog
 from .browser_interface import browser_interface
+from .reports_selector import reports_selector
 import logging
 
 localpath = os.path.dirname(os.path.realpath(__file__))
@@ -101,6 +102,11 @@ class BOMizator(QtWidgets.QMainWindow, form_class):
                 "Not known what project is needed to be parsed"))
             sys.exit(-1)
 
+        # these provide BOM outputs
+        self.reporters = reports_selector()
+        self.fillExportCombo()
+        self.bomExport.activated.connect(self.export_bom)
+
         # show/hide disabled components
         self.action_Show_disabled_components.toggled.connect(
             self.hideShowDisabledComponents)
@@ -141,6 +147,23 @@ class BOMizator(QtWidgets.QMainWindow, form_class):
         self._readAndApplyWindowAttributeSettings()
         # update status for the first time
         self.treeSelection()
+
+    def export_bom(self, choice):
+        """ selects the BOM plugin and exports the BOM
+        """
+        if choice:
+            self.reporters.generateBOM(self.bomExport.itemText(choice),
+                                       self.bomTree.SCH.getCollectedComponents())
+            self.bomExport.setCurrentIndex(0)
+
+    def fillExportCombo(self):
+        """ fills the export combo box by appropriate plugins
+        """
+        plugins = self.reporters.plugins.keys()
+        self.bomExport.clear()
+        self.bomExport.addItem("BOM export ...")
+        self.bomExport.addItems(plugins)
+        self.bomExport.setCurrentIndex(0)
 
     def componentsCacheDialog(self):
         """ opens components cache dialog box, wchi takes care about
@@ -199,6 +222,10 @@ class BOMizator(QtWidgets.QMainWindow, form_class):
             # setup multiplier
             self.bomMultiplier.setText("%d" % (self.SCH.getGlobalMultiplier()))
             self.bomTree.modelModified.connect(self.modelModified)
+            # we have to set the combo index to the first text, which
+            # always shows 'export BOM'. User selects to perform the
+            # action
+            self.bomExport.setCurrentIndex(0)
 
     def saveProject(self):
         """ this function generates the data out of all the components

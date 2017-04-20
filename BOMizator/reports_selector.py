@@ -65,7 +65,7 @@ class reports_selector(object):
 
         for plugin in plugins:
             # skip __init__.py if there's any
-            if self.main_module + ".py" in plugin:
+            if "__init__.py" in plugin:
                 continue
 
             # each plugin has to have DEFAULT_CLASS attribute defined,
@@ -75,3 +75,8 @@ class reports_selector(object):
             self.logger.info("\t" + info().name)
             plugins_classes[info().name] = info()
         return plugins_classes
+
+    def generateBOM(self, plugin, data):
+        """ calls appropriate plugin to generate BOM data
+        """
+        self.plugins[plugin].generateBOM(data)

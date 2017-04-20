@@ -37,5 +37,10 @@ class rpt_simple(object):
     def __init__(self):
         self.name = "Simple PDF reporter"
 
+    def generateBOM(self, data):
+        """ out of data structure (dictionary) generates BOM using reportlab
+        """
+        print(data)
+
 
 DEFAULT_CLASS = rpt_simple
