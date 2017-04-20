@@ -153,7 +153,7 @@ class BOMizator(QtWidgets.QMainWindow, form_class):
         """
         if choice:
             self.reporters.generateBOM(self.bomExport.itemText(choice),
-                                       self.bomTree.SCH.getCollectedComponents())
+                                       self.bomTree.getAllComponents())
             self.bomExport.setCurrentIndex(0)
 
     def fillExportCombo(self):

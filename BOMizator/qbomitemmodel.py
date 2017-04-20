@@ -310,6 +310,34 @@ class QBOMItemModel(QtGui.QStandardItemModel):
                 self.ignoreTotalWrite = False
                 self.modelModified.emit(True)
 
+    def getAllComponents(self):
+        """ returns dictionary of all the components and their
+        parameters so that it can be used in any summary
+        """
+        bomx = {}
+
+        for supplier in range(self.rowCount()):
+            index = self.index(supplier, 0)
+            rows = self.rowCount(index)
+            supplier = index.data()
+            components = []
+            if supplier:
+                for row in range(rows):
+                    # let run through all the columns and fetch all
+                    # the texts from there
+                    rdat = map(lambda col:
+                               (self.horizontalHeaderItem(col).text(),
+                                index.child(row, col).data()),
+                               range(self.columnCount(index)))
+                    rd = dict(rdat)
+                    # all is good except designators, which we have to
+                    # strip form '\n'
+                    colname = self.header.DESIGNATORS
+                    rd[colname] = rd[colname].replace("\n", "")
+                    components.append(rd)
+                bomx[supplier] = components
+        return bomx
+
     def fillModel(self, hideComponents):
         """ based on input data the model is filled with the
         data. *DISABLED ITEMS ARE IGNORED* during production if
