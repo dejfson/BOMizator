@@ -41,7 +41,7 @@ setup(name='BOMizator',
       author='David Belohrad',
       author_email='david.belohrad@cern.ch',
       # note: PyQt5 had to be removed as it only works under windows?
-      install_requires=['bs4', 'urllib3', 'html5lib'],
+      install_requires=['bs4', 'urllib3', 'html5lib', 'reportlab'],
       include_package_data=True,
       data_files=[('BOMizator', ['BOMizator/BOMLinker.ui', ])],
       entry_points={
