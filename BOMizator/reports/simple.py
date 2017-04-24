@@ -28,6 +28,12 @@
 """
 Implements simple BOM output to PDF
 """
+from BOMizator.bomheaders import bomheaders
+from reportlab.lib import colors
+from reportlab.lib.pagesizes import A4, A3, inch, landscape
+from reportlab.platypus import SimpleDocTemplate, LongTable, TableStyle, Paragraph
+from reportlab.lib.styles import getSampleStyleSheet
+from reportlab.lib.units import cm
 
 
 class rpt_simple(object):
@@ -36,11 +42,93 @@ class rpt_simple(object):
 
     def __init__(self):
         self.name = "Simple PDF reporter"
+        self.header = bomheaders()
+        self.doc = SimpleDocTemplate(
+            "test_report_lab.pdf",
+            pagesize=A4,
+            rightMargin=20,
+            leftMargin=20,
+            topMargin=20,
+            bottomMargin=20,
+            allowSplitting=1,
+            title="Bill of Material")
+        #self.doc.pagesize = landscape(A4)
 
-    def generateBOM(self, data):
+        # self.style = TableStyle([('ALIGN',(1,1),(-2,-2),'RIGHT'),
+        #                          ('TEXTCOLOR',(1,1),(-2,-2),colors.red),
+        #                          ('VALIGN',(0,0),(0,-1),'CENTER'),
+        #                          ('TEXTCOLOR',(0,0),(0,-1),colors.blue),
+        #                          ('ALIGN',(0,-1),(-1,-1),'CENTER'),
+        #                          ('VALIGN',(0,-1),(-1,-1),'CENTER'),
+        #                          ('TEXTCOLOR',(0,-1),(-1,-1),colors.green),
+        #                          ('INNERGRID', (0,0), (-1,-1), 0.25, colors.black),
+        #                          ('BOX', (0,0), (-1,-1), 0.25, colors.black),
+        #])
+        self.style = TableStyle([('BOX', (0, -1), (-1, -1), 0.25,
+                                  colors.black),
+                                 ('TEXTCOLOR', (0, 0), (1, 1), colors.blue),
+                                 ('SPAN',(0, -1), (-1, -1))
+        ])
+
+    def getListFromSupplier(self, ddata, supplier):
+        """ from a given supplier provides a list of data. this is a _generator_
+        """
+        # browse through all the components
+        head = self.header.getHeaders()
+        items = map(lambda cmpn:
+                   list(map(lambda it: cmpn[it], head)), ddata[supplier])
+        for it in items:
+            yield it
+
+    def generateBOM(self, ddata):
         """ out of data structure (dictionary) generates BOM using reportlab
         """
-        print(data)
+
+        suppdata = list(self.getListFromSupplier(ddata, 'Farnell'))
+
+        elements = []
+        s = getSampleStyleSheet()
+        s = s["BodyText"]
+        s.wordWrap = 'CJK'
+
+        # let's process this component
+        component = ddata['Farnell'][0]
+
+        # now we generate data for each row
+        toptable = ['Multiplier', 'Adder', 'Total', 'Supplier no', 'Value', 'Manufacturer']
+        header = [Paragraph(cell, s) for cell in toptable]
+        P0 = Paragraph('''<link href="''' +
+                       component['Datasheet'] +
+                       '''">''' +
+                       component['Supplier no'] +
+                       '''</link>''',
+                       styleSheet["BodyText"])
+        # we have to do this manually as we want to add link
+        datarow = [
+            Paragraph(component['Multiplier'], s),
+            Paragraph(component['Adder'], s),
+            Paragraph(component['Total'], s),
+            P0,
+            Paragraph(component['Value'], s),
+            Paragraph(component['Manufacturer'], s)]
+        P1 = [Paragraph('''<b>Designators: </b>''' +
+                        component['Designators'], s), ]
+
+        data2 = [header, datarow, P1]
+        a4width = [2 * cm,
+                   2 * cm,
+                   2 * cm,
+                   2.5 * cm,
+                   5.0 * cm,
+                   5.0 * cm]
+        t=LongTable(data2, colWidths= a4width)
+        t.setStyle(self.style)
+
+        elements.append(t)
+        self.doc.build(elements)
+
 
 
 DEFAULT_CLASS = rpt_simple
+
+a = rpt_simple()
