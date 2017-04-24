@@ -90,41 +90,42 @@ class rpt_simple(object):
         s = getSampleStyleSheet()
         s = s["BodyText"]
         s.wordWrap = 'CJK'
+        s.spaceBefore = 50
+        s.listAttrs()
 
-        # let's process this component
-        component = ddata['Farnell'][0]
+        for component in ddata['Farnell']:
+            # now we generate data for each row
+            toptable = ['Multiplier', 'Adder', 'Total', 'Supplier no', 'Value', 'Manufacturer']
+            header = [Paragraph(cell, s) for cell in toptable]
+            P0 = Paragraph('''<link href="''' +
+                           component['Datasheet'] +
+                           '''"><b>''' +
+                           component['Supplier no'] +
+                           '''</b></link>''',
+                           styleSheet["BodyText"])
+            # we have to do this manually as we want to add link
+            total = Paragraph("<b>" + component['Total'] + "</b>", s)
+            datarow = [
+                Paragraph(component['Multiplier'], s),
+                Paragraph(component['Adder'], s),
+                total,
+                P0,
+                Paragraph(component['Value'], s),
+                Paragraph(component['Manufacturer'], s)]
+            P1 = [Paragraph('''<b>Designators: </b>''' +
+                            component['Designators'], s), ]
 
-        # now we generate data for each row
-        toptable = ['Multiplier', 'Adder', 'Total', 'Supplier no', 'Value', 'Manufacturer']
-        header = [Paragraph(cell, s) for cell in toptable]
-        P0 = Paragraph('''<link href="''' +
-                       component['Datasheet'] +
-                       '''">''' +
-                       component['Supplier no'] +
-                       '''</link>''',
-                       styleSheet["BodyText"])
-        # we have to do this manually as we want to add link
-        datarow = [
-            Paragraph(component['Multiplier'], s),
-            Paragraph(component['Adder'], s),
-            Paragraph(component['Total'], s),
-            P0,
-            Paragraph(component['Value'], s),
-            Paragraph(component['Manufacturer'], s)]
-        P1 = [Paragraph('''<b>Designators: </b>''' +
-                        component['Designators'], s), ]
+            data2 = [header, datarow, P1]
+            a4width = [2 * cm,
+                       2 * cm,
+                       2 * cm,
+                       2.5 * cm,
+                       5.0 * cm,
+                       5.0 * cm]
+            t=LongTable(data2, colWidths= a4width)
+            t.setStyle(self.style)
 
-        data2 = [header, datarow, P1]
-        a4width = [2 * cm,
-                   2 * cm,
-                   2 * cm,
-                   2.5 * cm,
-                   5.0 * cm,
-                   5.0 * cm]
-        t=LongTable(data2, colWidths= a4width)
-        t.setStyle(self.style)
-
-        elements.append(t)
+            elements.append(t)
         self.doc.build(elements)
 
 
