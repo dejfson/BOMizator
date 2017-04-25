@@ -144,18 +144,18 @@ class rpt_simple(object):
             #elements.append(PageBreak())
         # now we _prepend_ some additional stuff
         prep = []
-        prep.append(
-            Paragraph("Bill of Material",
-                      getSampleStyleSheet()['Title']))
-
         projectname = os.path.split(
             os.path.splitext(
                 additional['Project'])[0])[-1]
+        prep.append(
+            Paragraph("Bill of Material for %s" % (projectname, ),
+                      getSampleStyleSheet()['Title']))
+
         # we need to 'restyle' the designators
         desg = ','.join(additional['DisabledDesignators'])
         desg = ', '.join(map(str.strip, desg.split(",")))
         prep.append(
-            Paragraph('''This document contains order to
+            Paragraph('''This document contains components order to
  construct %d %s projects.''' %
                       (additional['GlobalMultiplier'],
                        projectname),
@@ -185,12 +185,11 @@ class rpt_simple(object):
         prep.append(Spacer(1 * cm, 0.5 * cm))
         # inject at the front of elements:
         elements = prep + elements
-        print(notordered)
         # and build
         self.doc.build(elements)
 
 
 DEFAULT_CLASS = rpt_simple
 
-#if __name__ == '__main__':
-a = rpt_simple()
+if __name__ == '__main__':
+    a = rpt_simple()
