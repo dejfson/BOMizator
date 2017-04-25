@@ -33,6 +33,7 @@ from reportlab.lib import colors
 from reportlab.lib.pagesizes import A4
 from reportlab.platypus import SimpleDocTemplate, LongTable
 from reportlab.platypus import TableStyle, Paragraph, Spacer
+from reportlab.platypus import PageBreak
 from reportlab.lib.styles import getSampleStyleSheet
 from reportlab.lib.units import cm, mm
 
@@ -84,55 +85,62 @@ class rpt_simple(object):
         s = s["BodyText"]
         s.wordWrap = 'CJK'
         s.spaceBefore = 50
-        s.listAttrs()
 
-        for component in ddata['Farnell']:
-            # now we generate data for each row
-            toptable = [self.header.MULTIPLYFACTOR,
-                        self.header.ADDFACTOR,
-                        self.header.TOTAL,
-                        self.header.SUPPNO,
-                        self.header.VALUE,
-                        self.header.LIBREF,
-                        self.header.MANUFACTURER]
-            header = [Paragraph(cell, s) for cell in toptable]
-            P0 = Paragraph('''<link href="''' +
-                           component[self.header.DATASHEET] +
-                           '''"><b>''' +
-                           component[self.header.SUPPNO] +
-                           '''</b></link>''',
-                           s)
-            # we have to do this manually as we want to add link
-            total = Paragraph("<b>" + component[self.header.TOTAL] + "</b>", s)
-            datarow = [
-                Paragraph(component[self.header.MULTIPLYFACTOR], s),
-                Paragraph(component[self.header.ADDFACTOR], s),
-                total,
-                P0,
-                Paragraph(component[self.header.VALUE], s),
-                Paragraph(component[self.header.LIBREF], s),
-                Paragraph(component[self.header.MANUFACTURER], s)]
-            P1 = [Paragraph('''<b>Designators: </b>''' +
-                            component[self.header.DESIGNATORS], s), ]
+        elements.append(
+            Paragraph("Bill of Material",
+                      getSampleStyleSheet()['Title']))
+        for supplier in ddata.keys():
+            elements.append(
+                Paragraph(supplier,
+                          getSampleStyleSheet()['Heading1']))
+            for component in ddata[supplier]:
+                # now we generate data for each row
+                toptable = [self.header.MULTIPLYFACTOR,
+                            self.header.ADDFACTOR,
+                            self.header.TOTAL,
+                            self.header.SUPPNO,
+                            self.header.VALUE,
+                            self.header.LIBREF,
+                            self.header.MANUFACTURER]
+                header = [Paragraph(cell, s) for cell in toptable]
+                P0 = Paragraph('''<link href="''' +
+                               component[self.header.DATASHEET] +
+                               '''"><b>''' +
+                               component[self.header.SUPPNO] +
+                               '''</b></link>''',
+                               s)
+                # we have to do this manually as we want to add link
+                total = Paragraph("<b>" + component[self.header.TOTAL] + "</b>", s)
+                datarow = [
+                    Paragraph(component[self.header.MULTIPLYFACTOR], s),
+                    Paragraph(component[self.header.ADDFACTOR], s),
+                    total,
+                    P0,
+                    Paragraph(component[self.header.VALUE], s),
+                    Paragraph(component[self.header.LIBREF], s),
+                    Paragraph(component[self.header.MANUFACTURER], s)]
+                P1 = [Paragraph('''<b>Designators: </b>''' +
+                                component[self.header.DESIGNATORS], s), ]
 
-            data2 = [P1, header, datarow]
-            a4width = [2 * cm,
-                       2 * cm,
-                       2 * cm,
-                       2.5 * cm,
-                       2.5 * cm,
-                       3.0 * cm,
-                       5.0 * cm]
-            t = LongTable(data2, colWidths=a4width)
-            t.setStyle(self.style)
+                data2 = [P1, header, datarow]
+                a4width = [2 * cm,
+                           2 * cm,
+                           2 * cm,
+                           2.5 * cm,
+                           2.5 * cm,
+                           3.0 * cm,
+                           5.0 * cm]
+                t = LongTable(data2, colWidths=a4width)
+                t.setStyle(self.style)
 
-            elements.append(t)
-            # add space after each table
-            elements.append(Spacer(1 * cm, 0.5 * cm))
+                elements.append(t)
+                # add space after each table
+                elements.append(Spacer(1 * cm, 0.5 * cm))
+            elements.append(PageBreak())
         self.doc.build(elements)
-
 
 
 DEFAULT_CLASS = rpt_simple
 
-a = rpt_simple()
+if __name__ == '__main__':
+    a = rpt_simple()
