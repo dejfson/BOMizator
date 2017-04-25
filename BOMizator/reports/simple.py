@@ -30,10 +30,11 @@ Implements simple BOM output to PDF
 """
 from BOMizator.bomheaders import bomheaders
 from reportlab.lib import colors
-from reportlab.lib.pagesizes import A4, A3, inch, landscape
-from reportlab.platypus import SimpleDocTemplate, LongTable, TableStyle, Paragraph
+from reportlab.lib.pagesizes import A4
+from reportlab.platypus import SimpleDocTemplate, LongTable
+from reportlab.platypus import TableStyle, Paragraph, Spacer
 from reportlab.lib.styles import getSampleStyleSheet
-from reportlab.lib.units import cm
+from reportlab.lib.units import cm, mm
 
 
 class rpt_simple(object):
@@ -52,22 +53,16 @@ class rpt_simple(object):
             bottomMargin=20,
             allowSplitting=1,
             title="Bill of Material")
-        #self.doc.pagesize = landscape(A4)
+        # in case:
+        # self.doc.pagesize = landscape(A4)
 
-        # self.style = TableStyle([('ALIGN',(1,1),(-2,-2),'RIGHT'),
-        #                          ('TEXTCOLOR',(1,1),(-2,-2),colors.red),
-        #                          ('VALIGN',(0,0),(0,-1),'CENTER'),
-        #                          ('TEXTCOLOR',(0,0),(0,-1),colors.blue),
-        #                          ('ALIGN',(0,-1),(-1,-1),'CENTER'),
-        #                          ('VALIGN',(0,-1),(-1,-1),'CENTER'),
-        #                          ('TEXTCOLOR',(0,-1),(-1,-1),colors.green),
-        #                          ('INNERGRID', (0,0), (-1,-1), 0.25, colors.black),
-        #                          ('BOX', (0,0), (-1,-1), 0.25, colors.black),
-        #])
-        self.style = TableStyle([('BOX', (0, -1), (-1, -1), 0.25,
-                                  colors.black),
-                                 ('TEXTCOLOR', (0, 0), (1, 1), colors.blue),
-                                 ('SPAN',(0, -1), (-1, -1))
+        self.style = TableStyle([
+            ('BOX', (0, 0), (-1, 0), 0.5 * mm, colors.black),
+            ('LINEBEFORE', (0, 0), (0, -1), 0.25 * mm, colors.black),
+            ('LINEAFTER', (-1, 0), (-1, -1), 0.25 * mm, colors.black),
+            ('LINEBELOW', (0, -1), (-1, -1), 0.25 * mm, colors.black),
+            ('TEXTCOLOR', (0, 0), (1, 1), colors.blue),
+            ('SPAN', (0, 0), (-1, 0))
         ])
 
     def getListFromSupplier(self, ddata, supplier):
@@ -76,15 +71,13 @@ class rpt_simple(object):
         # browse through all the components
         head = self.header.getHeaders()
         items = map(lambda cmpn:
-                   list(map(lambda it: cmpn[it], head)), ddata[supplier])
+                    list(map(lambda it: cmpn[it], head)), ddata[supplier])
         for it in items:
             yield it
 
     def generateBOM(self, ddata):
         """ out of data structure (dictionary) generates BOM using reportlab
         """
-
-        suppdata = list(self.getListFromSupplier(ddata, 'Farnell'))
 
         elements = []
         s = getSampleStyleSheet()
@@ -95,37 +88,44 @@ class rpt_simple(object):
 
         for component in ddata['Farnell']:
             # now we generate data for each row
-            toptable = ['Multiplier', 'Adder', 'Total', 'Supplier no', 'Value', 'Manufacturer']
+            toptable = [self.header.MULTIPLYFACTOR,
+                        self.header.ADDFACTOR,
+                        self.header.TOTAL,
+                        self.header.SUPPNO,
+                        self.header.VALUE,
+                        self.header.MANUFACTURER]
             header = [Paragraph(cell, s) for cell in toptable]
             P0 = Paragraph('''<link href="''' +
-                           component['Datasheet'] +
+                           component[self.header.DATASHEET] +
                            '''"><b>''' +
-                           component['Supplier no'] +
+                           component[self.header.SUPPNO] +
                            '''</b></link>''',
-                           styleSheet["BodyText"])
+                           s)
             # we have to do this manually as we want to add link
-            total = Paragraph("<b>" + component['Total'] + "</b>", s)
+            total = Paragraph("<b>" + component[self.header.TOTAL] + "</b>", s)
             datarow = [
-                Paragraph(component['Multiplier'], s),
-                Paragraph(component['Adder'], s),
+                Paragraph(component[self.header.MULTIPLYFACTOR], s),
+                Paragraph(component[self.header.ADDFACTOR], s),
                 total,
                 P0,
-                Paragraph(component['Value'], s),
-                Paragraph(component['Manufacturer'], s)]
+                Paragraph(component[self.header.VALUE], s),
+                Paragraph(component[self.header.MANUFACTURER], s)]
             P1 = [Paragraph('''<b>Designators: </b>''' +
-                            component['Designators'], s), ]
+                            component[self.header.DESIGNATORS], s), ]
 
-            data2 = [header, datarow, P1]
+            data2 = [P1, header, datarow]
             a4width = [2 * cm,
                        2 * cm,
                        2 * cm,
                        2.5 * cm,
                        5.0 * cm,
                        5.0 * cm]
-            t=LongTable(data2, colWidths= a4width)
+            t = LongTable(data2, colWidths=a4width)
             t.setStyle(self.style)
 
             elements.append(t)
+            # add space after each table
+            elements.append(Spacer(1 * cm, 0.5 * cm))
         self.doc.build(elements)
 
 
