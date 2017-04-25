@@ -76,7 +76,8 @@ class reports_selector(object):
             plugins_classes[info().name] = info()
         return plugins_classes
 
-    def generateBOM(self, plugin, data, additional={}):
+    def generateBOM(self, plugin, data,
+                    filename="exportedbom.pdf", additional={}):
         """ calls appropriate plugin to generate BOM data
         """
-        self.plugins[plugin].generateBOM(data, additional)
+        self.plugins[plugin].generateBOM(filename, data, additional)

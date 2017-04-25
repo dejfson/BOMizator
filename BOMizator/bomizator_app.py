@@ -152,10 +152,19 @@ class BOMizator(QtWidgets.QMainWindow, form_class):
         """ selects the BOM plugin and exports the BOM
         """
         if choice:
-            order, additional = self.bomTree.getAllComponents()
-            self.reporters.generateBOM(self.bomExport.itemText(choice),
-                                       order,
-                                       additional)
+            projdir, _ = QtWidgets.QFileDialog.getSaveFileName(self,
+                                                               "PDF files",
+                                                               '',
+                                                               "PDF\
+ files (*.pdf)")
+            if projdir:
+                order, additional = self.bomTree.getAllComponents()
+                self.reporters.generateBOM(self.bomExport.itemText(choice),
+                                           order,
+                                           projdir,
+                                           additional)
+                self.logger.info("Generated bill of material into %s"
+                                 % (projdir,))
             self.bomExport.setCurrentIndex(0)
 
     def fillExportCombo(self):

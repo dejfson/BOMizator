@@ -33,30 +33,20 @@ from reportlab.lib import colors
 from reportlab.lib.pagesizes import A4
 from reportlab.platypus import SimpleDocTemplate, Table
 from reportlab.platypus import TableStyle, Paragraph, Spacer
-from reportlab.platypus import PageBreak
 from reportlab.lib.styles import getSampleStyleSheet
 from reportlab.lib.units import cm, mm
 import os
 
 
 class rpt_simple(object):
-    """ defines web search interface for uk.farnell.com.
+    """ defines simple plugin, which generates a table-like BOM. No
+    fancy stuff, just ordinary black/white table list of all the
+    components the be ordered
     """
 
     def __init__(self):
         self.name = "Simple PDF reporter"
         self.header = bomheaders()
-        self.doc = SimpleDocTemplate(
-            "test_report_lab.pdf",
-            pagesize=A4,
-            rightMargin=20,
-            leftMargin=20,
-            topMargin=20,
-            bottomMargin=20,
-            allowSplitting=1,
-            title="Bill of Material")
-        # in case:
-        # self.doc.pagesize = landscape(A4)
 
         self.style = TableStyle([
             ('BOX', (0, 0), (-1, 0), 0.5 * mm, colors.black),
@@ -77,13 +67,23 @@ class rpt_simple(object):
         for it in items:
             yield it
 
-    def generateBOM(self, ddata, additional={}):
+    def generateBOM(self, filename, ddata, additional={}):
         """ out of data structure (dictionary) generates BOM using
         reportlab. Additional data contain keys which might help
         generating better reports. additional dictionary has to define
         following terms: DisabledDesignators, Project,
         GlobalMultiplier,
         """
+
+        self.doc = SimpleDocTemplate(
+            filename,
+            pagesize=A4,
+            rightMargin=20,
+            leftMargin=20,
+            topMargin=20,
+            bottomMargin=20,
+            allowSplitting=1,
+            title="Bill of Material")
 
         elements = []
         s = getSampleStyleSheet()
