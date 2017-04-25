@@ -37,6 +37,6 @@ loaded_dialog = uic.loadUiType(os.path.join(localpath,
 
 
 class QNewComponentsCacheDialog(QtWidgets.QDialog, loaded_dialog):
-    def __init__(self, cache, parent=None, flags=QtCore.Qt.WindowFlags()):
+    def __init__(self, parent=None, flags=QtCore.Qt.WindowFlags()):
         super(QNewComponentsCacheDialog, self).__init__(parent, flags)
         self.setupUi(self)
