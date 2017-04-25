@@ -152,8 +152,10 @@ class BOMizator(QtWidgets.QMainWindow, form_class):
         """ selects the BOM plugin and exports the BOM
         """
         if choice:
+            order, additional = self.bomTree.getAllComponents()
             self.reporters.generateBOM(self.bomExport.itemText(choice),
-                                       self.bomTree.getAllComponents())
+                                       order,
+                                       additional)
             self.bomExport.setCurrentIndex(0)
 
     def fillExportCombo(self):

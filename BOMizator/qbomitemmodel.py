@@ -312,7 +312,7 @@ class QBOMItemModel(QtGui.QStandardItemModel):
 
     def getAllComponents(self):
         """ returns dictionary of all the components and their
-        parameters so that it can be used in any summary
+        parameters so that it can be used in any summary.
         """
         bomx = {}
 
@@ -334,9 +334,21 @@ class QBOMItemModel(QtGui.QStandardItemModel):
                     # strip form '\n'
                     colname = self.header.DESIGNATORS
                     rd[colname] = rd[colname].replace("\n", "")
+                    # all rows added, now we have to find, if this
+                    # particular component is 'do not order'
+                    cmx = self.SCH.getDoNotOrder([
+                        (supplier, rd[self.header.SUPPNO])])
+                    rd[self.header.DONOTORDER] = cmx[0]
                     components.append(rd)
                 bomx[supplier] = components
-        return bomx
+        # we add some other things into the bomx so reporters can be
+        # more informative about some subjects
+        additional_data = {}
+        additional_data['GlobalMultiplier'] = self.SCH.getGlobalMultiplier()
+        additional_data['HiddenComponents'] = self.hideComponents
+        additional_data['DisabledDesignators'] = self.SCH.getDisabledDesignators()
+        additional_data['Project'] = self.SCH.projectFile
+        return bomx, additional_data
 
     def fillModel(self, hideComponents):
         """ based on input data the model is filled with the
@@ -344,6 +356,7 @@ class QBOMItemModel(QtGui.QStandardItemModel):
         hideComponents is set to true.
         """
 
+        self.hideComponents = hideComponents
         # now we need to crunch the data. First we get composed a
         # dictionary consisting of two data sets: the schematic loaded
         # from the schematic data, and _our one loaded from bmz

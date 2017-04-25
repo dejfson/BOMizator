@@ -31,11 +31,12 @@ Implements simple BOM output to PDF
 from BOMizator.bomheaders import bomheaders
 from reportlab.lib import colors
 from reportlab.lib.pagesizes import A4
-from reportlab.platypus import SimpleDocTemplate, LongTable
+from reportlab.platypus import SimpleDocTemplate, Table
 from reportlab.platypus import TableStyle, Paragraph, Spacer
 from reportlab.platypus import PageBreak
 from reportlab.lib.styles import getSampleStyleSheet
 from reportlab.lib.units import cm, mm
+import os
 
 
 class rpt_simple(object):
@@ -76,24 +77,28 @@ class rpt_simple(object):
         for it in items:
             yield it
 
-    def generateBOM(self, ddata):
-        """ out of data structure (dictionary) generates BOM using reportlab
+    def generateBOM(self, ddata, additional={}):
+        """ out of data structure (dictionary) generates BOM using
+        reportlab. Additional data contain keys which might help
+        generating better reports. additional dictionary has to define
+        following terms: DisabledDesignators, Project,
+        GlobalMultiplier,
         """
 
         elements = []
         s = getSampleStyleSheet()
         s = s["BodyText"]
         s.wordWrap = 'CJK'
-        s.spaceBefore = 50
 
-        elements.append(
-            Paragraph("Bill of Material",
-                      getSampleStyleSheet()['Title']))
+        notordered = []
         for supplier in ddata.keys():
             elements.append(
                 Paragraph(supplier,
                           getSampleStyleSheet()['Heading1']))
             for component in ddata[supplier]:
+                if component[self.header.DONOTORDER]:
+                    notordered.append([supplier, component])
+                    continue
                 # now we generate data for each row
                 toptable = [self.header.MULTIPLYFACTOR,
                             self.header.ADDFACTOR,
@@ -130,17 +135,62 @@ class rpt_simple(object):
                            2.5 * cm,
                            3.0 * cm,
                            5.0 * cm]
-                t = LongTable(data2, colWidths=a4width)
+                t = Table(data2, colWidths=a4width)
                 t.setStyle(self.style)
 
                 elements.append(t)
                 # add space after each table
                 elements.append(Spacer(1 * cm, 0.5 * cm))
-            elements.append(PageBreak())
+            #elements.append(PageBreak())
+        # now we _prepend_ some additional stuff
+        prep = []
+        prep.append(
+            Paragraph("Bill of Material",
+                      getSampleStyleSheet()['Title']))
+
+        projectname = os.path.split(
+            os.path.splitext(
+                additional['Project'])[0])[-1]
+        # we need to 'restyle' the designators
+        desg = ','.join(additional['DisabledDesignators'])
+        desg = ', '.join(map(str.strip, desg.split(",")))
+        prep.append(
+            Paragraph('''This document contains order to
+ construct %d %s projects.''' %
+                      (additional['GlobalMultiplier'],
+                       projectname),
+                      s))
+        prep.append(
+            Paragraph('''<b>Following designators are disabled
+ and do not appear in the current order list:</b> %s.''' %
+                      (desg, ), s))
+        # make text of not ordered components:
+        cmps = []
+        for supplier, component in notordered:
+            link = '''<link href="''' +\
+                   component[self.header.DATASHEET] +\
+                   '''"><b>''' +\
+                   component[self.header.SUPPNO] +\
+                   '''</b></link>'''
+
+            cmps.append("%s (%s %s)" %
+                        (component[self.header.DESIGNATORS],
+                         supplier,
+                         link))
+        if cmps:
+            prep.append(
+                Paragraph('''<b>The order is incomplete</b> as some
+ components were requested not to be ordered, namely:
+ %s''' % (', '.join(cmps)), s))
+        prep.append(Spacer(1 * cm, 0.5 * cm))
+        # inject at the front of elements:
+        elements = prep + elements
+        print(notordered)
+        # and build
         self.doc.build(elements)
 
 
 DEFAULT_CLASS = rpt_simple
 
-if __name__ == '__main__':
-    a = rpt_simple()
+#if __name__ == '__main__':
+a = rpt_simple()
