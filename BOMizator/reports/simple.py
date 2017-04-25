@@ -82,7 +82,7 @@ class rpt_simple(object):
             leftMargin=20,
             topMargin=20,
             bottomMargin=20,
-            allowSplitting=1,
+            allowSplitting=0,
             title="Bill of Material")
 
         elements = []
