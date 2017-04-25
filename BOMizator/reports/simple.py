@@ -93,6 +93,7 @@ class rpt_simple(object):
                         self.header.TOTAL,
                         self.header.SUPPNO,
                         self.header.VALUE,
+                        self.header.LIBREF,
                         self.header.MANUFACTURER]
             header = [Paragraph(cell, s) for cell in toptable]
             P0 = Paragraph('''<link href="''' +
@@ -109,6 +110,7 @@ class rpt_simple(object):
                 total,
                 P0,
                 Paragraph(component[self.header.VALUE], s),
+                Paragraph(component[self.header.LIBREF], s),
                 Paragraph(component[self.header.MANUFACTURER], s)]
             P1 = [Paragraph('''<b>Designators: </b>''' +
                             component[self.header.DESIGNATORS], s), ]
@@ -118,7 +120,8 @@ class rpt_simple(object):
                        2 * cm,
                        2 * cm,
                        2.5 * cm,
-                       5.0 * cm,
+                       2.5 * cm,
+                       3.0 * cm,
                        5.0 * cm]
             t = LongTable(data2, colWidths=a4width)
             t.setStyle(self.style)
