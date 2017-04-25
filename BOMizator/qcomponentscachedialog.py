@@ -35,12 +35,12 @@ from BOMizator.headers import headers
 from BOMizator.qbomcomponentscache import QBOMComponentCache
 from BOMizator.cachefileaccess import cacheFileAccess
 from BOMizator.browser_interface import browser_interface
+from BOMizator.qnewcomponentscachedialog import QNewComponentsCacheDialog
 
 
 localpath = os.path.dirname(os.path.realpath(__file__))
 loaded_dialog = uic.loadUiType(os.path.join(localpath,
                                             "componentsCacheDialog.ui"))[0]
-
 
 class QComponentsCacheDialog(QtWidgets.QDialog, loaded_dialog):
     """ settings dialog box, takes care about selection of the cache
@@ -61,10 +61,22 @@ class QComponentsCacheDialog(QtWidgets.QDialog, loaded_dialog):
         self.deleteButton.clicked.connect(self.deleteItems)
         self.treeView.setContextMenuPolicy(QtCore.Qt.CustomContextMenu)
         self.treeView.customContextMenuRequested.connect(self.openContextMenu)
-
+        self.newButton.clicked.connect(self.newCache)
         # we keep through the list of detected components
         # so cache can know what to delete
         self.deletedComponents = []
+
+    def showConcernDialog(self):
+        msg = QNewComponentsCacheDialog(self)
+        retval = msg.exec_()
+        if retval == QtWidgets.QMessageBox.Ok:
+            print("value of pressed message box button:", retval)
+
+    def newCache(self):
+        """ informs user about how to do, and then creates a new
+        cache. If all OK, fills-in the dialog box with new cache
+        """
+        self.showConcernDialog()
 
     def getSelectedRows(self):
         """ returns list of selected rows
