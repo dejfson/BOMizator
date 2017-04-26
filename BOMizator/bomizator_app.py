@@ -158,6 +158,9 @@ class BOMizator(QtWidgets.QMainWindow, form_class):
                                                                "PDF\
  files (*.pdf)")
             if projdir:
+                # augment for pdf:
+                if not os.path.splitext(projdir)[-1]:
+                    projdir += ".pdf"
                 order, additional = self.bomTree.getAllComponents()
                 self.reporters.generateBOM(self.bomExport.itemText(choice),
                                            order,
