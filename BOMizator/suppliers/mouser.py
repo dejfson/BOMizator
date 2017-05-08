@@ -82,14 +82,13 @@ Refine.aspx?Keyword=%s" % (searchtext,)
         # manufacturer and manunumber if free of charge as it is in
         # the header, we use bs to parse the web pages
         # this is dependent of web page structure
-        user_agent = {'user-agent': 'Mozilla/5.0 (Windows NT 6.3;\
-rv:36.0) Gecko/20120101 Firefox/36.0'}
+        uag = self.ua.random
+        user_agent = {'user-agent': uag}
         # we need to use user_agent as mouser is obsfucated, using
         # user agent should 'assure' that we can get web page and not
         # being identified as crawler (which is not the case, right :)
-        uag = self.ua.random
         self.logger.debug("Using user agent: %s" % (uag, ))
-        http = urllib3.PoolManager(2, headers=self.ua.random)
+        http = urllib3.PoolManager(2, headers=user_agent)
         response = http.request('GET', urltext)
         html = response.data.decode("utf-8")
         parsed_html = BeautifulSoup(html)
