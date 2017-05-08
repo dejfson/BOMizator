@@ -30,6 +30,7 @@ Mouser webpages search engine
 """
 
 import urllib3
+from fake_useragent import UserAgent
 try:
     from BeautifulSoup import BeautifulSoup
 except ImportError:
@@ -37,6 +38,7 @@ except ImportError:
 # import headers to be able to match the string names correctly
 from BOMizator.headers import headers
 from BOMizator.suppexceptions import NotMatchingHeader, MalformedURL
+import logging
 
 # FOR THE MOMENT THE FARNELL LOOKUP IS DONE BY PARSING THEIR WEB
 # PAGES. AND IT WORKS GREAT. HOWEVER IF THAT FOR SOME CASE FAILS, IT
@@ -56,6 +58,8 @@ class mouser(object):
         self.name = "Mouser"
         self.header = headers()
         self.debug = False
+        self.logger = logging.getLogger('bomizator')
+        self.ua = UserAgent()
 
     def getUrl(self, searchtext):
         """ returns URL of mouser, which triggers searching for a
@@ -79,14 +83,17 @@ Refine.aspx?Keyword=%s" % (searchtext,)
         # the header, we use bs to parse the web pages
         # this is dependent of web page structure
         user_agent = {'user-agent': 'Mozilla/5.0 (Windows NT 6.3;\
-rv:36.0) Gecko/20100101 Firefox/36.0'}
+rv:36.0) Gecko/20120101 Firefox/36.0'}
         # we need to use user_agent as mouser is obsfucated, using
         # user agent should 'assure' that we can get web page and not
         # being identified as crawler (which is not the case, right :)
-        http = urllib3.PoolManager(2, headers=user_agent)
+        uag = self.ua.random
+        self.logger.debug("Using user agent: %s" % (uag, ))
+        http = urllib3.PoolManager(2, headers=self.ua.random)
         response = http.request('GET', urltext)
         html = response.data.decode("utf-8")
         parsed_html = BeautifulSoup(html)
+        self.logger.debug("Parsing following: %s" % (urltext,))
         try:
             l1 = parsed_html.body.find('div',
                                        attrs={'class':
@@ -109,6 +116,8 @@ rv:36.0) Gecko/20100101 Firefox/36.0'}
                                        'target':
                                        "_blank"}).attrs['href'].strip()
         except AttributeError:
+            self.logger.debug("RECEIVED INVALID WEB PAGE CONTENT:")
+            self.logger.debug(parsed_html)
             raise MalformedURL("Malformed URL for MOUSER plugin")
         datanames = (self.header.MANUFACTURER,
                      self.header.MFRNO,
