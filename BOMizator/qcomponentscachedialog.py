@@ -41,7 +41,6 @@ localpath = os.path.dirname(os.path.realpath(__file__))
 loaded_dialog = uic.loadUiType(os.path.join(localpath,
                                             "componentsCacheDialog.ui"))[0]
 
-
 class QComponentsCacheDialog(QtWidgets.QDialog, loaded_dialog):
     """ settings dialog box, takes care about selection of the cache
     """
@@ -61,7 +60,6 @@ class QComponentsCacheDialog(QtWidgets.QDialog, loaded_dialog):
         self.deleteButton.clicked.connect(self.deleteItems)
         self.treeView.setContextMenuPolicy(QtCore.Qt.CustomContextMenu)
         self.treeView.customContextMenuRequested.connect(self.openContextMenu)
-
         # we keep through the list of detected components
         # so cache can know what to delete
         self.deletedComponents = []

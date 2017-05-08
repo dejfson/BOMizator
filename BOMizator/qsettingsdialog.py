@@ -33,6 +33,9 @@ from PyQt5 import QtWidgets, uic, QtCore
 import os
 import imp
 import fnmatch
+import shutil
+from BOMizator.qnewcomponentscachedialog import QNewComponentsCacheDialog
+import logging
 
 localpath = os.path.dirname(os.path.realpath(__file__))
 loaded_dialog = uic.loadUiType(os.path.join(localpath,
@@ -47,6 +50,8 @@ class QSettingsDialog(QtWidgets.QDialog, loaded_dialog):
         super(QSettingsDialog, self).__init__(parent, flags)
         self.settings = settings
         self.setupUi(self)
+        self.newCache.clicked.connect(self.makeNewCache)
+        self.logger = logging.getLogger('bomizator')
 
         self.settingsChooseComponentCache.clicked.connect(self.getCacheFile)
 
@@ -88,6 +93,60 @@ class QSettingsDialog(QtWidgets.QDialog, loaded_dialog):
                          enumerate(inserted)))
         self.settingsCacheAccessType.setCurrentIndex(ci[0][0])
 
+    def showConcernDialog(self):
+        """ opens dialog with information and asks for a filename for
+        the new cache
+        """
+        msg = QNewComponentsCacheDialog(self)
+        retval = msg.exec_()
+        if retval:
+            # now we ask for a filename
+            projdir, _ = QtWidgets.\
+                         QFileDialog.\
+                         getSaveFileName(self,
+                                         "New Components cache",
+                                         '',
+                                         "Components cache (*.bmc)")
+            if projdir and not os.path.splitext(projdir)[-1]:
+                projdir += ".bmc"
+            return (projdir,
+                    msg.copyCurrentCache.checkState() == QtCore.Qt.Checked)
+        # return empty stuff
+        return ('', '')
+
+    def makeNewCache(self):
+        """ informs user about how to do, and then creates a new
+        cache. If all OK, fills-in the dialog box with new cache
+        """
+        newcache, makeCopy = self.showConcernDialog()
+        self.generateCache(newcache, makeCopy)
+
+    def generateCache(self, fname, copyold):
+        """ makes a new cache either by copying the current one, or by
+        generating a new one (empty)
+        """
+        try:
+            if copyold:
+                shutil.copyfile(
+                    self.settingsComponentCache.text(),
+                    fname)
+                self.logger.info("Copied current components class into a\
+ newly generated new components class: %s" % (fname, ))
+                self.settingsComponentCache.setText(fname)
+                return
+
+        except FileNotFoundError:
+            self.logger.error("The original components cache filename\
+ does not exist, hence cannot be copied. Generating empty cache instead.")
+
+        # either failure as user selected some 'actual' cache which
+        # does not exist, or we create new empty one
+        with open(fname, "wt") as f:
+            f.write("{}")
+        self.logger.info("Generated new components\
+ class in %s" % (fname, ))
+        self.settingsComponentCache.setText(fname)
+
     def getCacheFile(self):
         """ opens file dialog box asking user to get the cache
         file. We're using savefilename as this one permits to create
@@ -106,4 +165,7 @@ class QSettingsDialog(QtWidgets.QDialog, loaded_dialog):
                                                    '',
                                                    options)
         if cacheFile:
+            # append extension if not defined
+            if cacheFile and not os.path.splitext(cacheFile)[-1]:
+                cacheFile += ".bmc"
             self.settingsComponentCache.setText(cacheFile)
